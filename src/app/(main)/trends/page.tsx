@@ -5,8 +5,8 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getPersonalizedOffers, PersonalizedOffersOutput } from '@/ai/flows/personalized-offers';
-import { Loader, Loader2 } from 'lucide-react';
+import { getSalesInsights, SalesInsightsOutput } from '@/ai/flows/sales-insights';
+import { Loader, Loader2, BarChart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation } from '@/hooks/use-translation';
 
@@ -24,7 +24,7 @@ const mockSalesData = {
   ]
 };
 
-const OfferSkeleton = () => (
+const InsightSkeleton = () => (
   <Card>
     <CardHeader>
       <Skeleton className="h-6 w-1/2" />
@@ -45,40 +45,40 @@ const OfferSkeleton = () => (
 
 export default function TrendsPage() {
   const { t } = useTranslation();
-  const [offers, setOffers] = useState<PersonalizedOffersOutput['offers']>([]);
+  const [insights, setInsights] = useState<SalesInsightsOutput['insights']>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchOffers = async () => {
+  const fetchInsights = async () => {
     setLoading(true);
     setError(null);
     try {
       // Simulate delay for spinner visibility
       await new Promise(resolve => setTimeout(resolve, 500));
-      const result = await getPersonalizedOffers({ salesData: JSON.stringify(mockSalesData) });
-      if (result && result.offers) {
-        setOffers(result.offers);
+      const result = await getSalesInsights({ salesData: JSON.stringify(mockSalesData) });
+      if (result && result.insights) {
+        setInsights(result.insights);
       } else {
-        setOffers([]);
-        setError(t('error_getting_offers'));
+        setInsights([]);
+        setError(t('error_getting_insights'));
       }
     } catch (e) {
       console.error(e);
-      setError(t('error_fetching_offers'));
-      setOffers([]);
+      setError(t('error_fetching_insights'));
+      setInsights([]);
     } finally {
       setLoading(false);
     }
   };
   
   useEffect(() => {
-    fetchOffers();
+    fetchInsights();
   }, [])
 
   return (
     <div className="flex h-screen flex-col">
-      <PageHeader title={t('ai_powered_trends')} showBackButton={false}>
-         <Button variant="ghost" size="sm" onClick={fetchOffers} disabled={loading}>
+      <PageHeader title={t('ai_insights')} showBackButton={false}>
+         <Button variant="ghost" size="sm" onClick={fetchInsights} disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -91,7 +91,7 @@ export default function TrendsPage() {
       </PageHeader>
       
       <div className="flex-grow overflow-y-auto p-4 space-y-4">
-        {loading && <OfferSkeleton />}
+        {loading && <InsightSkeleton />}
 
         {error && !loading && (
             <Card className="bg-destructive/10 border-destructive">
@@ -104,18 +104,18 @@ export default function TrendsPage() {
             </Card>
         )}
 
-        {!loading && !error && offers.length > 0 && (
+        {!loading && !error && insights.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>{t('personalized_offers')}</CardTitle>
+              <CardTitle>{t('sales_trends_and_insights')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {offers.map((offer, index) => (
+              {insights.map((insight, index) => (
                 <div key={index} className="flex items-start gap-4 p-3 bg-secondary rounded-lg">
-                  <span className="text-2xl mt-1">{offer.emoji || '💡'}</span>
+                  <span className="text-2xl mt-1">{insight.emoji || '💡'}</span>
                   <div>
-                    <h3 className="font-semibold">{offer.productName}</h3>
-                    <p className="text-muted-foreground text-sm">{offer.offer}</p>
+                    <h3 className="font-semibold">{insight.title}</h3>
+                    <p className="text-muted-foreground text-sm">{insight.insight}</p>
                   </div>
                 </div>
               ))}
@@ -123,10 +123,16 @@ export default function TrendsPage() {
           </Card>
         )}
         
-        {!loading && !error && offers.length === 0 && (
+        {!loading && !error && insights.length === 0 && (
              <Card>
-                <CardContent className="p-6 text-center">
-                    <p className="text-muted-foreground">{t('no_offers_generated')}</p>
+                <CardContent className="p-6 text-center space-y-3">
+                    <div className="flex justify-center">
+                        <div className="p-3 bg-secondary rounded-full">
+                         <BarChart className="h-10 w-10 text-muted-foreground" />
+                        </div>
+                    </div>
+                    <h3 className="text-lg font-semibold">{t('no_insights_yet')}</h3>
+                    <p className="text-muted-foreground">{t('no_insights_subtext')}</p>
                 </CardContent>
             </Card>
         )}

@@ -3,10 +3,12 @@
 
 import { AppHeader } from '@/components/shared/app-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { formatUGX } from '@/lib/utils';
-import { ArrowUp, ArrowDown, HandCoins, ReceiptText } from 'lucide-react';
+import { ArrowUp, ArrowDown, HandCoins, ReceiptText, FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '@/hooks/use-translation';
+import Link from 'next/link';
 
 const CountUp = ({ to }: { to: number }) => {
   const [count, setCount] = useState(0);
@@ -46,6 +48,7 @@ export default function DashboardPage() {
   const [lastSynced, setLastSynced] = useState(t('just_now'));
 
   const isProfit = profit >= 0;
+  const hasData = revenue > 0 || expenses > 0;
 
   useEffect(() => {
     // Simulate time passing for sync status
@@ -54,6 +57,24 @@ export default function DashboardPage() {
     }, 120000);
     return () => clearInterval(interval);
   }, [t]);
+
+  if (!hasData) {
+    return (
+      <div className="flex flex-col">
+        <AppHeader />
+        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center space-y-4">
+          <div className="p-4 bg-secondary rounded-full">
+            <FileText className="h-12 w-12 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold">{t('welcome_to_dashboard')}</h2>
+          <p className="text-muted-foreground">{t('welcome_dashboard_subtext')}</p>
+          <Button asChild size="lg">
+            <Link href="/entry">{t('go_to_daily_entry')}</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col">

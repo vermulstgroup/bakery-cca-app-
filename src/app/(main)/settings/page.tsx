@@ -29,7 +29,7 @@ export default function SettingsPage() {
     }
   }
 
-  const bakeryName = BAKERIES.find(b => b.id === onboardingData.bakery)?.name || 'N/A';
+  const bakeryName = BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_your_bakery');
   const roleName = ROLES[onboardingData.role?.toUpperCase() || 'MANAGER']?.name || 'N/A';
 
   return (

@@ -6,13 +6,14 @@ import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronLeft, ChevronRight, Minus, Plus, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Minus, Plus, Loader2, Settings } from 'lucide-react';
 import { PRODUCTS } from '@/lib/data';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { format, addDays, subDays } from 'date-fns';
 import { useToast } from "@/hooks/use-toast"
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/use-translation';
+import Link from 'next/link';
 
 
 const ProductCounter = ({ product }: { product: any }) => {
@@ -82,6 +83,37 @@ export default function DailyEntryPage() {
             })
             setTimeout(() => setSaveStatus('idle'), 2000);
         }, 1000);
+    }
+
+    if (!isLoaded) {
+        return (
+             <div className="flex h-screen flex-col">
+                <PageHeader title={t('daily_entry')}>
+                    <Button variant="ghost" size="sm">{t('today')}</Button>
+                </PageHeader>
+                <div className="flex flex-1 items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+            </div>
+        )
+    }
+
+    if (userProducts.length === 0) {
+        return (
+            <div className="flex h-screen flex-col">
+                <PageHeader title={t('daily_entry')} />
+                <div className="flex flex-1 flex-col items-center justify-center p-8 text-center space-y-4">
+                    <div className="p-4 bg-secondary rounded-full">
+                        <Settings className="h-12 w-12 text-primary" />
+                    </div>
+                    <h2 className="text-2xl font-bold">{t('no_products_setup_title')}</h2>
+                    <p className="text-muted-foreground">{t('no_products_setup_subtitle')}</p>
+                    <Button asChild size="lg">
+                        <Link href="/select-products">{t('go_to_product_settings')}</Link>
+                    </Button>
+                </div>
+            </div>
+        )
     }
     
     return (
