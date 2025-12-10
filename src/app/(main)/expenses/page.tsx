@@ -18,10 +18,17 @@ import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from '@/hooks/use-translation';
+import { useUser, useFirestore } from '@/firebase';
+import { useOnboarding } from '@/hooks/use-onboarding';
+import { saveWeeklyExpense } from '@/lib/firebase/weekly-expenses';
 
 export default function ExpensesPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { data: onboardingData } = useOnboarding();
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [expenses, setExpenses] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -45,17 +52,43 @@ export default function ExpensesPage() {
     handleExpenseChange(categoryId, (currentAmount + amount).toString());
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!user || !onboardingData.bakery || !firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'You must be logged in and have a bakery selected to save data.'
+      });
+      return;
+    }
+
     setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-        setIsSaving(false);
-        toast({
-            title: t('expenses_saved'),
-            description: t('total_expenses_saved_for_week', { total: formatUGX(totalExpenses), week: weekLabel }),
-            className: 'bg-success text-white'
-        });
-    }, 1000);
+    try {
+      const expensesToSave = Object.entries(expenses).reduce((acc, [key, value]) => {
+        acc[key] = Number(value) || 0;
+        return acc;
+      }, {} as { [key: string]: number });
+
+      await saveWeeklyExpense(firestore, user.uid, onboardingData.bakery, start, expensesToSave);
+
+      toast({
+          title: t('expenses_saved'),
+          description: t('total_expenses_saved_for_week', { total: formatUGX(totalExpenses), week: weekLabel }),
+          className: 'bg-success text-white'
+      });
+      // Optionally clear fields after saving
+      setExpenses({});
+
+    } catch (error) {
+       console.error("Error saving weekly expenses:", error);
+       toast({
+           variant: 'destructive',
+           title: 'Save failed',
+           description: 'Could not save your weekly expenses. Please try again.'
+       });
+    } finally {
+       setIsSaving(false);
+    }
   };
 
   return (
@@ -121,7 +154,7 @@ export default function ExpensesPage() {
         </Accordion>
       </div>
        <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
-          <Button size="lg" className="w-full" onClick={handleSave} disabled={isSaving}>
+          <Button size="lg" className="w-full" onClick={handleSave} disabled={isSaving || !user}>
               {isSaving ? (
                 <>
                     <Loader2 className="mr-2 h-6 w-6 animate-spin" />
