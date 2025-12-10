@@ -13,12 +13,19 @@ import { BAKERIES, ROLES, LANGUAGES } from '@/lib/data';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation } from '@/hooks/use-translation';
+import { useEffect } from 'react';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
-  const { data: onboardingData } = useOnboarding();
+  const { data: onboardingData, loadData } = useOnboarding();
   const { language, setLanguage, t } = useTranslation();
+
+  useEffect(() => {
+    // Explicitly load data to ensure it's in sync
+    loadData();
+  }, [loadData]);
+
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
