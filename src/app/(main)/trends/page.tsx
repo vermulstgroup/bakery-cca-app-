@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { useTranslation } from '@/hooks/use-translation';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { PRODUCTS } from '@/lib/data';
 import type { DailyEntry } from '@/lib/types';
+import { startOfWeek, parseISO } from 'date-fns';
 
 const InsightSkeleton = () => (
   <Card>
@@ -62,27 +63,21 @@ export default function TrendsPage() {
 
     const productMap = new Map(PRODUCTS.map(p => [p.id, p.name]));
 
-    const weeklySales: { [week: string]: { product: string, quantity: number }[] } = {};
+    const weeklySales: { [week: string]: { [productName: string]: number } } = {};
 
     entries.forEach(entry => {
-      // Basic week calculation (can be improved)
-      const entryDate = new Date(entry.date);
-      const weekStart = new Date(entryDate.setDate(entryDate.getDate() - entryDate.getDay() + 1)).toISOString().split('T')[0];
+      const entryDate = parseISO(entry.date);
+      const weekStartDate = startOfWeek(entryDate, { weekStartsOn: 1 }).toISOString().split('T')[0];
 
-      if (!weeklySales[weekStart]) {
-        weeklySales[weekStart] = [];
+      if (!weeklySales[weekStartDate]) {
+        weeklySales[weekStartDate] = {};
       }
       
       const sales = entry.quantities.sales || {};
       for (const productId in sales) {
         if (sales[productId] > 0) {
            const productName = productMap.get(productId) || productId;
-           const existingProduct = weeklySales[weekStart].find(p => p.product === productName);
-           if (existingProduct) {
-              existingProduct.quantity += sales[productId];
-           } else {
-              weeklySales[weekStart].push({ product: productName, quantity: sales[productId] });
-           }
+           weeklySales[weekStartDate][productName] = (weeklySales[weekStartDate][productName] || 0) + sales[productId];
         }
       }
     });
@@ -90,7 +85,7 @@ export default function TrendsPage() {
 
   }, [entries]);
 
-  const fetchInsights = async () => {
+  const fetchInsights = useCallback(async () => {
     if (!salesDataForAI) {
       setInsights([]);
       setLoading(false);
@@ -114,14 +109,15 @@ export default function TrendsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [salesDataForAI, t]);
   
   useEffect(() => {
-    if (onboardingLoaded) {
+    if (onboardingLoaded && entries.length > 0) {
       fetchInsights();
+    } else if (onboardingLoaded) {
+      setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onboardingLoaded, salesDataForAI])
+  }, [onboardingLoaded, entries, fetchInsights])
 
   const hasData = useMemo(() => entries && entries.length > 0, [entries]);
   const isLoading = loading || !onboardingLoaded;
