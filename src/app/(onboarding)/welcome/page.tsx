@@ -11,6 +11,8 @@ import type { UserRole } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { CheckCircle2 } from 'lucide-react';
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -39,24 +41,24 @@ export default function WelcomePage() {
             <div className='w-full space-y-6 text-left'>
                 <div>
                     <Label className='text-base font-semibold ml-1 mb-2 block'>Select your bakery</Label>
-                    <RadioGroup
-                    value={selectedBakery}
-                    onValueChange={setSelectedBakery}
-                    className="gap-0"
-                    >
-                    {BAKERIES.map((bakery, index) => (
-                        <Label
-                        key={bakery.id}
-                        htmlFor={bakery.id}
-                        className={`flex cursor-pointer items-center justify-between p-4 h-[64px] transition-colors hover:bg-secondary/50 ${
-                            selectedBakery === bakery.id ? 'bg-secondary' : ''
-                        } ${index < BAKERIES.length - 1 ? 'border-b' : ''} first:rounded-t-lg last:rounded-b-lg`}
+                    <div className="space-y-2">
+                    {BAKERIES.map((bakery) => {
+                      const isSelected = selectedBakery === bakery.id;
+                      return (
+                        <Card
+                          key={bakery.id}
+                          onClick={() => setSelectedBakery(bakery.id)}
+                          className={cn(
+                            'cursor-pointer p-4 transition-all flex items-center justify-between',
+                            isSelected && 'bg-primary/10 border-primary ring-2 ring-primary'
+                          )}
                         >
-                        <span className="text-base font-medium">{bakery.name}</span>
-                        <RadioGroupItem value={bakery.id} id={bakery.id} />
-                        </Label>
-                    ))}
-                    </RadioGroup>
+                          <span className="text-base font-medium">{bakery.name}</span>
+                          {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                        </Card>
+                      );
+                    })}
+                    </div>
                 </div>
                 
                 <div>
@@ -67,7 +69,7 @@ export default function WelcomePage() {
                         </SelectTrigger>
                         <SelectContent>
                         {Object.values(ROLES).map((role: UserRole) => (
-                           <SelectItem key={role.id} value={role.id} className="text-base">{role.icon} {role.name}</SelectItem>
+                           <SelectItem key={role.id} value={role.id} className="text-base h-12">{role.icon} {role.name}</SelectItem>
                         ))}
                         </SelectContent>
                     </Select>
