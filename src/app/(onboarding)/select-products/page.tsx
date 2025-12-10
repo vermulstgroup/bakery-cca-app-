@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { PRODUCTS, BAKERIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
@@ -17,12 +17,16 @@ const defaultSelected = ['yeast_mandazi', 'doughnuts', 'loaf_1kg', 'loaf_500g', 
 export default function SelectProductsPage() {
   const router = useRouter();
   const { data, updateData, isLoaded } = useOnboarding();
-  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
-    new Set(data.products || defaultSelected)
-  );
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const { t } = useTranslation();
   
   const bakeryName = isLoaded ? BAKERIES.find(b => b.id === data.bakery)?.name || t('your_bakery') : t('your_bakery');
+
+  useEffect(() => {
+    if (isLoaded) {
+      setSelectedProducts(new Set(data.products || defaultSelected));
+    }
+  }, [isLoaded, data.products]);
 
   const toggleProduct = (productId: string) => {
     const newSelection = new Set(selectedProducts);

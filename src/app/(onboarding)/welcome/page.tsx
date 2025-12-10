@@ -23,6 +23,7 @@ export default function WelcomePage() {
   const handleContinue = () => {
     if (selectedBakery && selectedRole) {
       updateData({ bakery: selectedBakery, role: selectedRole as 'manager' | 'supervisor' });
+      // We push to select-products, which will now use firestore
       router.push('/select-products');
     }
   };

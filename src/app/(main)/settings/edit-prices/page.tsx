@@ -32,15 +32,10 @@ export default function EditPricesPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const { toast } = useToast();
-  const { data, updateData, isLoaded, loadData } = useOnboarding();
+  const { data, updateData, isLoaded } = useOnboarding();
   const [prices, setPrices] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-  
   const selectedProducts = isLoaded && data.products ? PRODUCTS.filter(p => data.products?.includes(p.id)) : [];
 
   useEffect(() => {
@@ -55,7 +50,6 @@ export default function EditPricesPage() {
         }, {} as { [key: string]: string });
         setPrices(initialPrices);
       }
-      setIsLoading(false);
     }
   }, [isLoaded, data.products, data.prices]);
 
@@ -64,24 +58,22 @@ export default function EditPricesPage() {
     setPrices(prev => ({ ...prev, [productId]: numericValue }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
     const finalPrices = Object.entries(prices).reduce((acc, [id, price]) => {
       acc[id] = Number(price) || 0;
       return acc;
     }, {} as { [key: string]: number });
     
-    updateData({ prices: finalPrices });
+    await updateData({ prices: finalPrices });
 
-    setTimeout(() => {
-      setIsSaving(false);
-      toast({
-        title: t('prices_updated'),
-        description: t('new_prices_saved'),
-        className: "bg-success text-white"
-      });
-      router.back();
-    }, 1000);
+    setIsSaving(false);
+    toast({
+      title: t('prices_updated'),
+      description: t('new_prices_saved'),
+      className: "bg-success text-white"
+    });
+    router.back();
   };
 
   return (
@@ -91,7 +83,7 @@ export default function EditPricesPage() {
       <ScrollArea className="flex-grow p-4">
         <Card>
           <CardContent className="p-4">
-            {isLoading ? (
+            {!isLoaded ? (
                 <div className="flex justify-center items-center h-48">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
@@ -125,7 +117,7 @@ export default function EditPricesPage() {
           onClick={handleSave}
           className="w-full"
           size="lg"
-          disabled={isLoading || isSaving}
+          disabled={!isLoaded || isSaving}
         >
           {isSaving ? (
             <>
