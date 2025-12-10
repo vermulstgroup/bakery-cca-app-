@@ -42,7 +42,7 @@ export default function SettingsPage() {
     : t('select_your_bakery');
 
   const roleName = isLoaded && onboardingData.role
-    ? ROLES[onboardingData.role.toUpperCase()]?.name || 'N/A'
+    ? t(onboardingData.role)
     : 'N/A';
 
   return (
@@ -89,7 +89,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-muted-foreground">
             <div className="flex justify-between"><span>{t('bakery')}:</span> <span className="font-medium text-foreground">{bakeryName}</span></div>
-            <div className="flex justify-between"><span>{t('role')}:</span> <span className="font-medium text-foreground">{t(roleName)}</span></div>
+            <div className="flex justify-between"><span>{t('role')}:</span> <span className="font-medium text-foreground">{roleName}</span></div>
           </CardContent>
         </Card>
 
