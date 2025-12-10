@@ -10,16 +10,29 @@ export function useUser() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // This guard clause prevents auth operations until the auth object is ready.
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        setLoading(false);
       } else {
         // If no user, sign in anonymously
-        signInAnonymously(auth).catch((error) => {
-          console.error("Anonymous sign-in failed:", error);
-        });
+        signInAnonymously(auth)
+          .then((userCredential) => {
+             setUser(userCredential.user);
+          })
+          .catch((error) => {
+            console.error("Anonymous sign-in failed:", error);
+          })
+          .finally(() => {
+             setLoading(false);
+          });
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
