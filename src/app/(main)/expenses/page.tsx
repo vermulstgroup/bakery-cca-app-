@@ -76,19 +76,11 @@ export default function ExpensesPage() {
   };
 
   const handleSave = () => {
-    const bakeryDataString = localStorage.getItem('onboardingData_local');
-
-    if (!bakeryDataString) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Bakery data not found in storage.' });
-        return;
-    }
-
-    const currentOnboardingData = JSON.parse(bakeryDataString);
-    const bakeryId = currentOnboardingData?.bakery;
+    const bakeryId = onboardingData?.bakery;
 
     if (!bakeryId) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Bakery not selected' });
-      return;
+        toast({ variant: 'destructive', title: 'Error', description: 'Bakery data not found in storage.' });
+        return;
     }
     
     setIsSaving(true);
