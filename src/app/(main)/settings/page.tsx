@@ -1,3 +1,4 @@
+
 "use client"
 
 import { PageHeader } from '@/components/shared/page-header';
@@ -88,7 +89,7 @@ export default function SettingsPage() {
               Manage Active Products
               <ChevronRight />
             </Button>
-            <Button variant="ghost" className="w-full justify-between h-14 text-base" onClick={() => router.push('/confirm-prices')}>
+            <Button variant="ghost" className="w-full justify-between h-14 text-base" onClick={() => router.push('/settings/edit-prices')}>
               Edit Selling Prices
               <ChevronRight />
             </Button>
