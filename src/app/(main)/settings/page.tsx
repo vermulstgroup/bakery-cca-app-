@@ -18,13 +18,14 @@ import { useEffect } from 'react';
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
-  const { data: onboardingData, loadData } = useOnboarding();
+  const { data: onboardingData, isLoaded, loadData } = useOnboarding();
   const { language, setLanguage, t } = useTranslation();
 
   useEffect(() => {
-    // Explicitly load data to ensure it's in sync
-    loadData();
-  }, [loadData]);
+    if (!isLoaded) {
+      loadData();
+    }
+  }, [isLoaded, loadData]);
 
 
   const handleLogout = () => {
@@ -36,8 +37,13 @@ export default function SettingsPage() {
     }
   }
 
-  const bakeryName = BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_your_bakery');
-  const roleName = ROLES[onboardingData.role?.toUpperCase() || 'MANAGER']?.name || 'N/A';
+  const bakeryName = isLoaded && onboardingData.bakery 
+    ? BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_your_bakery')
+    : t('select_your_bakery');
+
+  const roleName = isLoaded && onboardingData.role
+    ? ROLES[onboardingData.role.toUpperCase()]?.name || 'N/A'
+    : 'N/A';
 
   return (
     <div className="pb-8">
