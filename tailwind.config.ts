@@ -19,7 +19,7 @@ export default {
       fontFamily: {
         body: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
         headline: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        code: ['"DM Mono"', 'monospace'],
+        currency: ['"DM Mono"', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -80,11 +80,15 @@ export default {
         },
       },
       borderRadius: {
-        'xl': 'calc(var(--radius) + 4px)', // 20px
-        'lg': 'var(--radius)', // 16px (Adjusted from default)
-        'md': 'calc(var(--radius) - 4px)', // 12px
-        'sm': 'calc(var(--radius) - 8px)', // 8px
+        'xl': '20px',
+        'lg': 'var(--radius)',
+        'md': 'calc(var(--radius) - 4px)',
+        'sm': 'calc(var(--radius) - 8px)',
         'button': '14px',
+      },
+       boxShadow: {
+        'lg': '0 8px 24px rgba(0,0,0,0.08)',
+        '2xl': '0 12px 40px rgba(13, 148, 136, 0.35)',
       },
       keyframes: {
         'accordion-down': {

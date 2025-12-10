@@ -5,9 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatUGX } from '@/lib/utils';
 import { ArrowUp, ArrowDown, HandCoins, ReceiptText } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { getPersonalizedOffers } from '@/ai/flows/personalized-offers';
 
 const CountUp = ({ to }: { to: number }) => {
   const [count, setCount] = useState(0);
@@ -41,8 +38,6 @@ export default function DashboardPage() {
   const revenue = 1450000;
   const expenses = 980000;
   const [lastSynced, setLastSynced] = useState('just now');
-  const [aiOffers, setAiOffers] = useState<any[] | null>(null);
-  const [isLoadingOffers, setIsLoadingOffers] = useState(false);
 
   useEffect(() => {
     // Simulate time passing for sync status
@@ -52,42 +47,20 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleGetOffers = async () => {
-    setIsLoadingOffers(true);
-    setAiOffers(null);
-    try {
-      const salesData = {
-        salesData: JSON.stringify([
-          {"customer": "A", "product": "Yeast Mandazi", "quantity": 5},
-          {"customer": "B", "product": "Chapati", "quantity": 10},
-          {"customer": "A", "product": "Yeast Mandazi", "quantity": 3},
-        ]),
-      };
-      const result = await getPersonalizedOffers(salesData);
-      const parsedOffers = JSON.parse(result.offers);
-      setAiOffers(parsedOffers.offers);
-    } catch (e) {
-      console.error(e);
-      // You could use a toast to show an error here
-    } finally {
-      setIsLoadingOffers(false);
-    }
-  };
-
-
   return (
     <div className="flex flex-col">
       <AppHeader />
       <div className="flex-1 space-y-6 p-4 md:p-6">
         <div className={`rounded-3xl p-1 ${isProfit ? 'profit-card-gradient' : 'loss-card-gradient'}`}>
-            <Card className="rounded-3xl border-0 bg-transparent text-primary-foreground shadow-2xl shadow-primary/30">
+            <Card className="relative rounded-3xl border-0 bg-transparent text-primary-foreground shadow-2xl shadow-primary/30 overflow-hidden">
+                <div className="absolute inset-0 bg-white/5"></div>
                 <CardHeader>
-                    <CardTitle className="text-sm font-medium uppercase tracking-widest text-primary-foreground/70">
-                        {isProfit ? "This Week's Profit" : "This Week's Loss"}
+                    <CardTitle className="text-xs font-medium uppercase tracking-[2px] text-primary-foreground/60">
+                        {isProfit ? "PROFIT" : "LOSS"}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-start gap-2">
-                    <div className="text-5xl font-bold">
+                    <div className="text-[56px] font-bold">
                         <CountUp to={profit} />
                     </div>
                     <div className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-sm">
@@ -119,29 +92,6 @@ export default function DashboardPage() {
           </Card>
         </div>
         
-        <Card>
-            <CardHeader>
-                <CardTitle>AI-Powered Insights</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground mb-4">Analyze sales data to get personalized offers for your customers.</p>
-                <Button onClick={handleGetOffers} disabled={isLoadingOffers}>
-                    {isLoadingOffers ? 'Generating...' : 'Get Personalized Offers'}
-                </Button>
-
-                {aiOffers && (
-                    <div className="mt-4 space-y-2">
-                        <h3 className="font-semibold">Recommended Offers:</h3>
-                        <ul className="list-disc pl-5 space-y-1">
-                        {aiOffers.map((offer, index) => (
-                            <li key={index}>{offer.offer}</li>
-                        ))}
-                        </ul>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-
         <div className="text-center text-sm text-muted-foreground">
           <p>Last synced: {lastSynced}</p>
         </div>
