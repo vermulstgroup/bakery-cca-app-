@@ -7,10 +7,7 @@ import React,
   PropsWithChildren,
   createContext,
   useContext,
-  useEffect,
-  useState,
 } from 'react';
-import { initializeFirebase } from '.';
 
 export interface FirebaseContext {
   firebaseApp: FirebaseApp;
@@ -60,20 +57,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within a FirebaseProvider');
   }
   return context.auth;
-};
-
-export const PrefirebaseProvider = (props: PropsWithChildren) => {
-  const [firebaseContext, setFirebaseContext] = useState<
-    FirebaseContext | undefined
-  >(undefined);
-
-  useEffect(() => {
-    setFirebaseContext(initializeFirebase());
-  }, []);
-
-  if (!firebaseContext) {
-    return null;
-  }
-
-  return <FirebaseProvider {...firebaseContext} {...props} />;
 };
