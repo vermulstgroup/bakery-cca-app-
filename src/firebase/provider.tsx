@@ -1,6 +1,5 @@
 'use client';
 import type { FirebaseApp } from 'firebase/app';
-import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import React,
 {
@@ -11,7 +10,6 @@ import React,
 
 export interface FirebaseContext {
   firebaseApp: FirebaseApp;
-  auth: Auth;
   firestore: Firestore;
 }
 
@@ -22,10 +20,10 @@ export const _FirebaseContext = createContext<FirebaseContext | undefined>(
 export const FirebaseProvider = (
   props: PropsWithChildren<FirebaseContext>
 ) => {
-  const { firebaseApp, auth, firestore, children } = props;
+  const { firebaseApp, firestore, children } = props;
 
   return (
-    <_FirebaseContext.Provider value={{ firebaseApp, auth, firestore }}>
+    <_FirebaseContext.Provider value={{ firebaseApp, firestore }}>
       {children}
     </_FirebaseContext.Provider>
   );
@@ -51,10 +49,4 @@ export const useFirestore = () => {
   return context.firestore;
 };
 
-export const useAuth = () => {
-  const context = useFirebase();
-  if (!context) {
-    throw new Error('useAuth must be used within a FirebaseProvider');
-  }
-  return context.auth;
-};
+// useAuth has been removed as Firebase Authentication is no longer used.

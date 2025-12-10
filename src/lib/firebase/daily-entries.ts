@@ -15,20 +15,18 @@ export type DailyEntryData = {
 
 export const saveDailyEntry = async (
   db: Firestore,
-  userId: string,
   bakeryId: string,
   date: Date,
   quantities: DailyEntryData
 ) => {
-  if (!userId || !bakeryId) {
-    throw new Error('User or Bakery not selected');
+  if (!bakeryId) {
+    throw new Error('Bakery not selected');
   }
 
   const dailyEntryRef = collection(db, 'bakeries', bakeryId, 'daily_entries');
 
   await addDoc(dailyEntryRef, {
     bakeryId,
-    userId,
     date,
     quantities,
     createdAt: serverTimestamp(),

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { collection, query, onSnapshot, doc, setDoc, getDocs, addDoc } from 'firebase/firestore';
 
 export type BakeryConfig = {
@@ -11,7 +11,6 @@ export type BakeryConfig = {
 
 export const useBakeryConfig = (bakeryId: string | undefined) => {
     const db = useFirestore();
-    const { user } = useUser();
     const [config, setConfig] = useState<BakeryConfig>({});
     const [loading, setLoading] = useState(true);
     const [docId, setDocId] = useState<string | null>(null);
@@ -45,8 +44,8 @@ export const useBakeryConfig = (bakeryId: string | undefined) => {
     }, [db, bakeryId]);
 
     const updateConfig = useCallback(async (newConfig: Partial<BakeryConfig>) => {
-        if (!db || !bakeryId || !user) {
-            console.error("Cannot update config: missing db, bakeryId, or user.");
+        if (!db || !bakeryId) {
+            console.error("Cannot update config: missing db or bakeryId.");
             return;
         }
 
@@ -62,7 +61,7 @@ export const useBakeryConfig = (bakeryId: string | undefined) => {
                     // Create new doc
                     const newDocRef = await addDoc(configRef, { ...fullNewConfig, bakeryId });
                     setDocId(newDocRef.id);
-                    idToUpdate = newDocRef.id;
+idToUpdate = newDocRef.id;
 
                 } else {
                      idToUpdate = snapshot.docs[0].id;
@@ -81,7 +80,7 @@ export const useBakeryConfig = (bakeryId: string | undefined) => {
             console.error("Error saving bakery config:", error);
         }
 
-    }, [db, bakeryId, user, config, docId]);
+    }, [db, bakeryId, config, docId]);
 
     return { config, loading, updateConfig };
 };

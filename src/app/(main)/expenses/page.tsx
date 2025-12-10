@@ -19,7 +19,7 @@ import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from '@/hooks/use-translation';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { useUser, useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { saveWeeklyExpense } from '@/lib/firebase/weekly-expenses';
 import { useWeeklyExpenses } from '@/lib/firebase/use-weekly-expenses';
 
@@ -28,7 +28,6 @@ export default function ExpensesPage() {
   const { toast } = useToast();
   const { data: onboardingData, isLoaded: isOnboardingLoaded } = useOnboarding();
   const firestore = useFirestore();
-  const { user } = useUser();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [expenses, setExpenses] = useState<{ [key: string]: string }>({});

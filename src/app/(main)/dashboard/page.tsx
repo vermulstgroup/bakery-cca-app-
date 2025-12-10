@@ -13,7 +13,6 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import { useDailyEntries } from '@/lib/firebase/use-daily-entries';
 import { useWeeklyExpenses } from '@/lib/firebase/use-weekly-expenses';
 import { startOfWeek, endOfWeek } from 'date-fns';
-import { useUser } from '@/firebase';
 import { PRODUCTS } from '@/lib/data';
 
 const CountUp = ({ to }: { to: number }) => {
@@ -45,7 +44,6 @@ const CountUp = ({ to }: { to: number }) => {
 
 export default function DashboardPage() {
   const { t } = useTranslation();
-  const { user, loading: userLoading } = useUser();
   const { data: onboardingData, isLoaded: onboardingLoaded } = useOnboarding();
 
   const [lastSynced, setLastSynced] = useState(t('just_now'));
@@ -82,7 +80,7 @@ export default function DashboardPage() {
   // TODO: Calculate trend vs last week
   const [trend] = useState(0);
   
-  const isLoading = userLoading || !onboardingLoaded || entriesLoading || expensesLoading;
+  const isLoading = !onboardingLoaded || entriesLoading || expensesLoading;
   const isProfit = profit >= 0;
   const hasData = entries.length > 0 || (expenses && Object.keys(expenses.expenses).length > 0);
   

@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/use-translation';
 import Link from 'next/link';
-import { useUser, useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { saveDailyEntry } from '@/lib/firebase/daily-entries';
 
 
@@ -77,7 +77,6 @@ export default function DailyEntryPage() {
     const { data: onboardingData, isLoaded } = useOnboarding();
     const [date, setDate] = useState(new Date());
 
-    const { user, loading: userLoading } = useUser();
     const firestore = useFirestore();
 
     const userProducts = isLoaded && onboardingData.products ? PRODUCTS.filter(p => onboardingData.products?.includes(p.id)) : [];
@@ -101,18 +100,18 @@ export default function DailyEntryPage() {
     };
     
     const handleSave = async () => {
-        if (!user || !onboardingData.bakery) {
+        if (!onboardingData.bakery) {
             toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: 'You must be logged in and have a bakery selected to save data.'
+                description: 'You must have a bakery selected to save data.'
             });
             return;
         }
 
         setSaveStatus('saving');
         try {
-            await saveDailyEntry(firestore, user.uid, onboardingData.bakery, date, quantities);
+            await saveDailyEntry(firestore, onboardingData.bakery, date, quantities);
             setSaveStatus('saved');
             toast({
                 title: t('saved_successfully'),
@@ -133,7 +132,7 @@ export default function DailyEntryPage() {
         }
     }
     
-    if (!isLoaded || userLoading) {
+    if (!isLoaded) {
         return (
              <div className="flex h-screen flex-col">
                 <PageHeader title={t('daily_entry')}>
@@ -229,7 +228,7 @@ export default function DailyEntryPage() {
                 </div>
             </Tabs>
             <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
-                <Button size="lg" className="w-full" onClick={handleSave} disabled={saveStatus === 'saving' || saveStatus === 'saved' || !user}>
+                <Button size="lg" className="w-full" onClick={handleSave} disabled={saveStatus === 'saving' || saveStatus === 'saved'}>
                     {saveStatus === 'saving' ? (
                         <>
                             <Loader2 className="mr-2 h-6 w-6 animate-spin" />

@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Firestore,
@@ -22,13 +21,12 @@ const getWeekId = (date: Date) => format(date, 'yyyy-MM-dd');
 
 export const saveWeeklyExpense = async (
   db: Firestore,
-  userId: string,
   bakeryId: string,
   weekStartDate: Date,
   expenses: WeeklyExpenseData
 ) => {
-  if (!userId || !bakeryId) {
-    throw new Error('User or Bakery not selected');
+  if (!bakeryId) {
+    throw new Error('Bakery not selected');
   }
 
   const weekId = getWeekId(weekStartDate);
@@ -42,7 +40,6 @@ export const saveWeeklyExpense = async (
     // No existing entry, create a new one
     await addDoc(weeklyExpensesRef, {
       bakeryId,
-      userId,
       weekStartDate: weekId,
       expenses,
       createdAt: serverTimestamp(),
@@ -55,7 +52,6 @@ export const saveWeeklyExpense = async (
     await updateDoc(docRef, {
         expenses,
         updatedAt: serverTimestamp(),
-        updatedBy: userId,
     });
   }
 };
