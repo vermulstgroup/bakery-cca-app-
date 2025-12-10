@@ -8,18 +8,22 @@ import { Button } from '@/components/ui/button';
 import { ChevronRight, LogOut, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
-import { BAKERIES, ROLES } from '@/lib/data';
+import { BAKERIES, ROLES, LANGUAGES } from '@/lib/data';
 import { useOnboarding } from '@/hooks/use-onboarding';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTranslation } from '@/hooks/use-translation';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const { data: onboardingData } = useOnboarding();
+  const { language, setLanguage, t } = useTranslation();
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('onboardingComplete');
       localStorage.removeItem('onboardingData');
+      localStorage.removeItem('selectedLanguage');
       router.replace('/welcome');
     }
   }
@@ -29,23 +33,28 @@ export default function SettingsPage() {
 
   return (
     <div className="pb-8">
-      <PageHeader title="Settings" showBackButton={false} />
+      <PageHeader title={t('settings')} showBackButton={false} />
       <div className="p-4 space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Bakery Info</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-muted-foreground">
-            <div className="flex justify-between"><span>Bakery:</span> <span className="font-medium text-foreground">{bakeryName}</span></div>
-            <div className="flex justify-between"><span>Role:</span> <span className="font-medium text-foreground">{roleName}</span></div>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader>
             <CardTitle>Preferences</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="language" className="text-base">
+                Language
+              </Label>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGES.map(lang => (
+                    <SelectItem key={lang.code} value={lang.code}>{lang.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="dark-mode" className="flex items-center gap-2 text-base">
                 {theme === 'dark' ? <Moon /> : <Sun />}
@@ -57,6 +66,16 @@ export default function SettingsPage() {
                 onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Bakery Info</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-muted-foreground">
+            <div className="flex justify-between"><span>Bakery:</span> <span className="font-medium text-foreground">{bakeryName}</span></div>
+            <div className="flex justify-between"><span>Role:</span> <span className="font-medium text-foreground">{roleName}</span></div>
           </CardContent>
         </Card>
 

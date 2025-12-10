@@ -1,21 +1,28 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal
 } from '@/components/ui/dropdown-menu';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { BAKERIES } from '@/lib/data';
+import { useTranslation } from '@/hooks/use-translation';
+import { LANGUAGES } from '@/lib/data';
 
 export function AppHeader() {
   const { data: onboardingData } = useOnboarding();
   const [isOnline, setIsOnline] = useState(true);
   const [selectedBakery, setSelectedBakery] = useState(onboardingData.bakery || BAKERIES[0].id);
+  const { language, setLanguage } = useTranslation();
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -54,9 +61,27 @@ export function AppHeader() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="flex items-center gap-2">
-          <div className={`h-3 w-3 rounded-full ${isOnline ? 'bg-success' : 'bg-destructive'}`} />
-          <span className="text-sm text-muted-foreground">{isOnline ? 'Online' : 'Offline'}</span>
+        <div className="flex items-center gap-4">
+           <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Globe className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {LANGUAGES.map((lang) => (
+                <DropdownMenuItem key={lang.code} onSelect={() => setLanguage(lang.code)}>
+                  {lang.name}
+                  {language === lang.code && <Check className="ml-auto h-4 w-4" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="flex items-center gap-2">
+            <div className={`h-3 w-3 rounded-full ${isOnline ? 'bg-success' : 'bg-destructive'}`} />
+            <span className="text-sm text-muted-foreground">{isOnline ? 'Online' : 'Offline'}</span>
+          </div>
         </div>
       </div>
     </header>

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { TranslationProvider } from '@/providers/translation-provider';
 
 const APP_NAME = "BISS Bakery App";
 const APP_DESCRIPTION = "Track your bakery's production, sales, and profits";
@@ -35,15 +36,17 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        <TranslationProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </TranslationProvider>
       </body>
     </html>
   );

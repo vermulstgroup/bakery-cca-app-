@@ -73,3 +73,10 @@ export const ROLES: { [key: string]: UserRole } = {
     }
   }
 };
+
+export const LANGUAGES = [
+  { name: 'English', code: 'en' },
+  { name: 'Karamojong', code: 'kj' },
+  { name: 'Acholi', code: 'ach' },
+  { name: 'Teso', code: 'tes' },
+];
