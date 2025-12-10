@@ -13,7 +13,7 @@ import { BAKERIES, ROLES, LANGUAGES } from '@/lib/data';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation } from '@/hooks/use-translation';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -41,11 +41,8 @@ export default function SettingsPage() {
 
   const bakeryName = useMemo(() => {
     if (isLoaded && onboardingData.bakery) {
-      const name = BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_your_bakery');
-      console.log('Settings bakery:', name, 'source: onboardingData.bakery from useOnboarding()');
-      return name;
+      return BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_your_bakery');
     }
-    console.log('Settings bakery: (not loaded or no bakery)', t('select_your_bakery'), 'source: onboardingData.bakery from useOnboarding()');
     return t('select_your_bakery');
   }, [isLoaded, onboardingData.bakery, t]);
 

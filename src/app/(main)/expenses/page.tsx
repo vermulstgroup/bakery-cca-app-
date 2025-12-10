@@ -77,9 +77,10 @@ export default function ExpensesPage() {
 
   const handleSave = () => {
     const bakeryId = onboardingData?.bakery;
+    console.log('Expenses trying to save, bakery data:', JSON.stringify(onboardingData));
 
     if (!bakeryId) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Bakery data not found in storage.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Bakery data not found. Please select a bakery in settings.' });
         return;
     }
     

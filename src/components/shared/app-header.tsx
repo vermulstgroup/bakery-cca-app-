@@ -42,11 +42,6 @@ export function AppHeader() {
     ? BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_bakery')
     : t('select_bakery');
 
-  useEffect(() => {
-    console.log('Dashboard bakery:', currentBakeryName, 'source: onboardingData.bakery via useOnboarding()');
-  }, [currentBakeryName]);
-
-
   const handleBakeryChange = (bakeryId: string) => {
     updateData({ bakery: bakeryId });
   };
