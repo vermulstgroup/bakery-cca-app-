@@ -41,14 +41,13 @@ export default function SettingsPage() {
 
   const bakeryName = useMemo(() => {
     if (isLoaded && onboardingData.bakery) {
-      return BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_your_bakery');
+      const name = BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_your_bakery');
+      console.log('Settings bakery:', name, 'source: onboardingData.bakery from useOnboarding()');
+      return name;
     }
+    console.log('Settings bakery: (not loaded or no bakery)', t('select_your_bakery'), 'source: onboardingData.bakery from useOnboarding()');
     return t('select_your_bakery');
   }, [isLoaded, onboardingData.bakery, t]);
-
-  useEffect(() => {
-    console.log('Settings bakery:', bakeryName, 'source: onboardingData.bakery from useOnboarding()');
-  }, [bakeryName]);
 
   const roleName = useMemo(() => {
     if (isLoaded && onboardingData.role) {

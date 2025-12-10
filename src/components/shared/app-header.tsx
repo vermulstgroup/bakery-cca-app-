@@ -16,7 +16,7 @@ import { useTranslation } from '@/hooks/use-translation';
 import { LANGUAGES } from '@/lib/data';
 
 export function AppHeader() {
-  const { data: onboardingData, updateData } = useOnboarding();
+  const { data: onboardingData, updateData, isLoaded } = useOnboarding();
   const [isOnline, setIsOnline] = useState(true);
   
   useEffect(() => {
@@ -37,11 +37,14 @@ export function AppHeader() {
   }, []);
 
   const { language, setLanguage, t } = useTranslation();
-  const selectedBakery = onboardingData.bakery || BAKERIES[0].id;
-  const currentBakeryName = BAKERIES.find(b => b.id === selectedBakery)?.name || t('select_bakery');
+  
+  const currentBakeryName = isLoaded && onboardingData.bakery 
+    ? BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_bakery')
+    : t('select_bakery');
 
-  // DEBUG: Log what Dashboard reads
-  console.log('Dashboard bakery:', currentBakeryName, 'source: onboardingData.bakery via useOnboarding()');
+  useEffect(() => {
+    console.log('Dashboard bakery:', currentBakeryName, 'source: onboardingData.bakery via useOnboarding()');
+  }, [currentBakeryName]);
 
 
   const handleBakeryChange = (bakeryId: string) => {
@@ -62,7 +65,7 @@ export function AppHeader() {
             {BAKERIES.map(bakery => (
               <DropdownMenuItem key={bakery.id} onSelect={() => handleBakeryChange(bakery.id)}>
                 {bakery.name}
-                {selectedBakery === bakery.id && <Check className="ml-auto h-4 w-4" />}
+                {onboardingData.bakery === bakery.id && <Check className="ml-auto h-4 w-4" />}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
