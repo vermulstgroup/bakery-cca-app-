@@ -72,19 +72,21 @@ export default function ExpensesPage() {
   
   const addExpense = (categoryId: string, amount: number) => {
     const currentAmount = Number(expenses[categoryId] || 0);
-    handleExpenseChange(categoryId, (currentAmount + amount).toString());
+    const newAmount = Math.max(0, currentAmount + amount);
+    handleExpenseChange(categoryId, newAmount.toString());
   };
 
   const handleSave = () => {
     const { bakery: bakeryId } = onboardingData;
 
     if (!bakeryId) {
-      toast({ 
-        variant: 'destructive', 
-        title: 'Error', 
-        description: 'Bakery data not found. Please select a bakery in settings.' 
-      });
-      return;
+        toast({
+            variant: "destructive",
+            title: t('select_bakery_first'),
+            description: t('select_bakery_to_log_expenses'),
+        });
+        setSaveStatus('idle');
+        return;
     }
 
     setSaveStatus('saving');
@@ -219,7 +221,7 @@ export default function ExpensesPage() {
         </Accordion>
       </div>
        <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
-          <Button size="lg" className="w-full" onClick={handleSave} disabled={saveStatus !== 'idle' || !isOnboardingLoaded}>
+          <Button size="lg" className="w-full" onClick={handleSave} disabled={saveStatus !== 'idle'}>
               {saveStatus === 'saving' ? (
                 <>
                     <Loader2 className="mr-2 h-6 w-6 animate-spin" />
@@ -228,7 +230,7 @@ export default function ExpensesPage() {
               ) : saveStatus === 'saved' ? (
                 <>{t('saved')}</>
               ) : (
-                <>{t('save_expenses')} ✓</>
+                <>{t('save_expenses')}</>
               )}
           </Button>
       </div>

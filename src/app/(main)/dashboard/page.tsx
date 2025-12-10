@@ -27,7 +27,11 @@ const CountUp = ({ to }: { to: number }) => {
 
     let start = 0;
     const end = to;
-    if (end === 0) return;
+    if (end === 0) {
+        // If the target is 0, just set it and don't animate.
+        setCount(0);
+        return;
+    };
     
     hasAnimated.current = true;
     const duration = 1500;
@@ -40,6 +44,9 @@ const CountUp = ({ to }: { to: number }) => {
       setCount(current);
       if (progress < 1) {
         requestAnimationFrame(animate);
+      } else {
+        // Ensure the final value is exact
+        setCount(end);
       }
     };
     requestAnimationFrame(animate);
