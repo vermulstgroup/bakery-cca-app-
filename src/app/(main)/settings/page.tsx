@@ -37,6 +37,7 @@ export default function SettingsPage() {
   }
 
   const bakeryName = useMemo(() => {
+    console.log('Settings bakery:', onboardingData.bakery);
     if (isLoaded && onboardingData.bakery) {
       return BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_your_bakery');
     }

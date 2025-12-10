@@ -16,18 +16,16 @@ import { useTranslation } from '@/hooks/use-translation';
 import { LANGUAGES } from '@/lib/data';
 
 export function AppHeader() {
-  const { data: onboardingData } = useOnboarding();
+  const { data: onboardingData, updateData } = useOnboarding();
   const [isOnline, setIsOnline] = useState(true);
-  const [selectedBakery, setSelectedBakery] = useState(onboardingData.bakery || BAKERIES[0].id);
-  const { language, setLanguage, t } = useTranslation();
-
+  
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    // Set initial state
+    
     if (typeof navigator !== 'undefined') {
         setIsOnline(navigator.onLine);
     }
@@ -38,7 +36,15 @@ export function AppHeader() {
     };
   }, []);
 
-  const currentBakery = BAKERIES.find(b => b.id === selectedBakery)?.name || t('select_bakery');
+  const { language, setLanguage, t } = useTranslation();
+  const selectedBakery = onboardingData.bakery || BAKERIES[0].id;
+  const currentBakeryName = BAKERIES.find(b => b.id === selectedBakery)?.name || t('select_bakery');
+  console.log('Dashboard bakery:', selectedBakery);
+
+
+  const handleBakeryChange = (bakeryId: string) => {
+    updateData({ bakery: bakeryId });
+  };
 
   return (
     <header className="sticky top-0 z-40 h-14 bg-card/80 backdrop-blur-lg shadow-sm">
@@ -46,13 +52,13 @@ export function AppHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="text-lg font-bold">
-              {currentBakery}
+              {currentBakeryName}
               <ChevronDown className="ml-1 h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             {BAKERIES.map(bakery => (
-              <DropdownMenuItem key={bakery.id} onSelect={() => setSelectedBakery(bakery.id)}>
+              <DropdownMenuItem key={bakery.id} onSelect={() => handleBakeryChange(bakery.id)}>
                 {bakery.name}
                 {selectedBakery === bakery.id && <Check className="ml-auto h-4 w-4" />}
               </DropdownMenuItem>
