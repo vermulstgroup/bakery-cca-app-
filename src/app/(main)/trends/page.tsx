@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getPersonalizedOffers, PersonalizedOffersOutput } from '@/ai/flows/personalized-offers';
-import { Loader } from 'lucide-react';
+import { Loader, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation } from '@/hooks/use-translation';
 
@@ -53,6 +53,8 @@ export default function TrendsPage() {
     setLoading(true);
     setError(null);
     try {
+      // Simulate delay for spinner visibility
+      await new Promise(resolve => setTimeout(resolve, 500));
       const result = await getPersonalizedOffers({ salesData: JSON.stringify(mockSalesData) });
       if (result && result.offers) {
         setOffers(result.offers);
@@ -77,7 +79,14 @@ export default function TrendsPage() {
     <div className="flex h-screen flex-col">
       <PageHeader title={t('ai_powered_trends')} showBackButton={false}>
          <Button variant="ghost" size="sm" onClick={fetchOffers} disabled={loading}>
-          {loading ? t('refreshing') : t('refresh')}
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              {t('refreshing')}
+            </>
+          ) : (
+            t('refresh')
+          )}
          </Button>
       </PageHeader>
       

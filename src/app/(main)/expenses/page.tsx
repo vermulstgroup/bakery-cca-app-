@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/accordion';
 import { EXPENSE_CATEGORIES } from '@/lib/data';
 import { formatUGX } from '@/lib/utils';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from '@/hooks/use-translation';
@@ -24,6 +24,7 @@ export default function ExpensesPage() {
   const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [expenses, setExpenses] = useState<{ [key: string]: string }>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const start = startOfWeek(currentDate, { weekStartsOn: 1 });
   const end = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -45,11 +46,16 @@ export default function ExpensesPage() {
   };
 
   const handleSave = () => {
-    toast({
-        title: t('expenses_saved'),
-        description: t('total_expenses_saved_for_week', { total: formatUGX(totalExpenses), week: weekLabel }),
-        className: 'bg-success text-white'
-    });
+    setIsSaving(true);
+    // Simulate API call
+    setTimeout(() => {
+        setIsSaving(false);
+        toast({
+            title: t('expenses_saved'),
+            description: t('total_expenses_saved_for_week', { total: formatUGX(totalExpenses), week: weekLabel }),
+            className: 'bg-success text-white'
+        });
+    }, 1000);
   };
 
   return (
@@ -115,8 +121,15 @@ export default function ExpensesPage() {
         </Accordion>
       </div>
        <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
-          <Button size="lg" className="w-full" onClick={handleSave}>
-              {t('save_expenses')} ✓
+          <Button size="lg" className="w-full" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                    <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                    {t('saving')}
+                </>
+              ) : (
+                <>{t('save_expenses')} ✓</>
+              )}
           </Button>
       </div>
     </div>

@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Minus, Plus, Loader2 } from 'lucide-react';
 import { PRODUCTS } from '@/lib/data';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { format, addDays, subDays } from 'date-fns';
@@ -128,8 +128,13 @@ export default function DailyEntryPage() {
                 </div>
             </Tabs>
             <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
-                <Button size="lg" className="w-full" onClick={handleSave} disabled={saveStatus === 'saving'}>
-                    {saveStatus === 'saving' ? t('saving') : saveStatus === 'saved' ? t('saved') : t('done_for_today')}
+                <Button size="lg" className="w-full" onClick={handleSave} disabled={saveStatus === 'saving' || saveStatus === 'saved'}>
+                    {saveStatus === 'saving' ? (
+                        <>
+                            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                            {t('saving')}
+                        </>
+                    ) : saveStatus === 'saved' ? t('saved') : t('done_for_today')}
                 </Button>
             </div>
         </div>
