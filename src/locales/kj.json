@@ -3,7 +3,7 @@
   "dashboard": "Edeke",
   "entry": "Esubit",
   "expenses": "Akibois",
-  "trends": "Trends",
+  "trends": "Ngina Kico",
   "settings": "Aitelekarin",
   "production": "Atubokin",
   "sales": "Sales",
@@ -39,7 +39,7 @@
   "log_out_reset": "Log Out & Reset",
   "bakery_info": "Bakery Info",
   "bakery": "Bakery",
-  "role": "Role",
+  "role": "Akicub",
   "preferences": "Preferences",
   "language": "Language",
   "dark_mode": "Dark Mode",
@@ -98,6 +98,6 @@
   "expense_category_gas_electricity": "Gas/Electricity",
   "expense_category_loan_rent": "Loan/Rent",
   "expense_category_other": "Other",
-  "Manager": "Manager",
-  "Supervisor": "Supervisor"
+  "Manager": "Ekabetan",
+  "Supervisor": "Etopoli"
 }
