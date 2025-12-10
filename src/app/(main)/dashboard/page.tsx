@@ -88,7 +88,7 @@ export default function DashboardPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-start gap-2 p-0 mt-2">
-                    <div className="text-5xl font-bold font-currency text-white">
+                    <div className="text-[clamp(2.25rem,10vw,2.75rem)] font-bold font-currency text-white">
                         <CountUp to={profit} />
                     </div>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
@@ -109,7 +109,7 @@ export default function DashboardPage() {
               <HandCoins className="h-5 w-5 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-currency text-success">{formatUGX(revenue)}</div>
+              <div className="text-[clamp(1.25rem,6.5vw,1.5rem)] font-bold font-currency text-success">{formatUGX(revenue)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -118,7 +118,7 @@ export default function DashboardPage() {
               <ReceiptText className="h-5 w-5 text-stone-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-currency text-foreground">{formatUGX(expenses)}</div>
+              <div className="text-[clamp(1.25rem,6.5vw,1.5rem)] font-bold font-currency text-foreground">{formatUGX(expenses)}</div>
             </CardContent>
           </Card>
         </div>
