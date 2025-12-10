@@ -46,9 +46,8 @@ export default function SettingsPage() {
     return t('select_your_bakery');
   }, [isLoaded, onboardingData.bakery, t]);
 
-  // DEBUG: Log what Settings reads
   useEffect(() => {
-    console.log('Settings bakery:', bakeryName, 'source: onboardingData.bakery via useOnboarding()');
+    console.log('Settings bakery:', bakeryName, 'source: onboardingData.bakery from useOnboarding()');
   }, [bakeryName]);
 
   const roleName = useMemo(() => {

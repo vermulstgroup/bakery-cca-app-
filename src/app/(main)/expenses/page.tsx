@@ -76,6 +76,9 @@ export default function ExpensesPage() {
   };
 
   const handleSave = () => {
+    const bakeryData = localStorage.getItem('onboardingData_local');
+    console.log('Expenses trying to save, bakery data:', bakeryData);
+
     if (!onboardingData.bakery) {
       toast({ variant: 'destructive', title: 'Error', description: 'Bakery not selected' });
       return;
@@ -90,6 +93,7 @@ export default function ExpensesPage() {
       }, {} as {[key: string]: number});
 
       const dataToSave = {
+        bakeryId: onboardingData.bakery,
         weekStartDate: weekId,
         expenses: numericExpenses,
       };
