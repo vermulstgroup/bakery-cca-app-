@@ -88,7 +88,7 @@
   "go_to_daily_entry": "Go to Daily Entry",
   "no_products_setup_title": "No products selected",
   "no_products_setup_subtitle": "Please add some products to get started.",
-  "go_to_product_settings": "Go to Settings",
+  "go_to_product_settings": "Go to Product Settings",
   "expense_category_ingredients": "Ingredients",
   "expense_category_salaries": "Salaries",
   "expense_category_fuel": "Fuel",
@@ -97,5 +97,8 @@
   "expense_category_packaging": "Packaging",
   "expense_category_gas_electricity": "Gas/Electricity",
   "expense_category_loan_rent": "Loan/Rent",
-  "expense_category_other": "Other"
+  "expense_category_other": "Other",
+  "select_bakery_first": "Select a Bakery First",
+  "select_bakery_to_log_expenses": "You need to select a bakery in your settings before you can log expenses.",
+  "go_to_settings": "Go to Settings"
 }

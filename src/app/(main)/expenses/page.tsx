@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,12 +14,12 @@ import {
 } from '@/components/ui/accordion';
 import { EXPENSE_CATEGORIES } from '@/lib/data';
 import { formatUGX } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Settings2 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from '@/hooks/use-translation';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import type { OnboardingData } from '@/lib/types';
+import Link from 'next/link';
 
 
 export default function ExpensesPage() {
@@ -31,24 +31,22 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
 
-  const start = startOfWeek(currentDate, { weekStartsOn: 1 });
-  const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   
   const weekLabel = t('week_of_date_range', { 
-    start: format(start, 'MMM d'), 
-    end: format(end, 'MMM d, yyyy') 
+    start: format(weekStart, 'MMM d'), 
+    end: format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM d, yyyy') 
   });
   
   // Load from local storage on mount and when week changes
   useEffect(() => {
     if (isOnboardingLoaded && onboardingData.bakery) {
-      const weekId = format(start, 'yyyy-MM-dd');
+      const weekId = format(weekStart, 'yyyy-MM-dd');
       const storageKey = `expenses-${onboardingData.bakery}-${weekId}`;
       try {
         const savedExpenses = localStorage.getItem(storageKey);
         if (savedExpenses) {
           const parsed = JSON.parse(savedExpenses);
-          // Ensure values are strings for the input fields
           const stringifiedExpenses = Object.entries(parsed.expenses).reduce((acc, [key, value]) => {
             acc[key] = String(value);
             return acc;
@@ -62,7 +60,7 @@ export default function ExpensesPage() {
         setExpenses({});
       }
     }
-  }, [currentDate, isOnboardingLoaded, onboardingData.bakery, start]);
+  }, [currentDate, isOnboardingLoaded, onboardingData.bakery, weekStart]);
 
 
   const totalExpenses = Object.values(expenses).reduce((acc, val) => acc + (Number(val) || 0), 0);
@@ -78,25 +76,20 @@ export default function ExpensesPage() {
   };
 
   const handleSave = () => {
+    const { bakery: bakeryId } = onboardingData;
+
+    if (!bakeryId) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Error', 
+        description: 'Bakery data not found. Please select a bakery in settings.' 
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const bakeryDataString = localStorage.getItem('onboardingData_local');
-      if (!bakeryDataString) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Bakery data not found. Please select a bakery in settings.' });
-        setIsSaving(false);
-        return;
-      }
-      
-      const bakeryData: OnboardingData = JSON.parse(bakeryDataString);
-      const bakeryId = bakeryData.bakery;
-
-      if (!bakeryId) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Bakery data not found. Please select a bakery in settings.' });
-        setIsSaving(false);
-        return;
-      }
-
-      const weekId = format(start, 'yyyy-MM-dd');
+      const weekId = format(weekStart, 'yyyy-MM-dd');
       const storageKey = `expenses-${bakeryId}-${weekId}`;
       
       const numericExpenses = Object.entries(expenses).reduce((acc, [key, value]) => {
@@ -116,7 +109,7 @@ export default function ExpensesPage() {
         title: t('expenses_saved'),
         description: t('total_expenses_saved_for_week', { 
             total: formatUGX(totalExpenses), 
-            week: format(start, 'MMM d') 
+            week: format(weekStart, 'MMM d') 
         }),
         className: 'bg-success text-white'
       });
@@ -141,6 +134,25 @@ export default function ExpensesPage() {
       </div>
     );
   }
+
+  if (!onboardingData.bakery) {
+    return (
+        <div className="flex flex-col">
+            <PageHeader title={t('weekly_expenses')} />
+            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center space-y-4">
+                <div className="p-4 bg-destructive/10 rounded-full">
+                    <Settings2 className="h-12 w-12 text-destructive" />
+                </div>
+                <h2 className="text-2xl font-bold">{t('select_bakery_first')}</h2>
+                <p className="text-muted-foreground">{t('select_bakery_to_log_expenses')}</p>
+                <Button asChild size="lg">
+                    <Link href="/settings">{t('go_to_settings')}</Link>
+                </Button>
+            </div>
+        </div>
+    );
+  }
+
 
   return (
     <div className="flex h-screen flex-col">

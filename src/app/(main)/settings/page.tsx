@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, LogOut, Moon, Sun } from 'lucide-react';
+import { ChevronRight, LogOut, Moon, Sun, AlertTriangle } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { BAKERIES, ROLES, LANGUAGES } from '@/lib/data';
@@ -14,30 +14,33 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation } from '@/hooks/use-translation';
 import { useMemo } from 'react';
+import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
-  const { data: onboardingData, isLoaded } = useOnboarding();
+  const { data: onboardingData, updateData, isLoaded } = useOnboarding();
   const { language, setLanguage, t } = useTranslation();
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('onboardingComplete');
-      localStorage.removeItem('onboardingData_local'); // Correct key
+      localStorage.removeItem('onboardingData_local');
       localStorage.removeItem('selectedLanguage');
-      // Clear all expense data
       Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('expenses-')) {
-          localStorage.removeItem(key);
-        }
-        if (key.startsWith('daily_entry-')) {
+        if (key.startsWith('expenses-') || key.startsWith('daily_entry-')) {
           localStorage.removeItem(key);
         }
       });
       router.replace('/welcome');
     }
   }
+  
+  const handleBakeryChange = (bakeryId: string) => {
+    updateData({ bakery: bakeryId });
+  };
+
 
   const bakeryName = useMemo(() => {
     if (isLoaded && onboardingData.bakery) {
@@ -59,6 +62,41 @@ export default function SettingsPage() {
     <div className="pb-8">
       <PageHeader title={t('settings')} showBackButton={false} />
       <div className="p-4 space-y-6">
+
+        {!onboardingData.bakery && isLoaded && (
+          <Card className="border-primary bg-primary/10">
+              <CardHeader className="flex-row items-center gap-4 space-y-0">
+                  <AlertTriangle className="text-primary"/>
+                  <CardTitle>{t('select_bakery_first')}</CardTitle>
+              </CardHeader>
+          </Card>
+        )}
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('bakery_info')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-base">{t('bakery')}</Label>
+              <Select value={onboardingData.bakery || ''} onValueChange={handleBakeryChange}>
+                  <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder={t('select_your_bakery')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                      {BAKERIES.map(b => (
+                          <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                      ))}
+                  </SelectContent>
+              </Select>
+            </div>
+             <div className="flex justify-between items-center text-muted-foreground">
+                <span className="text-base">{t('role')}:</span> 
+                <span className="font-medium text-foreground">{roleName}</span>
+             </div>
+          </CardContent>
+        </Card>
+        
         <Card>
           <CardHeader>
             <CardTitle>{t('preferences')}</CardTitle>
@@ -90,16 +128,6 @@ export default function SettingsPage() {
                 onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
               />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('bakery_info')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-muted-foreground">
-            <div className="flex justify-between"><span>{t('bakery')}:</span> <span className="font-medium text-foreground">{bakeryName}</span></div>
-            <div className="flex justify-between"><span>{t('role')}:</span> <span className="font-medium text-foreground">{roleName}</span></div>
           </CardContent>
         </Card>
 
