@@ -41,7 +41,7 @@ export function BottomNav() {
               <div className={cn("flex items-center justify-center rounded-2xl px-4 py-1 transition-colors", active && "bg-primary/10")}>
                 <Icon className="h-6 w-6" />
               </div>
-              <span>{t(labelKey)}</span>
+              <span className="max-[320px]:hidden">{t(labelKey)}</span>
             </Link>
           );
         })}
