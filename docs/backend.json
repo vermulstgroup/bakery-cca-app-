@@ -1,0 +1,129 @@
+{
+  "entities": {
+    "product": {
+      "title": "Product",
+      "description": "A product sold by a bakery.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "emoji": { "type": "string" },
+        "defaultPrice": { "type": "number" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "name", "defaultPrice"]
+    },
+    "expenseCategory": {
+      "title": "Expense Category",
+      "description": "A category for bakery expenses.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "emoji": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "bakery": {
+      "title": "Bakery",
+      "description": "Represents a single bakery location, containing its own data.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "region": { "type": "string" },
+        "members": {
+          "type": "object",
+          "description": "A map of user UIDs to their roles in this bakery (e.g., 'owner', 'manager')."
+        }
+      },
+      "required": ["name", "members"]
+    },
+    "dailyEntry": {
+      "title": "Daily Entry",
+      "description": "Records production, sales, and damages for all products for a single day.",
+      "type": "object",
+      "properties": {
+        "bakeryId": { "type": "string", "description": "The ID of the parent bakery." },
+        "date": { "type": "string", "format": "date-time" },
+        "quantities": {
+          "type": "object",
+          "properties": {
+            "production": {
+              "type": "object",
+              "additionalProperties": { "type": "number" }
+            },
+            "sales": {
+              "type": "object",
+              "additionalProperties": { "type": "number" }
+            },
+            "damages": {
+              "type": "object",
+              "additionalProperties": { "type": "number" }
+            }
+          }
+        }
+      },
+      "required": ["bakeryId", "date", "quantities"]
+    },
+    "weeklyExpense": {
+      "title": "Weekly Expense",
+      "description": "Records all expenses for a given week.",
+      "type": "object",
+      "properties": {
+        "bakeryId": { "type": "string" },
+        "weekStartDate": { "type": "string", "format": "date" },
+        "expenses": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        }
+      },
+      "required": ["bakeryId", "weekStartDate", "expenses"]
+    },
+    "bakeryConfig": {
+        "title": "Bakery Configuration",
+        "description": "Stores bakery-specific settings like product prices and active products.",
+        "type": "object",
+        "properties": {
+            "bakeryId": { "type": "string" },
+            "activeProducts": {
+                "type": "array",
+                "items": { "type": "string" }
+            },
+            "prices": {
+                "type": "object",
+                "additionalProperties": { "type": "number" }
+            }
+        },
+        "required": ["bakeryId"]
+    }
+  },
+  "auth": {
+    "providers": ["anonymous"]
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/product" },
+      "description": "Publicly readable catalog of all products."
+    },
+    "/expense_categories/{expenseCategoryId}": {
+        "schema": { "$ref": "#/entities/expenseCategory" },
+        "description": "Publicly readable catalog of all expense categories."
+    },
+    "/bakeries/{bakeryId}": {
+      "schema": { "$ref": "#/entities/bakery" },
+      "description": "Defines a bakery and its members."
+    },
+    "/bakeries/{bakeryId}/daily_entries/{dailyEntryId}": {
+      "schema": { "$ref": "#/entities/dailyEntry" },
+      "description": "Daily production, sales, and damage entries for a bakery."
+    },
+    "/bakeries/{bakeryId}/weekly_expenses/{weeklyExpenseId}": {
+        "schema": { "$ref": "#/entities/weeklyExpense" },
+        "description": "Weekly expense entries for a bakery."
+    },
+    "/bakeries/{bakeryId}/config/{configId}": {
+        "schema": { "$ref": "#/entities/bakeryConfig" },
+        "description": "Bakery-specific configurations."
+    }
+  }
+}
