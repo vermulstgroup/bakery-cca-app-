@@ -80,7 +80,7 @@ export default function ExpensesPage() {
           {EXPENSE_CATEGORIES.map(category => (
             <AccordionItem value={category.id} key={category.id} className="border-b-0">
              <Card className="mb-2 rounded-xl overflow-hidden">
-              <AccordionTrigger className="text-lg p-4 hover:no-underline">
+              <AccordionTrigger className="text-lg p-4 hover:no-underline min-h-[56px]">
                 <div className="flex items-center gap-4">
                   <span className="text-2xl">{category.emoji}</span>
                   <span>{category.name}</span>
@@ -115,7 +115,7 @@ export default function ExpensesPage() {
         </Accordion>
       </div>
        <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
-          <Button className="w-full" onClick={handleSave}>
+          <Button size="lg" className="w-full" onClick={handleSave}>
               {t('save_expenses')} ✓
           </Button>
       </div>

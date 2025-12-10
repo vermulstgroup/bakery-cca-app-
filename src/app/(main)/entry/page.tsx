@@ -34,7 +34,7 @@ const ProductCounter = ({ product }: { product: any }) => {
                 <Button 
                     variant="accent" 
                     size="icon" 
-                    className="h-14 w-14 rounded-full text-2xl font-bold" 
+                    className="rounded-full text-2xl font-bold" 
                     onClick={() => changeCount(-1)}
                     aria-label={t('decrease_count', { product: product.name })}
                 >
@@ -44,7 +44,7 @@ const ProductCounter = ({ product }: { product: any }) => {
                 <Button 
                     variant="accent" 
                     size="icon" 
-                    className="h-14 w-14 rounded-full text-2xl font-bold" 
+                    className="rounded-full text-2xl font-bold" 
                     onClick={() => changeCount(1)}
                     aria-label={t('increase_count', { product: product.name })}
                 >
@@ -103,9 +103,9 @@ export default function DailyEntryPage() {
             <Tabs defaultValue="production" className="flex-grow flex flex-col">
                 <div className="px-4">
                     <TabsList className="grid w-full grid-cols-3 h-14 p-1">
-                        <TabsTrigger value="production" className="h-full">{t('production')}</TabsTrigger>
-                        <TabsTrigger value="sales" className="h-full">{t('sales')}</TabsTrigger>
-                        <TabsTrigger value="damages" className="h-full">{t('damages')}</TabsTrigger>
+                        <TabsTrigger value="production" className="h-full text-base">{t('production')}</TabsTrigger>
+                        <TabsTrigger value="sales" className="h-full text-base">{t('sales')}</TabsTrigger>
+                        <TabsTrigger value="damages" className="h-full text-base">{t('damages')}</TabsTrigger>
                     </TabsList>
                 </div>
                 
@@ -128,7 +128,7 @@ export default function DailyEntryPage() {
                 </div>
             </Tabs>
             <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
-                <Button className="w-full" onClick={handleSave} disabled={saveStatus === 'saving'}>
+                <Button size="lg" className="w-full" onClick={handleSave} disabled={saveStatus === 'saving'}>
                     {saveStatus === 'saving' ? t('saving') : saveStatus === 'saved' ? t('saved') : t('done_for_today')}
                 </Button>
             </div>
