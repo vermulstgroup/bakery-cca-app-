@@ -14,6 +14,9 @@ import { useToast } from "@/hooks/use-toast"
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/use-translation';
 import Link from 'next/link';
+import { useUser, useFirestore } from '@/firebase';
+import { saveDailyEntry } from '@/lib/firebase/daily-entries';
+
 
 type EntryType = 'production' | 'sales' | 'damages';
 
@@ -74,6 +77,9 @@ export default function DailyEntryPage() {
     const { data: onboardingData, isLoaded } = useOnboarding();
     const [date, setDate] = useState(new Date());
 
+    const { user, loading: userLoading } = useUser();
+    const firestore = useFirestore();
+
     const userProducts = isLoaded && onboardingData.products ? PRODUCTS.filter(p => onboardingData.products?.includes(p.id)) : [];
     
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -94,11 +100,19 @@ export default function DailyEntryPage() {
         }));
     };
     
-    const handleSave = () => {
+    const handleSave = async () => {
+        if (!user || !onboardingData.bakery) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'You must be logged in and have a bakery selected to save data.'
+            });
+            return;
+        }
+
         setSaveStatus('saving');
-        console.log("Saving data:", quantities);
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            await saveDailyEntry(firestore, user.uid, onboardingData.bakery, date, quantities);
             setSaveStatus('saved');
             toast({
                 title: t('saved_successfully'),
@@ -108,10 +122,18 @@ export default function DailyEntryPage() {
             // Reset quantities after saving
             setQuantities({ production: {}, sales: {}, damages: {} });
             setTimeout(() => setSaveStatus('idle'), 2000);
-        }, 1000);
+        } catch (error) {
+            console.error("Error saving daily entry:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Save failed',
+                description: 'Could not save your daily entry. Please try again.'
+            });
+            setSaveStatus('idle');
+        }
     }
     
-    if (!isLoaded) {
+    if (!isLoaded || userLoading) {
         return (
              <div className="flex h-screen flex-col">
                 <PageHeader title={t('daily_entry')}>
@@ -207,7 +229,7 @@ export default function DailyEntryPage() {
                 </div>
             </Tabs>
             <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
-                <Button size="lg" className="w-full" onClick={handleSave} disabled={saveStatus === 'saving' || saveStatus === 'saved'}>
+                <Button size="lg" className="w-full" onClick={handleSave} disabled={saveStatus === 'saving' || saveStatus === 'saved' || !user}>
                     {saveStatus === 'saving' ? (
                         <>
                             <Loader2 className="mr-2 h-6 w-6 animate-spin" />
