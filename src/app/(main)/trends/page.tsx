@@ -1,28 +1,18 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSalesInsights, SalesInsightsOutput } from '@/ai/flows/sales-insights';
-import { Loader, Loader2, BarChart } from 'lucide-react';
+import { Loader2, BarChart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation } from '@/hooks/use-translation';
-
-// Mock sales data for demonstration
-const mockSalesData = {
-  "week1": [
-    { "product": "Yeast Mandazi", "quantity": 120 },
-    { "product": "Doughnuts", "quantity": 80 },
-    { "product": "Loaf (1kg)", "quantity": 50 }
-  ],
-  "week2": [
-    { "product": "Yeast Mandazi", "quantity": 150 },
-    { "product": "Doughnuts", "quantity": 70 },
-    { "product": "Chapati", "quantity": 90 }
-  ]
-};
+import { useDailyEntries } from '@/lib/firebase/use-daily-entries';
+import { useOnboarding } from '@/hooks/use-onboarding';
+import { subWeeks, startOfWeek, endOfWeek } from 'date-fns';
+import { PRODUCTS } from '@/lib/data';
 
 const InsightSkeleton = () => (
   <Card>
@@ -48,14 +38,55 @@ export default function TrendsPage() {
   const [insights, setInsights] = useState<SalesInsightsOutput['insights']>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { data: onboardingData } = useOnboarding();
+
+  // Fetch sales data from the last 4 weeks
+  const endDate = useMemo(() => endOfWeek(new Date(), { weekStartsOn: 1 }), []);
+  const startDate = useMemo(() => startOfWeek(subWeeks(endDate, 3), { weekStartsOn: 1 }), [endDate]);
+  
+  const { entries, loading: entriesLoading } = useDailyEntries(onboardingData.bakery, startDate, endDate);
+
+  const salesDataForAI = useMemo(() => {
+    if (!entries || entries.length === 0) return null;
+
+    const productMap = new Map(PRODUCTS.map(p => [p.id, p.name]));
+
+    const weeklySales: { [week: string]: { product: string, quantity: number }[] } = {};
+
+    entries.forEach(entry => {
+      const weekStart = startOfWeek(entry.date, { weekStartsOn: 1 }).toISOString().split('T')[0];
+      if (!weeklySales[weekStart]) {
+        weeklySales[weekStart] = [];
+      }
+      
+      const sales = entry.quantities.sales || {};
+      for (const productId in sales) {
+        if (sales[productId] > 0) {
+           const productName = productMap.get(productId) || productId;
+           const existingProduct = weeklySales[weekStart].find(p => p.product === productName);
+           if (existingProduct) {
+              existingProduct.quantity += sales[productId];
+           } else {
+              weeklySales[weekStart].push({ product: productName, quantity: sales[productId] });
+           }
+        }
+      }
+    });
+    return weeklySales;
+
+  }, [entries]);
 
   const fetchInsights = async () => {
+    if (!salesDataForAI) {
+      setInsights([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      // Simulate delay for spinner visibility
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const result = await getSalesInsights({ salesData: JSON.stringify(mockSalesData) });
+      const result = await getSalesInsights({ salesData: JSON.stringify(salesDataForAI, null, 2) });
       if (result && result.insights) {
         setInsights(result.insights);
       } else {
@@ -72,14 +103,20 @@ export default function TrendsPage() {
   };
   
   useEffect(() => {
-    fetchInsights();
-  }, [])
+    if (!entriesLoading) {
+      fetchInsights();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entriesLoading, salesDataForAI])
+
+  const hasData = useMemo(() => entries && entries.length > 0, [entries]);
+  const isLoading = loading || entriesLoading;
 
   return (
     <div className="flex h-screen flex-col">
       <PageHeader title={t('ai_insights')} showBackButton={false}>
-         <Button variant="ghost" size="sm" onClick={fetchInsights} disabled={loading}>
-          {loading ? (
+         <Button variant="ghost" size="sm" onClick={fetchInsights} disabled={isLoading || !hasData}>
+          {isLoading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               {t('refreshing')}
@@ -91,9 +128,9 @@ export default function TrendsPage() {
       </PageHeader>
       
       <div className="flex-grow overflow-y-auto p-4 space-y-4">
-        {loading && <InsightSkeleton />}
+        {isLoading && <InsightSkeleton />}
 
-        {error && !loading && (
+        {error && !isLoading && (
             <Card className="bg-destructive/10 border-destructive">
                 <CardHeader>
                     <CardTitle className="text-destructive">{t('error_occurred')}</CardTitle>
@@ -104,7 +141,7 @@ export default function TrendsPage() {
             </Card>
         )}
 
-        {!loading && !error && insights.length > 0 && (
+        {!isLoading && !error && insights.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>{t('sales_trends_and_insights')}</CardTitle>
@@ -123,7 +160,7 @@ export default function TrendsPage() {
           </Card>
         )}
         
-        {!loading && !error && insights.length === 0 && (
+        {!isLoading && !error && !hasData && (
              <Card>
                 <CardContent className="p-6 text-center space-y-3">
                     <div className="flex justify-center">
