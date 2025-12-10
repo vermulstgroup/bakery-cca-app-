@@ -79,4 +79,5 @@ export const LANGUAGES = [
   { name: 'Karamojong', code: 'kj' },
   { name: 'Acholi', code: 'ach' },
   { name: 'Teso', code: 'tes' },
+  { name: 'Luganda', code: 'lg' },
 ];

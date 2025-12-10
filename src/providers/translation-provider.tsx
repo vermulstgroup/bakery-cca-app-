@@ -6,12 +6,14 @@ import en from '@/locales/en.json';
 import kj from '@/locales/kj.json';
 import ach from '@/locales/ach.json';
 import tes from '@/locales/tes.json';
+import lg from '@/locales/lg.json';
 
 const translations: { [key: string]: any } = {
   en,
   kj,
   ach,
-  tes
+  tes,
+  lg
 };
 
 type TranslationContextType = {
