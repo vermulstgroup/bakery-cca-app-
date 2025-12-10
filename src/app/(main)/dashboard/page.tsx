@@ -91,7 +91,7 @@ export default function DashboardPage() {
                     <div className="text-5xl font-bold font-currency text-white">
                         <CountUp to={profit} />
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                         <div className="rounded-full bg-white/20 px-3 py-1 text-sm">{margin}% {t('margin')}</div>
                         <div className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-sm">
                             {trend > 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
