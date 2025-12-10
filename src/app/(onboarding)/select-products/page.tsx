@@ -9,15 +9,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { formatUGX } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { ArrowRight } from 'lucide-react';
 
 const defaultSelected = ['yeast_mandazi', 'doughnuts', 'loaf_1kg', 'loaf_500g', 'chapati'];
 
 export default function SelectProductsPage() {
   const router = useRouter();
-  const { data, updateData } = useOnboarding();
+  const { data, updateData, isLoaded } = useOnboarding();
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
     new Set(data.products || defaultSelected)
   );
+  
+  const bakeryName = isLoaded ? data.bakery ? PRODUCTS.find(p=>p.id === data.bakery) : 'your bakery' : 'your bakery'
 
   const toggleProduct = (productId: string) => {
     const newSelection = new Set(selectedProducts);
@@ -45,24 +48,24 @@ export default function SelectProductsPage() {
   };
 
   return (
-    <div className="flex h-[80vh] flex-col gap-4">
-      <div className="text-center">
+    <div className="flex h-screen flex-col" style={{ height: 'calc(100vh - 4rem)'}}>
+      <div className="text-center mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Which products do you make?</h1>
-        <p className="text-muted-foreground">Select all that apply. You can change this later.</p>
+        <p className="text-muted-foreground">Select all that apply for {bakeryName}.</p>
       </div>
 
       <div className="sticky top-0 z-10 bg-background py-2">
-        <div className="flex justify-between items-center p-2 rounded-lg bg-secondary">
-          <p className="font-medium">{selectedProducts.size} selected</p>
+        <Card className="flex justify-between items-center p-3 rounded-xl bg-secondary">
+          <p className="font-semibold">{selectedProducts.size} selected</p>
           <div className='flex gap-2'>
             <Button variant="outline" size="sm" onClick={selectAll}>Select All</Button>
-            <Button variant="ghost" size="sm" onClick={clearAll}>Clear</Button>
+            <Button variant="ghost" size="sm" onClick={clearAll}>Clear All</Button>
           </div>
-        </div>
+        </Card>
       </div>
 
-      <div className="flex-grow overflow-y-auto">
-        <div className="grid grid-cols-2 gap-3">
+      <div className="flex-grow overflow-y-auto pt-4 -mr-2 pr-2">
+        <div className="grid grid-cols-2 gap-4">
           {PRODUCTS.map(product => {
             const isSelected = selectedProducts.has(product.id);
             return (
@@ -70,18 +73,18 @@ export default function SelectProductsPage() {
                 key={product.id}
                 onClick={() => toggleProduct(product.id)}
                 className={cn(
-                  'cursor-pointer p-3 transition-all aspect-square flex flex-col justify-between relative shadow-sm',
+                  'cursor-pointer p-3 transition-all aspect-[4/5] flex flex-col justify-between items-center relative shadow-sm text-center',
                   isSelected && 'bg-primary/10 border-primary ring-2 ring-primary'
                 )}
               >
                 <div className="absolute top-2 right-2">
-                   <Checkbox checked={isSelected} />
+                   <Checkbox checked={isSelected} className="h-5 w-5"/>
                 </div>
-                <div className="flex flex-col items-center text-center gap-2">
-                  <div className="text-4xl">{product.emoji}</div>
-                  <p className="font-semibold text-sm">{product.name}</p>
-                  <p className="text-xs text-muted-foreground font-currency">{formatUGX(product.defaultPrice).replace('UGX ', '')}</p>
+                <div className="flex flex-col items-center text-center gap-2 mt-4">
+                  <div className="text-5xl">{product.emoji}</div>
+                  <p className="font-semibold text-sm leading-tight">{product.name}</p>
                 </div>
+                 <p className="text-sm text-muted-foreground font-currency">{formatUGX(product.defaultPrice).replace('UGX ', '')}</p>
               </Card>
             );
           })}
@@ -93,8 +96,9 @@ export default function SelectProductsPage() {
           onClick={handleContinue}
           disabled={selectedProducts.size === 0}
           className="w-full"
+          size="lg"
         >
-          Continue with {selectedProducts.size} products
+          Continue <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
     </div>

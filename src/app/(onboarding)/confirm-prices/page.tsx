@@ -9,13 +9,14 @@ import { Label } from '@/components/ui/label';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { Check, PartyPopper } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function ConfirmPricesPage() {
   const router = useRouter();
   const { data, updateData, isLoaded, completeOnboarding } = useOnboarding();
   const [prices, setPrices] = useState<{ [key: string]: string }>({});
   
-  const selectedProducts = PRODUCTS.filter(p => data.products?.includes(p.id));
+  const selectedProducts = isLoaded ? PRODUCTS.filter(p => data.products?.includes(p.id)) : [];
 
   useEffect(() => {
     if (isLoaded && data.products) {
@@ -50,13 +51,13 @@ export default function ConfirmPricesPage() {
   }
 
   return (
-    <div className="flex h-[80vh] flex-col gap-4">
-      <div className="text-center">
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 4rem)'}}>
+      <div className="text-center mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Set your selling prices</h1>
         <p className="text-muted-foreground">We've added typical prices. Adjust to match yours.</p>
       </div>
 
-      <div className="flex-grow overflow-y-auto pr-2">
+      <ScrollArea className="flex-grow pr-2 -mr-4">
         <Card className="p-4">
           <div className="space-y-4">
             {selectedProducts.map(product => (
@@ -78,7 +79,7 @@ export default function ConfirmPricesPage() {
             ))}
           </div>
         </Card>
-      </div>
+      </ScrollArea>
 
       <div className="mt-auto pt-4">
         <Button
