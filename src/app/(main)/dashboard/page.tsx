@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatUGX } from '@/lib/utils';
 import { ArrowUp, ArrowDown, HandCoins, ReceiptText, FileText, Loader2 } from 'lucide-react';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useTranslation } from '@/hooks/use-translation';
 import Link from 'next/link';
 import { useOnboarding } from '@/hooks/use-onboarding';
@@ -17,12 +17,19 @@ import type { DailyEntry } from '@/lib/types';
 
 const CountUp = ({ to }: { to: number }) => {
   const [count, setCount] = useState(0);
+  const hasAnimated = useRef(false);
 
   useEffect(() => {
+    if (hasAnimated.current) {
+        setCount(to);
+        return;
+    }
+
     let start = 0;
     const end = to;
-    if (end === 0 && count === 0) return;
+    if (end === 0) return;
     
+    hasAnimated.current = true;
     const duration = 1500;
     const startTime = Date.now();
 
@@ -60,7 +67,7 @@ export default function DashboardPage() {
           try {
             allEntries.push(JSON.parse(localStorage.getItem(key)!));
           } catch (e) {
-            console.error('Failed to parse daily entry from localStorage', e);
+            // Silently fail on parse error
           }
         }
       });

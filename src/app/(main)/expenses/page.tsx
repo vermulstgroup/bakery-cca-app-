@@ -29,7 +29,7 @@ export default function ExpensesPage() {
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [expenses, setExpenses] = useState<{ [key: string]: string }>({});
-  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   
@@ -56,7 +56,6 @@ export default function ExpensesPage() {
           setExpenses({});
         }
       } catch (error) {
-        console.error("Failed to load expenses from localStorage", error);
         setExpenses({});
       }
     }
@@ -67,7 +66,8 @@ export default function ExpensesPage() {
 
   const handleExpenseChange = (categoryId: string, value: string) => {
     const numericValue = value.replace(/[^0-9]/g, '');
-    setExpenses(prev => ({ ...prev, [categoryId]: numericValue }));
+    const validValue = Math.max(0, Number(numericValue)).toString();
+    setExpenses(prev => ({ ...prev, [categoryId]: validValue }));
   };
   
   const addExpense = (categoryId: string, amount: number) => {
@@ -87,7 +87,7 @@ export default function ExpensesPage() {
       return;
     }
 
-    setIsSaving(true);
+    setSaveStatus('saving');
     try {
       const weekId = format(weekStart, 'yyyy-MM-dd');
       const storageKey = `expenses-${bakeryId}-${weekId}`;
@@ -105,6 +105,7 @@ export default function ExpensesPage() {
 
       localStorage.setItem(storageKey, JSON.stringify(dataToSave));
       
+      setSaveStatus('saved');
       toast({
         title: t('expenses_saved'),
         description: t('total_expenses_saved_for_week', { 
@@ -113,12 +114,12 @@ export default function ExpensesPage() {
         }),
         className: 'bg-success text-white'
       });
+      
+      setTimeout(() => setSaveStatus('idle'), 2000);
 
     } catch (error) {
-      console.error("Error saving expenses to localStorage:", error);
       toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save expenses.' });
-    } finally {
-      setIsSaving(false);
+      setSaveStatus('idle');
     }
   };
 
@@ -218,12 +219,14 @@ export default function ExpensesPage() {
         </Accordion>
       </div>
        <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
-          <Button size="lg" className="w-full" onClick={handleSave} disabled={isSaving || !isOnboardingLoaded}>
-              {isSaving ? (
+          <Button size="lg" className="w-full" onClick={handleSave} disabled={saveStatus !== 'idle' || !isOnboardingLoaded}>
+              {saveStatus === 'saving' ? (
                 <>
                     <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                     {t('saving')}
                 </>
+              ) : saveStatus === 'saved' ? (
+                <>{t('saved')}</>
               ) : (
                 <>{t('save_expenses')} ✓</>
               )}

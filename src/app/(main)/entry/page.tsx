@@ -106,7 +106,6 @@ export default function DailyEntryPage() {
                 setQuantities({ production: {}, sales: {}, damages: {} });
             }
         } catch (error) {
-            console.error("Failed to load daily entry from localStorage", error);
             setQuantities({ production: {}, sales: {}, damages: {} });
         }
     }, [date, isLoaded, onboardingData.bakery]);
@@ -117,7 +116,7 @@ export default function DailyEntryPage() {
             ...prev,
             [entryType]: {
                 ...prev[entryType],
-                [productId]: newCount
+                [productId]: Math.max(0, newCount)
             }
         }));
     };
@@ -152,7 +151,6 @@ export default function DailyEntryPage() {
             
             setTimeout(() => setSaveStatus('idle'), 2000);
         } catch (error) {
-            console.error("Error saving daily entry:", error);
             toast({
                 variant: 'destructive',
                 title: 'Save failed',
