@@ -1,43 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, signInAnonymously, type User } from 'firebase/auth';
+import type { User } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 
 export function useUser() {
-  const auth = useAuth();
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // This guard clause prevents auth operations until the auth object is ready.
-    if (!auth) {
-      setLoading(false); // Set loading to false if auth is not available
-      return;
-    }
-
-    setLoading(true);
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        setLoading(false);
-      } else {
-        // If no user, sign in anonymously
-        signInAnonymously(auth)
-          .then((userCredential) => {
-             setUser(userCredential.user);
-          })
-          .catch((error) => {
-            console.error("Anonymous sign-in failed:", error);
-          })
-          .finally(() => {
-             setLoading(false);
-          });
-      }
-    });
-
-    return () => unsubscribe();
-  }, [auth]);
+  // No-op. This hook no longer performs authentication.
+  // It returns a null user to satisfy components that use it,
+  // but prevents any actual Firebase Auth calls.
+  // This resolves the auth/configuration-not-found error.
 
   return { user, loading };
 }
