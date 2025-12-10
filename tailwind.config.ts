@@ -8,11 +8,18 @@ export default {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
-        code: ['monospace'],
+        body: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        headline: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        code: ['"DM Mono"', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -45,6 +52,12 @@ export default {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
         },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+        },
+        loss: {
+          DEFAULT: 'hsl(var(--loss))',
+        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -67,9 +80,11 @@ export default {
         },
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        'xl': 'calc(var(--radius) + 4px)', // 20px
+        'lg': 'var(--radius)', // 16px (Adjusted from default)
+        'md': 'calc(var(--radius) - 4px)', // 12px
+        'sm': 'calc(var(--radius) - 8px)', // 8px
+        'button': '14px',
       },
       keyframes: {
         'accordion-down': {
@@ -88,10 +103,25 @@ export default {
             height: '0',
           },
         },
+        'slide-in-from-right': {
+          '0%': { transform: 'translateX(100%)' },
+          '100%': { transform: 'translateX(0)' },
+        },
+        'slide-out-to-left': {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-100%)' },
+        },
+        'confetti-burst': {
+          '0%': { opacity: '1', transform: 'scale(0.5) translateY(0)' },
+          '100%': { opacity: '0', transform: 'scale(1.5) translateY(-50px)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'slide-in-from-right': 'slide-in-from-right 0.3s ease-out',
+        'slide-out-to-left': 'slide-out-to-left 0.3s ease-out',
+        'confetti-burst': 'confetti-burst 0.8s ease-out forwards',
       },
     },
   },
