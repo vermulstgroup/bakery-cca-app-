@@ -1,10 +1,11 @@
+
 {
-  "dashboard": "Dashboard",
-  "entry": "Entry",
-  "expenses": "Expenses",
+  "dashboard": "Edeke",
+  "entry": "Esubit",
+  "expenses": "Akibois",
   "trends": "Trends",
-  "settings": "Settings",
-  "production": "Production",
+  "settings": "Aitelekarin",
+  "production": "Atubokin",
   "sales": "Sales",
   "damages": "Damages",
   "profit": "Profit",
@@ -13,5 +14,5 @@
   "done": "Done",
   "cancel": "Cancel",
   "this_week": "This Week",
-  "today": "Today"
+  "today": "Lolo"
 }

@@ -78,5 +78,9 @@
   "vs_last_week": "vs last week",
   "last_synced": "Last synced",
   "just_now": "just now",
-  "minutes_ago": "{count} minutes ago"
+  "minutes_ago": "{count} minutes ago",
+  "online": "Online",
+  "offline": "Offline",
+  "select_bakery": "Select Bakery",
+  "configuration": "Configuration"
 }

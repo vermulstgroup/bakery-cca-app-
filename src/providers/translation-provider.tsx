@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useState, useEffect, useCallback } from 'react';
@@ -13,10 +14,10 @@ const translations: { [key: string]: any } = {
   tes
 };
 
-interface TranslationContextType {
+type TranslationContextType = {
   language: string;
   setLanguage: (language: string) => void;
-  t: (key: string) => string;
+  t: (key: string, values?: { [key: string]: string | number }) => string;
 }
 
 export const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
@@ -38,8 +39,16 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const t = useCallback((key: string): string => {
-    return translations[language][key] || translations['en'][key] || key;
+  const t = useCallback((key: string, values?: { [key: string]: string | number }): string => {
+    let translation = translations[language][key] || translations['en'][key] || key;
+    
+    if (values) {
+      Object.keys(values).forEach(valueKey => {
+        translation = translation.replace(`{${valueKey}}`, String(values[valueKey]));
+      });
+    }
+
+    return translation;
   }, [language]);
 
   return (
