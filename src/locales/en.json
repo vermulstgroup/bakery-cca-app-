@@ -89,5 +89,14 @@
   "go_to_daily_entry": "Go to Daily Entry",
   "no_products_setup_title": "No products selected",
   "no_products_setup_subtitle": "Please add some products to get started.",
-  "go_to_product_settings": "Go to Settings"
+  "go_to_product_settings": "Go to Settings",
+  "expense_category_ingredients": "Ingredients",
+  "expense_category_salaries": "Salaries",
+  "expense_category_fuel": "Fuel",
+  "expense_category_breakfast_lunch": "Breakfast/Lunch",
+  "expense_category_firewood": "Firewood",
+  "expense_category_packaging": "Packaging",
+  "expense_category_gas_electricity": "Gas/Electricity",
+  "expense_category_loan_rent": "Loan/Rent",
+  "expense_category_other": "Other"
 }

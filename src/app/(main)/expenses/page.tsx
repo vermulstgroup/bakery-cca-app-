@@ -89,7 +89,7 @@ export default function ExpensesPage() {
               <AccordionTrigger className="text-lg p-4 hover:no-underline min-h-[56px]">
                 <div className="flex items-center gap-4">
                   <span className="text-2xl">{category.emoji}</span>
-                  <span>{category.name}</span>
+                  <span>{t(`expense_category_${category.id}`)}</span>
                 </div>
                 <span className="font-currency text-lg text-muted-foreground mr-2">{formatUGX(Number(expenses[category.id] || 0))}</span>
               </AccordionTrigger>
