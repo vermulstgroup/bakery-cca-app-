@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/accordion';
 import { EXPENSE_CATEGORIES } from '@/lib/data';
 import { formatUGX } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Loader2, Settings2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Settings2, Check } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from '@/hooks/use-translation';
@@ -59,7 +59,7 @@ export default function ExpensesPage() {
         setExpenses({});
       }
     }
-  }, [currentDate, isOnboardingLoaded, onboardingData.bakery, weekStart]);
+  }, [currentDate, isOnboardingLoaded, onboardingData.bakery]);
 
 
   const totalExpenses = Object.values(expenses).reduce((acc, val) => acc + (Number(val) || 0), 0);
@@ -143,8 +143,8 @@ export default function ExpensesPage() {
         <div className="flex flex-col">
             <PageHeader title={t('weekly_expenses')} />
             <div className="flex flex-1 flex-col items-center justify-center p-8 text-center space-y-4">
-                <div className="p-4 bg-destructive/10 rounded-full">
-                    <Settings2 className="h-12 w-12 text-destructive" />
+                <div className="p-4 bg-primary/10 rounded-full">
+                    <Settings2 className="h-12 w-12 text-primary" />
                 </div>
                 <h2 className="text-2xl font-bold">{t('select_bakery_first')}</h2>
                 <p className="text-muted-foreground">{t('select_bakery_to_log_expenses')}</p>
@@ -201,7 +201,7 @@ export default function ExpensesPage() {
                       type="tel"
                       inputMode="numeric"
                       className="pl-12 text-lg text-right h-14 font-currency"
-                      value={expenses[category.id] || ''}
+                      value={expenses[category.id] ? new Intl.NumberFormat().format(Number(expenses[category.id])) : ''}
                       onChange={e => handleExpenseChange(category.id, e.target.value)}
                       placeholder="0"
                     />
@@ -228,7 +228,10 @@ export default function ExpensesPage() {
                     {t('saving')}
                 </>
               ) : saveStatus === 'saved' ? (
-                <>{t('saved')}</>
+                <>
+                    <Check className="mr-2 h-6 w-6" />
+                    {t('saved')}
+                </>
               ) : (
                 <>{t('save_expenses')}</>
               )}
