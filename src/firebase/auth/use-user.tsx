@@ -12,10 +12,11 @@ export function useUser() {
   useEffect(() => {
     // This guard clause prevents auth operations until the auth object is ready.
     if (!auth) {
-      setLoading(false);
+      setLoading(false); // Set loading to false if auth is not available
       return;
     }
 
+    setLoading(true);
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
