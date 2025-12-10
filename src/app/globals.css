@@ -4,76 +4,52 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 172.1 80.6% 40.2%;
-    --primary-foreground: 172.1 80.6% 98.2%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 28 80% 97%; /* stone-50 #FAFAF9 */
+    --foreground: 24 13% 11%; /* stone-900 #1C1917 */
+    --card: 255 255 255;
+    --card-foreground: 24 13% 11%;
+    --popover: 255 255 255;
+    --popover-foreground: 24 13% 11%;
+    --primary: 39 92% 51%; /* #F59E0B */
+    --primary-foreground: 255 255 255;
+    --secondary: 30 14% 96%; /* stone-100 #F5F5F4 */
+    --secondary-foreground: 24 13% 11%;
+    --muted: 27 10% 91%; /* stone-200 #E7E5E4 */
+    --muted-foreground: 27 6% 47%; /* stone-500 #78716C */
+    --accent: 30 14% 96%;
+    --accent-foreground: 24 13% 11%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --success: 142.1 76.2% 36.3%;
+    --success: 160 90% 30%; /* #059669 */
     --loss: 0 84.2% 60.2%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 172.1 80.6% 40.2%;
+    --border: 27 10% 91%;
+    --input: 30 14% 96%;
+    --ring: 39 92% 51%;
     --radius: 20px;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 172.1 80.6% 40.2%;
-    --primary-foreground: 172.1 80.6% 98.2%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --background: 24 13% 11%; /* stone-900 */
+    --foreground: 28 80% 97%; /* stone-50 */
+    --card: 26 9% 15%; /* stone-800 */
+    --card-foreground: 28 80% 97%;
+    --popover: 26 9% 15%;
+    --popover-foreground: 28 80% 97%;
+    --primary: 39 92% 51%;
+    --primary-foreground: 24 13% 11%;
+    --secondary: 27 8% 26%; /* stone-700 */
+    --secondary-foreground: 28 80% 97%;
+    --muted: 27 8% 26%;
+    --muted-foreground: 27 6% 65%; /* stone-400 */
+    --accent: 27 8% 26%;
+    --accent-foreground: 28 80% 97%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --success: 142.1 76.2% 36.3%;
+    --success: 160 90% 30%;
     --loss: 0 84.2% 60.2%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 172.1 80.6% 40.2%;
-  }
-
-  :root:not(.dark) {
-    --background: 248 9.1% 98.2%; /* cool-gray-50 */
-    --foreground: 240 6.5% 10.4%; /* cool-gray-900 */
-    --card: 255 255 255;
-    --card-foreground: 240 6.5% 10.4%;
-    --popover: 255 255 255;
-    --popover-foreground: 240 6.5% 10.4%;
-    --primary: 15 118 110; /* #0F766E */
-    --primary-foreground: 255 255 255;
-    --secondary: 240 5.2% 95.9%; /* cool-gray-100 */
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 92.9%; /* cool-gray-200 */
-    --muted-foreground: 240 4% 46.1%;
-    --accent: 240 4.8% 92.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 220 83.9% 52%; /* red-500 */
-    --destructive-foreground: 240 100% 99.8%;
-    --success: 142.1 76.2% 36.3%; /* #10B981 */
-    --loss: 0 84.2% 60.2%;
-    --border: 240 5% 91%; /* cool-gray-300 */
-    --input: 240 5.2% 95.9%;
-    --ring: 15 118 110;
+    --border: 27 8% 26%;
+    --input: 27 8% 26%;
+    --ring: 39 92% 51%;
   }
 }
 
@@ -90,10 +66,10 @@
 
 @layer components {
   .profit-card-gradient {
-    background: linear-gradient(135deg, hsl(175 82% 21%) 0%, hsl(175 80% 25%) 100%); /* #115E59 to #0F766E */
+    background: linear-gradient(135deg, hsl(32 93% 45%) 0%, hsl(39 92% 51%) 50%, hsl(45 95% 57%) 100%); /* amber-600 to amber-400 */
   }
   .btn-primary-gradient {
-    background: linear-gradient(135deg, hsl(175 80% 25%), hsl(173 80% 41%));
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(45 95% 57%));
   }
   .loss-card-gradient {
      background: linear-gradient(135deg, hsl(var(--loss)) 0%, #F87171 100%);

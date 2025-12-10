@@ -17,8 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        currency: ['"Roboto Mono"', 'monospace'],
+        body: ['"Plus Jakarta Sans"', 'sans-serif'],
+        currency: ['"DM Mono"', 'monospace'],
       },
       fontSize: {
         xs: '12px',
@@ -27,8 +27,8 @@ export default {
         lg: '20px',
         xl: '24px',
         '2xl': '28px',
-        '3xl': '30px',
-        '4xl': '36px',
+        '3xl': '32px',
+        '4xl': '40px',
         '5xl': '48px',
       },
       colors: {
@@ -98,11 +98,10 @@ export default {
         button: '16px',
       },
        boxShadow: {
-        sm: '0 1px 2px rgba(0, 0, 0, 0.04)',
-        md: '0 4px 12px rgba(0, 0, 0, 0.06)',
-        lg: '0 8px 24px rgba(0, 0, 0, 0.08)',
-        'profit-card': '0px 10px 24px rgba(15, 118, 110, 0.25), 0px 4px 8px rgba(15, 118, 110, 0.15)',
-        'primary-btn': '0px 4px 10px rgba(15, 118, 110, 0.2)',
+        sm: '0 2px 8px rgba(28, 25, 23, 0.06)',
+        md: '0 4px 16px rgba(28, 25, 23, 0.08)',
+        lg: '0 8px 24px rgba(28, 25, 23, 0.10)',
+        'profit': '0 12px 40px rgba(245, 158, 11, 0.35)',
       },
       keyframes: {
         'accordion-down': {

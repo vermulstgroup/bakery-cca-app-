@@ -52,11 +52,11 @@ export default function DashboardPage() {
     <div className="flex flex-col">
       <AppHeader />
       <div className="flex-1 space-y-6 p-4 md:p-6">
-        <div className={`rounded-2xl p-6 shadow-lg shadow-primary/25 ${isProfit ? 'profit-card-gradient' : 'loss-card-gradient'}`}>
+        <div className={`rounded-2xl p-6 shadow-profit ${isProfit ? 'profit-card-gradient' : 'loss-card-gradient'}`}>
             <Card className="relative rounded-xl border-0 bg-transparent text-primary-foreground shadow-none overflow-hidden p-0">
                 <CardHeader className="p-0">
-                    <CardTitle className="text-xs font-medium uppercase tracking-[2px] text-white/60">
-                        Profit
+                    <CardTitle className="text-xs font-medium uppercase tracking-[2px] text-white/80">
+                        This week's profit
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-start gap-2 p-0 mt-2">
