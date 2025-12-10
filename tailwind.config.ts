@@ -17,9 +17,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        headline: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        currency: ['"DM Mono"', 'monospace'],
+        body: ['"Inter"', 'system-ui', 'sans-serif'],
+        headline: ['"Inter"', 'system-ui', 'sans-serif'],
+        currency: ['"Roboto Mono"', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -81,14 +81,15 @@ export default {
       },
       borderRadius: {
         'xl': '20px',
-        'lg': 'var(--radius)',
-        'md': 'calc(var(--radius) - 4px)',
+        'lg': 'calc(var(--radius) - 4px)',
+        'md': 'calc(var(--radius) - 6px)',
         'sm': 'calc(var(--radius) - 8px)',
-        'button': '14px',
+        'button': '16px',
       },
        boxShadow: {
-        'lg': '0 8px 24px rgba(0,0,0,0.08)',
-        '2xl': '0 12px 40px rgba(13, 148, 136, 0.35)',
+        'lg': '0px 4px 12px rgba(0, 0, 0, 0.06), 0px 1px 2px rgba(0, 0, 0, 0.04)',
+        '2xl': '0px 10px 24px rgba(15, 118, 110, 0.25), 0px 4px 8px rgba(15, 118, 110, 0.15)',
+        'primary-btn': '0px 4px 10px rgba(15, 118, 110, 0.2)',
       },
       keyframes: {
         'accordion-down': {

@@ -51,8 +51,8 @@ export default function DashboardPage() {
     <div className="flex flex-col">
       <AppHeader />
       <div className="flex-1 space-y-6 p-4 md:p-6">
-        <div className={`rounded-3xl p-1 ${isProfit ? 'profit-card-gradient' : 'loss-card-gradient'}`}>
-            <Card className="relative rounded-3xl border-0 bg-transparent text-primary-foreground shadow-2xl shadow-primary/30 overflow-hidden">
+        <div className={`rounded-xl p-1 ${isProfit ? 'profit-card-gradient' : 'loss-card-gradient'}`}>
+            <Card className="relative rounded-xl border-0 bg-transparent text-primary-foreground shadow-2xl overflow-hidden">
                 <div className="absolute inset-0 bg-white/5"></div>
                 <CardHeader>
                     <CardTitle className="text-xs font-medium uppercase tracking-[2px] text-primary-foreground/60">
@@ -60,7 +60,7 @@ export default function DashboardPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-start gap-2">
-                    <div className="text-[56px] font-bold">
+                    <div className="text-[56px] font-bold font-currency">
                         <CountUp to={profit} />
                     </div>
                     <div className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-sm">

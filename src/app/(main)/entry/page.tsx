@@ -81,7 +81,7 @@ export default function DailyEntryPage() {
 
             <Tabs defaultValue="production" className="flex-grow flex flex-col">
                 <div className="px-4">
-                    <TabsList className="grid w-full grid-cols-3 h-12 p-1">
+                    <TabsList className="grid w-full grid-cols-3 h-14 p-1">
                         <TabsTrigger value="production" className="h-full">Production</TabsTrigger>
                         <TabsTrigger value="sales" className="h-full">Sales</TabsTrigger>
                         <TabsTrigger value="damages" className="h-full">Damages</TabsTrigger>
