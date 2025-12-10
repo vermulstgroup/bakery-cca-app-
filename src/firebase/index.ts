@@ -5,21 +5,21 @@ import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { firebaseConfig } from './config';
 
-let firebaseApp: FirebaseApp;
-let auth: Auth;
-let firestore: Firestore;
-
 // This function ensures Firebase is initialized only once.
 export function initializeFirebase() {
-  if (!getApps().length) {
-    firebaseApp = initializeApp(firebaseConfig);
-    auth = getAuth(firebaseApp);
-    firestore = getFirestore(firebaseApp);
-  } else {
-    firebaseApp = getApps()[0];
-    auth = getAuth(firebaseApp);
-    firestore = getFirestore(firebaseApp);
+  if (getApps().length > 0) {
+    const app = getApps()[0];
+    return {
+        firebaseApp: app,
+        auth: getAuth(app),
+        firestore: getFirestore(app)
+    };
   }
+  
+  const firebaseApp = initializeApp(firebaseConfig);
+  const auth = getAuth(firebaseApp);
+  const firestore = getFirestore(firebaseApp);
+  
   return { firebaseApp, auth, firestore };
 }
 

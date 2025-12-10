@@ -2,45 +2,21 @@
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
-import {
-  FirebaseProvider,
-  useFirebase,
-} from './provider';
+import { FirebaseProvider } from './provider';
 import { initializeFirebase } from '.';
-import React, { PropsWithChildren, useEffect, useState } from 'react';
+import React, { type PropsWithChildren } from 'react';
+
+// Initialize Firebase ONCE at the module level.
+// This is the key change to prevent race conditions.
+const { firebaseApp, auth, firestore } = initializeFirebase();
 
 export const FirebaseClientProvider = (props: PropsWithChildren) => {
-  const parentContext = useFirebase();
-  const [context, setContext] = useState<
-    | {
-        firebaseApp: FirebaseApp;
-        auth: Auth;
-        firestore: Firestore;
-      }
-    | undefined
-  >();
-
-  useEffect(() => {
-    if (!context) {
-      setContext(initializeFirebase());
-    }
-  }, [context]);
-
-  // if we're already in a parent context, just pass children
-  if (parentContext) {
-    return props.children;
-  }
-
-  if (!context) {
-    // We can return a loader here
-    return null;
-  }
-
+  // The context is now stable and available on first render.
   return (
     <FirebaseProvider
-      firebaseApp={context.firebaseApp}
-      auth={context.auth}
-      firestore={context.firestore}
+      firebaseApp={firebaseApp}
+      auth={auth}
+      firestore={firestore}
     >
       {props.children}
     </FirebaseProvider>
