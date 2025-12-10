@@ -22,7 +22,7 @@ export default function SettingsPage() {
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('onboardingComplete');
-      localStorage.removeItem('onboardingData');
+      localStorage.removeItem('userSettings');
       localStorage.removeItem('selectedLanguage');
       router.replace('/welcome');
     }
