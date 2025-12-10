@@ -152,7 +152,7 @@ export default function DailyEntryPage() {
                  <Card className="flex items-center justify-between p-2 bg-secondary rounded-xl">
                     <Button variant="ghost" size="icon" onClick={() => setDate(subDays(date, 1))} aria-label={t('previous_day')}><ChevronLeft/></Button>
                     <div className="text-center font-semibold text-base">
-                        <p>{format(date, "eeee, MMMM d, yyyy")}</p>
+                        <p>{format(date, "EEE, MMM d, yyyy")}</p>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => setDate(addDays(date, 1))} aria-label={t('next_day')}><ChevronRight/></Button>
                 </Card>
