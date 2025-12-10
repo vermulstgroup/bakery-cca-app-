@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getPersonalizedOffers, PersonalizedOffersOutput } from '@/ai/flows/personalized-offers';
 import { Loader } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslation } from '@/hooks/use-translation';
 
 // Mock sales data for demonstration
 const mockSalesData = {
@@ -43,6 +44,7 @@ const OfferSkeleton = () => (
 );
 
 export default function TrendsPage() {
+  const { t } = useTranslation();
   const [offers, setOffers] = useState<PersonalizedOffersOutput['offers']>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,11 +58,11 @@ export default function TrendsPage() {
         setOffers(result.offers);
       } else {
         setOffers([]);
-        setError("Couldn't get offers. The AI model might be busy. Please try again.");
+        setError(t('error_getting_offers'));
       }
     } catch (e) {
       console.error(e);
-      setError('Failed to fetch personalized offers. Please try again later.');
+      setError(t('error_fetching_offers'));
       setOffers([]);
     } finally {
       setLoading(false);
@@ -73,9 +75,9 @@ export default function TrendsPage() {
 
   return (
     <div className="flex h-screen flex-col">
-      <PageHeader title="AI-Powered Trends" showBackButton={false}>
+      <PageHeader title={t('ai_powered_trends')} showBackButton={false}>
          <Button variant="ghost" size="sm" onClick={fetchOffers} disabled={loading}>
-          {loading ? 'Refreshing...' : 'Refresh'}
+          {loading ? t('refreshing') : t('refresh')}
          </Button>
       </PageHeader>
       
@@ -85,7 +87,7 @@ export default function TrendsPage() {
         {error && !loading && (
             <Card className="bg-destructive/10 border-destructive">
                 <CardHeader>
-                    <CardTitle className="text-destructive">An Error Occurred</CardTitle>
+                    <CardTitle className="text-destructive">{t('error_occurred')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <p>{error}</p>
@@ -96,7 +98,7 @@ export default function TrendsPage() {
         {!loading && !error && offers.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Personalized Offers</CardTitle>
+              <CardTitle>{t('personalized_offers')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {offers.map((offer, index) => (
@@ -115,7 +117,7 @@ export default function TrendsPage() {
         {!loading && !error && offers.length === 0 && (
              <Card>
                 <CardContent className="p-6 text-center">
-                    <p className="text-muted-foreground">No offers generated. Try refreshing.</p>
+                    <p className="text-muted-foreground">{t('no_offers_generated')}</p>
                 </CardContent>
             </Card>
         )}

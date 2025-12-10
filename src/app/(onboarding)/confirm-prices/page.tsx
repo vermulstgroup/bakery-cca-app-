@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -12,6 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatUGX } from '@/lib/utils';
+import { useTranslation } from '@/hooks/use-translation';
 
 const PriceSkeleton = () => (
     <div className="space-y-4">
@@ -28,6 +30,7 @@ const PriceSkeleton = () => (
 
 export default function ConfirmPricesPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, updateData, isLoaded, completeOnboarding } = useOnboarding();
   const [prices, setPrices] = useState<{ [key: string]: string }>({});
   
@@ -64,8 +67,8 @@ export default function ConfirmPricesPage() {
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 4rem)'}}>
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Set your selling prices</h1>
-        <p className="text-muted-foreground">We've added typical prices. Adjust if needed.</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t('set_selling_prices')}</h1>
+        <p className="text-muted-foreground">{t('adjust_prices_if_needed')}</p>
       </div>
 
       <ScrollArea className="flex-grow pr-2 -mr-4">
@@ -106,7 +109,7 @@ export default function ConfirmPricesPage() {
           disabled={!isLoaded}
         >
           <PartyPopper className="mr-2 h-6 w-6" />
-          Start Using App
+          {t('start_using_app')}
         </Button>
       </div>
     </div>

@@ -14,6 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/shared/page-header';
+import { useTranslation } from '@/hooks/use-translation';
 
 const PriceSkeleton = () => (
     <div className="space-y-4">
@@ -30,6 +31,7 @@ const PriceSkeleton = () => (
 
 export default function EditPricesPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { data, updateData, isLoaded } = useOnboarding();
   const [prices, setPrices] = useState<{ [key: string]: string }>({});
@@ -67,8 +69,8 @@ export default function EditPricesPage() {
     setTimeout(() => {
       setIsSaving(false);
       toast({
-        title: "✓ Prices Updated",
-        description: "Your new selling prices have been saved.",
+        title: t('prices_updated'),
+        description: t('new_prices_saved'),
         className: "bg-success text-white"
       });
       router.back();
@@ -77,7 +79,7 @@ export default function EditPricesPage() {
 
   return (
     <div className="flex flex-col h-screen">
-      <PageHeader title="Edit Selling Prices" />
+      <PageHeader title={t('edit_selling_prices')} />
       
       <ScrollArea className="flex-grow p-4">
         <Card>
@@ -119,12 +121,12 @@ export default function EditPricesPage() {
           {isSaving ? (
             <>
               <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-              Saving...
+              {t('saving')}...
             </>
           ) : (
              <>
               <Check className="mr-2 h-6 w-6" />
-              Save Prices
+              {t('save_prices')}
             </>
           )}
         </Button>

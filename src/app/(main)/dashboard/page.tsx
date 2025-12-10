@@ -1,3 +1,4 @@
+
 "use client";
 
 import { AppHeader } from '@/components/shared/app-header';
@@ -5,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatUGX } from '@/lib/utils';
 import { ArrowUp, ArrowDown, HandCoins, ReceiptText } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/hooks/use-translation';
 
 const CountUp = ({ to }: { to: number }) => {
   const [count, setCount] = useState(0);
@@ -35,22 +37,23 @@ const CountUp = ({ to }: { to: number }) => {
 };
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const [profit, setProfit] = useState(470000);
   const [trend, setTrend] = useState(12);
   const [margin, setMargin] = useState(32);
   const [revenue, setRevenue] = useState(1450000);
   const [expenses, setExpenses] = useState(980000);
-  const [lastSynced, setLastSynced] = useState('just now');
+  const [lastSynced, setLastSynced] = useState(t('just_now'));
 
   const isProfit = profit >= 0;
 
   useEffect(() => {
     // Simulate time passing for sync status
     const interval = setInterval(() => {
-      setLastSynced('2 minutes ago');
+      setLastSynced(t('minutes_ago', { count: 2 }));
     }, 120000);
     return () => clearInterval(interval);
-  }, []);
+  }, [t]);
 
   return (
     <div className="flex flex-col">
@@ -60,7 +63,7 @@ export default function DashboardPage() {
             <Card className="relative rounded-xl border-0 bg-transparent text-primary-foreground shadow-none overflow-hidden p-0">
                 <CardHeader className="p-0">
                     <CardTitle className="text-xs font-medium uppercase tracking-[2px] text-white/80">
-                        This week's profit
+                        {t('this_weeks_profit')}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-start gap-2 p-0 mt-2">
@@ -68,10 +71,10 @@ export default function DashboardPage() {
                         <CountUp to={profit} />
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="rounded-full bg-white/20 px-3 py-1 text-sm">{margin}% margin</div>
+                        <div className="rounded-full bg-white/20 px-3 py-1 text-sm">{margin}% {t('margin')}</div>
                         <div className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-sm">
                             {trend > 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
-                            <span>{trend}% vs last week</span>
+                            <span>{trend}% {t('vs_last_week')}</span>
                         </div>
                     </div>
                 </CardContent>
@@ -81,7 +84,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('revenue')}</CardTitle>
               <HandCoins className="h-5 w-5 text-success" />
             </CardHeader>
             <CardContent>
@@ -90,7 +93,7 @@ export default function DashboardPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Expenses</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('expenses')}</CardTitle>
               <ReceiptText className="h-5 w-5 text-stone-500" />
             </CardHeader>
             <CardContent>
@@ -100,7 +103,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="text-center text-sm text-muted-foreground">
-          <p>Last synced: {lastSynced}</p>
+          <p>{t('last_synced')}: {lastSynced}</p>
         </div>
       </div>
     </div>

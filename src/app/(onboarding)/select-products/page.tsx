@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { PRODUCTS } from '@/lib/data';
+import { PRODUCTS, BAKERIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,7 +23,7 @@ export default function SelectProductsPage() {
   );
   const { t } = useTranslation();
   
-  const bakeryName = isLoaded ? data.bakery ? PRODUCTS.find(p=>p.id === data.bakery) : 'your bakery' : 'your bakery'
+  const bakeryName = isLoaded ? BAKERIES.find(b => b.id === data.bakery)?.name || t('your_bakery') : t('your_bakery');
 
   const toggleProduct = (productId: string) => {
     const newSelection = new Set(selectedProducts);
@@ -52,16 +53,16 @@ export default function SelectProductsPage() {
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 4rem)'}}>
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Which products do you make?</h1>
-        <p className="text-muted-foreground">Select all that apply for {bakeryName}.</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t('which_products_do_you_make')}</h1>
+        <p className="text-muted-foreground">{t('select_for_bakery', { bakery: bakeryName })}</p>
       </div>
 
       <div className="sticky top-0 z-10 bg-background py-2">
         <Card className="flex justify-between items-center p-3 rounded-xl bg-secondary">
-          <p className="font-semibold">{selectedProducts.size} selected</p>
+          <p className="font-semibold">{t('products_selected', { count: selectedProducts.size })}</p>
           <div className='flex gap-2'>
-            <Button variant="outline" size="sm" onClick={selectAll}>Select All</Button>
-            <Button variant="ghost" size="sm" onClick={clearAll}>Clear All</Button>
+            <Button variant="outline" size="sm" onClick={selectAll}>{t('select_all')}</Button>
+            <Button variant="ghost" size="sm" onClick={clearAll}>{t('clear_all')}</Button>
           </div>
         </Card>
       </div>
@@ -100,7 +101,7 @@ export default function SelectProductsPage() {
           className="w-full"
           size="lg"
         >
-          Continue <ArrowRight className="ml-2 h-5 w-5" />
+          {t('continue')} <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
     </div>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -11,9 +12,11 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import { format, addDays, subDays } from 'date-fns';
 import { useToast } from "@/hooks/use-toast"
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/hooks/use-translation';
 
 
 const ProductCounter = ({ product }: { product: any }) => {
+    const { t } = useTranslation();
     const [count, setCount] = useState(0);
 
     const quickAddValues = [10, 25, 50, 100];
@@ -33,7 +36,7 @@ const ProductCounter = ({ product }: { product: any }) => {
                     size="icon" 
                     className="h-14 w-14 rounded-full text-2xl font-bold" 
                     onClick={() => changeCount(-1)}
-                    aria-label={`Decrease ${product.name} count`}
+                    aria-label={t('decrease_count', { product: product.name })}
                 >
                     <Minus />
                 </Button>
@@ -43,7 +46,7 @@ const ProductCounter = ({ product }: { product: any }) => {
                     size="icon" 
                     className="h-14 w-14 rounded-full text-2xl font-bold" 
                     onClick={() => changeCount(1)}
-                    aria-label={`Increase ${product.name} count`}
+                    aria-label={t('increase_count', { product: product.name })}
                 >
                     <Plus />
                 </Button>
@@ -58,11 +61,12 @@ const ProductCounter = ({ product }: { product: any }) => {
 }
 
 export default function DailyEntryPage() {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const { data: onboardingData, isLoaded } = useOnboarding();
     const [date, setDate] = useState(new Date());
 
-    const userProducts = isLoaded ? PRODUCTS.filter(p => onboardingData.products?.includes(p.id)) : [];
+    const userProducts = isLoaded && onboardingData.products ? PRODUCTS.filter(p => onboardingData.products?.includes(p.id)) : [];
     
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
@@ -72,8 +76,8 @@ export default function DailyEntryPage() {
         setTimeout(() => {
             setSaveStatus('saved');
             toast({
-                title: "✓ Saved successfully!",
-                description: `Entries for ${format(date, 'MMMM d')} have been saved.`,
+                title: t('saved_successfully'),
+                description: t('entries_saved_for_date', { date: format(date, 'MMMM d') }),
                 className: "bg-success text-white"
             })
             setTimeout(() => setSaveStatus('idle'), 2000);
@@ -82,26 +86,26 @@ export default function DailyEntryPage() {
     
     return (
         <div className="flex h-screen flex-col">
-            <PageHeader title="Daily Entry">
-                 <Button variant="ghost" size="sm" onClick={() => setDate(new Date())}>Today</Button>
+            <PageHeader title={t('daily_entry')}>
+                 <Button variant="ghost" size="sm" onClick={() => setDate(new Date())}>{t('today')}</Button>
             </PageHeader>
             
             <div className="p-4">
                  <Card className="flex items-center justify-between p-2 bg-secondary rounded-xl">
-                    <Button variant="ghost" size="icon" onClick={() => setDate(subDays(date, 1))} aria-label="Previous day"><ChevronLeft/></Button>
+                    <Button variant="ghost" size="icon" onClick={() => setDate(subDays(date, 1))} aria-label={t('previous_day')}><ChevronLeft/></Button>
                     <div className="text-center font-semibold text-base">
                         <p>{format(date, "eeee, MMMM d, yyyy")}</p>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => setDate(addDays(date, 1))} aria-label="Next day"><ChevronRight/></Button>
+                    <Button variant="ghost" size="icon" onClick={() => setDate(addDays(date, 1))} aria-label={t('next_day')}><ChevronRight/></Button>
                 </Card>
             </div>
 
             <Tabs defaultValue="production" className="flex-grow flex flex-col">
                 <div className="px-4">
                     <TabsList className="grid w-full grid-cols-3 h-14 p-1">
-                        <TabsTrigger value="production" className="h-full">Production</TabsTrigger>
-                        <TabsTrigger value="sales" className="h-full">Sales</TabsTrigger>
-                        <TabsTrigger value="damages" className="h-full">Damages</TabsTrigger>
+                        <TabsTrigger value="production" className="h-full">{t('production')}</TabsTrigger>
+                        <TabsTrigger value="sales" className="h-full">{t('sales')}</TabsTrigger>
+                        <TabsTrigger value="damages" className="h-full">{t('damages')}</TabsTrigger>
                     </TabsList>
                 </div>
                 
@@ -125,7 +129,7 @@ export default function DailyEntryPage() {
             </Tabs>
             <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
                 <Button className="w-full" onClick={handleSave} disabled={saveStatus === 'saving'}>
-                    {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved ✓' : 'Done for Today ✓'}
+                    {saveStatus === 'saving' ? t('saving') : saveStatus === 'saved' ? t('saved') : t('done_for_today')}
                 </Button>
             </div>
         </div>

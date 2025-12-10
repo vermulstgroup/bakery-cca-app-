@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -16,15 +17,20 @@ import { formatUGX } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { useToast } from "@/hooks/use-toast"
+import { useTranslation } from '@/hooks/use-translation';
 
 export default function ExpensesPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [expenses, setExpenses] = useState<{ [key: string]: string }>({});
 
   const start = startOfWeek(currentDate, { weekStartsOn: 1 });
   const end = endOfWeek(currentDate, { weekStartsOn: 1 });
-  const weekLabel = `Week of ${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+  const weekLabel = t('week_of_date_range', { 
+    start: format(start, 'MMM d'), 
+    end: format(end, 'MMM d, yyyy') 
+  });
 
   const totalExpenses = Object.values(expenses).reduce((acc, val) => acc + (Number(val) || 0), 0);
 
@@ -40,15 +46,15 @@ export default function ExpensesPage() {
 
   const handleSave = () => {
     toast({
-        title: "✓ Expenses Saved!",
-        description: `Total expenses of ${formatUGX(totalExpenses)} saved for ${weekLabel}.`,
+        title: t('expenses_saved'),
+        description: t('total_expenses_saved_for_week', { total: formatUGX(totalExpenses), week: weekLabel }),
         className: 'bg-success text-white'
     });
   };
 
   return (
     <div className="flex h-screen flex-col">
-      <PageHeader title="Weekly Expenses" />
+      <PageHeader title={t('weekly_expenses')} />
 
       <div className="p-4 space-y-4">
         <Card className="flex items-center justify-between p-2 bg-secondary rounded-xl">
@@ -61,7 +67,7 @@ export default function ExpensesPage() {
 
         <Card className="sticky top-[70px] z-20">
           <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Total Expenses This Week</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">{t('total_expenses_this_week')}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-4xl font-bold font-currency text-foreground">{formatUGX(totalExpenses)}</p>
@@ -110,7 +116,7 @@ export default function ExpensesPage() {
       </div>
        <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
           <Button className="w-full" onClick={handleSave}>
-              Save Expenses ✓
+              {t('save_expenses')} ✓
           </Button>
       </div>
     </div>
