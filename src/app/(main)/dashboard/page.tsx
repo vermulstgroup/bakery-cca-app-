@@ -5,10 +5,16 @@ import { AppHeader } from '@/components/shared/app-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatUGX } from '@/lib/utils';
-import { ArrowUp, ArrowDown, HandCoins, ReceiptText, FileText } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowUp, ArrowDown, HandCoins, ReceiptText, FileText, Loader2 } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from '@/hooks/use-translation';
 import Link from 'next/link';
+import { useOnboarding } from '@/hooks/use-onboarding';
+import { useDailyEntries } from '@/lib/firebase/use-daily-entries';
+import { useWeeklyExpenses } from '@/lib/firebase/use-weekly-expenses';
+import { startOfWeek, endOfWeek } from 'date-fns';
+import { useUser } from '@/firebase';
+import { PRODUCTS } from '@/lib/data';
 
 const CountUp = ({ to }: { to: number }) => {
   const [count, setCount] = useState(0);
@@ -16,10 +22,8 @@ const CountUp = ({ to }: { to: number }) => {
   useEffect(() => {
     let start = 0;
     const end = to;
-    if (end === 0) {
-      setCount(0);
-      return;
-    }
+    if (end === 0 && count === 0) return;
+    
     const duration = 1500;
     const startTime = Date.now();
 
@@ -38,25 +42,68 @@ const CountUp = ({ to }: { to: number }) => {
   return <span className="font-currency">{formatUGX(count)}</span>;
 };
 
+
 export default function DashboardPage() {
   const { t } = useTranslation();
-  const [profit, setProfit] = useState(470000);
-  const [trend, setTrend] = useState(12);
-  const [margin, setMargin] = useState(32);
-  const [revenue, setRevenue] = useState(1450000);
-  const [expenses, setExpenses] = useState(980000);
+  const { user, loading: userLoading } = useUser();
+  const { data: onboardingData, isLoaded: onboardingLoaded } = useOnboarding();
+
   const [lastSynced, setLastSynced] = useState(t('just_now'));
 
-  const isProfit = profit >= 0;
-  const hasData = revenue > 0 || expenses > 0;
+  const weekStart = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 1 }), []);
+  const weekEnd = useMemo(() => endOfWeek(new Date(), { weekStartsOn: 1 }), []);
 
+  const { entries, loading: entriesLoading } = useDailyEntries(onboardingData.bakery, weekStart, weekEnd);
+  const { expenses, loading: expensesLoading } = useWeeklyExpenses(onboardingData.bakery, weekStart);
+
+  const productPrices = useMemo(() => {
+    const prices: { [key: string]: number } = {};
+    PRODUCTS.forEach(p => {
+        prices[p.id] = onboardingData.prices?.[p.id] ?? p.defaultPrice;
+    });
+    return prices;
+  }, [onboardingData.prices]);
+
+  const { revenue, totalExpenses, profit, margin } = useMemo(() => {
+    const revenue = entries.reduce((total, entry) => {
+        const dayRevenue = Object.entries(entry.quantities.sales || {}).reduce((dayTotal, [productId, quantity]) => {
+            return dayTotal + (quantity * (productPrices[productId] || 0));
+        }, 0);
+        return total + dayRevenue;
+    }, 0);
+
+    const totalExpenses = Object.values(expenses?.expenses || {}).reduce((acc, val) => acc + val, 0);
+    const profit = revenue - totalExpenses;
+    const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
+
+    return { revenue, totalExpenses, profit, margin };
+  }, [entries, expenses, productPrices]);
+
+  // TODO: Calculate trend vs last week
+  const [trend] = useState(0);
+  
+  const isLoading = userLoading || !onboardingLoaded || entriesLoading || expensesLoading;
+  const isProfit = profit >= 0;
+  const hasData = entries.length > 0 || (expenses && Object.keys(expenses.expenses).length > 0);
+  
   useEffect(() => {
-    // Simulate time passing for sync status
     const interval = setInterval(() => {
       setLastSynced(t('minutes_ago', { count: 2 }));
     }, 120000);
     return () => clearInterval(interval);
   }, [t]);
+
+  if (isLoading) {
+    return (
+        <div className="flex flex-col">
+            <AppHeader />
+            <div className="flex flex-1 items-center justify-center p-8 text-center space-y-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <h2 className="text-2xl font-bold">{t('loading_bakery_app')}</h2>
+            </div>
+        </div>
+    );
+  }
 
   if (!hasData) {
     return (
@@ -94,7 +141,7 @@ export default function DashboardPage() {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                         <div className="rounded-full bg-white/20 px-3 py-1 text-sm">{margin}% {t('margin')}</div>
                         <div className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-sm">
-                            {trend > 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                            {trend >= 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
                             <span>{trend}% {t('vs_last_week')}</span>
                         </div>
                     </div>
@@ -109,7 +156,7 @@ export default function DashboardPage() {
               <HandCoins className="h-5 w-5 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-[clamp(1.25rem,6.5vw,1.5rem)] font-bold font-currency text-success">{formatUGX(revenue)}</div>
+              <div className="text-[clamp(1.25rem,6.5vw,1.5rem)] font-bold font-currency text-success"><CountUp to={revenue} /></div>
             </CardContent>
           </Card>
           <Card>
@@ -118,7 +165,7 @@ export default function DashboardPage() {
               <ReceiptText className="h-5 w-5 text-stone-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-[clamp(1.25rem,6.5vw,1.5rem)] font-bold font-currency text-foreground">{formatUGX(expenses)}</div>
+              <div className="text-[clamp(1.25rem,6.5vw,1.5rem)] font-bold font-currency text-foreground"><CountUp to={totalExpenses} /></div>
             </CardContent>
           </Card>
         </div>
