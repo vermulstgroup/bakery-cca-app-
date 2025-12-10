@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getPersonalizedOffers, PersonalizedOffersOutput } from '@/ai/flows/personalized-offers';
 import { Loader } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Mock sales data for demonstration
-const mockSalesData = JSON.stringify({
+const mockSalesData = {
   "week1": [
     { "product": "Yeast Mandazi", "quantity": 120 },
     { "product": "Doughnuts", "quantity": 80 },
@@ -20,18 +21,37 @@ const mockSalesData = JSON.stringify({
     { "product": "Doughnuts", "quantity": 70 },
     { "product": "Chapati", "quantity": 90 }
   ]
-});
+};
+
+const OfferSkeleton = () => (
+  <Card>
+    <CardHeader>
+      <Skeleton className="h-6 w-1/2" />
+    </CardHeader>
+    <CardContent className="space-y-4">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="flex items-start gap-4 p-3 bg-secondary rounded-lg">
+          <Skeleton className="h-8 w-8 rounded-full" />
+          <div className="space-y-2 flex-grow">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        </div>
+      ))}
+    </CardContent>
+  </Card>
+);
 
 export default function TrendsPage() {
   const [offers, setOffers] = useState<PersonalizedOffersOutput['offers']>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchOffers = async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await getPersonalizedOffers({ salesData: mockSalesData });
+      const result = await getPersonalizedOffers({ salesData: JSON.stringify(mockSalesData) });
       if (result && result.offers) {
         setOffers(result.offers);
       } else {
@@ -60,14 +80,7 @@ export default function TrendsPage() {
       </PageHeader>
       
       <div className="flex-grow overflow-y-auto p-4 space-y-4">
-        {loading && (
-          <div className="flex justify-center items-center h-48">
-            <div className="flex flex-col items-center gap-2">
-              <Loader className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-muted-foreground">Generating AI insights...</p>
-            </div>
-          </div>
-        )}
+        {loading && <OfferSkeleton />}
 
         {error && !loading && (
             <Card className="bg-destructive/10 border-destructive">

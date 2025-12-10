@@ -28,9 +28,25 @@ const ProductCounter = ({ product }: { product: any }) => {
                 <h3 className="text-lg font-semibold">{product.emoji} {product.name}</h3>
             </div>
             <div className="flex items-center gap-2 mb-4">
-                <Button variant="accent" size="icon" className="h-14 w-14 rounded-full text-2xl font-bold" onClick={() => changeCount(-1)}><Minus /></Button>
-                <div className="font-currency text-3xl h-14 w-24 flex items-center justify-center rounded-md bg-secondary">{count}</div>
-                <Button variant="accent" size="icon" className="h-14 w-14 rounded-full text-2xl font-bold" onClick={() => changeCount(1)}><Plus /></Button>
+                <Button 
+                    variant="accent" 
+                    size="icon" 
+                    className="h-14 w-14 rounded-full text-2xl font-bold" 
+                    onClick={() => changeCount(-1)}
+                    aria-label={`Decrease ${product.name} count`}
+                >
+                    <Minus />
+                </Button>
+                <div className="font-currency text-3xl h-14 w-24 flex items-center justify-center rounded-md bg-secondary" aria-live="polite">{count}</div>
+                <Button 
+                    variant="accent" 
+                    size="icon" 
+                    className="h-14 w-14 rounded-full text-2xl font-bold" 
+                    onClick={() => changeCount(1)}
+                    aria-label={`Increase ${product.name} count`}
+                >
+                    <Plus />
+                </Button>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
                 {quickAddValues.map(val => (
@@ -72,11 +88,11 @@ export default function DailyEntryPage() {
             
             <div className="p-4">
                  <Card className="flex items-center justify-between p-2 bg-secondary rounded-xl">
-                    <Button variant="ghost" size="icon" onClick={() => setDate(subDays(date, 1))}><ChevronLeft/></Button>
+                    <Button variant="ghost" size="icon" onClick={() => setDate(subDays(date, 1))} aria-label="Previous day"><ChevronLeft/></Button>
                     <div className="text-center font-semibold text-base">
                         <p>{format(date, "eeee, MMMM d, yyyy")}</p>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => setDate(addDays(date, 1))}><ChevronRight/></Button>
+                    <Button variant="ghost" size="icon" onClick={() => setDate(addDays(date, 1))} aria-label="Next day"><ChevronRight/></Button>
                 </Card>
             </div>
 

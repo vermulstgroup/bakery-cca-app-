@@ -95,7 +95,6 @@ export default {
         lg: '16px',
         md: '12px',
         sm: '8px',
-        button: '16px',
       },
        boxShadow: {
         sm: '0 2px 8px rgba(28, 25, 23, 0.06)',

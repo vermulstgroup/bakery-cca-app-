@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { Check, PartyPopper } from 'lucide-react';
+import { PartyPopper } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -63,11 +63,11 @@ export default function ConfirmPricesPage() {
             {selectedProducts.map(product => (
               <div key={product.id} className="flex items-center gap-3">
                 <div className="text-2xl">{product.emoji}</div>
-                <Label htmlFor={product.id} className="flex-grow text-base">{product.name}</Label>
+                <Label htmlFor={`price-${product.id}`} className="flex-grow text-base">{product.name}</Label>
                 <div className="relative w-36">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">UGX</span>
                   <Input
-                    id={product.id}
+                    id={`price-${product.id}`}
                     type="tel"
                     inputMode="numeric"
                     value={prices[product.id] || ''}

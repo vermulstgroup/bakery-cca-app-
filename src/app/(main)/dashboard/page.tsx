@@ -12,7 +12,10 @@ const CountUp = ({ to }: { to: number }) => {
   useEffect(() => {
     let start = 0;
     const end = to;
-    if (end === 0) return;
+    if (end === 0) {
+      setCount(0);
+      return;
+    }
     const duration = 1500;
     const startTime = Date.now();
 
@@ -32,13 +35,14 @@ const CountUp = ({ to }: { to: number }) => {
 };
 
 export default function DashboardPage() {
-  const profit = 470000;
-  const isProfit = profit >= 0;
-  const trend = 12; // percentage
-  const margin = 32; // percentage
-  const revenue = 1450000;
-  const expenses = 980000;
+  const [profit, setProfit] = useState(470000);
+  const [trend, setTrend] = useState(12);
+  const [margin, setMargin] = useState(32);
+  const [revenue, setRevenue] = useState(1450000);
+  const [expenses, setExpenses] = useState(980000);
   const [lastSynced, setLastSynced] = useState('just now');
+
+  const isProfit = profit >= 0;
 
   useEffect(() => {
     // Simulate time passing for sync status
