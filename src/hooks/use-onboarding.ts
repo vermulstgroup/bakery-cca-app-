@@ -13,7 +13,6 @@ export function useOnboarding() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        // Prioritize permanent user settings, fall back to onboarding data
         const storedSettings = localStorage.getItem(USER_SETTINGS_KEY);
         if (storedSettings) {
           setData(JSON.parse(storedSettings));
@@ -32,26 +31,30 @@ export function useOnboarding() {
   }, []);
 
   const updateData = useCallback((newData: Partial<OnboardingData>) => {
-    const updatedData = { ...data, ...newData };
-    setData(updatedData);
-    if (typeof window !== 'undefined') {
-      // Save to the permanent key if onboarding is complete, otherwise use the temp key
-      const isOnboardingComplete = localStorage.getItem('onboardingComplete') === 'true';
-      const key = isOnboardingComplete ? USER_SETTINGS_KEY : ONBOARDING_STORAGE_KEY;
-      localStorage.setItem(key, JSON.stringify(updatedData));
-    }
-  }, [data]);
+    setData(prevData => {
+      const updatedData = { ...prevData, ...newData };
+      if (typeof window !== 'undefined') {
+        const isOnboardingComplete = localStorage.getItem('onboardingComplete') === 'true';
+        const key = isOnboardingComplete ? USER_SETTINGS_KEY : ONBOARDING_STORAGE_KEY;
+        localStorage.setItem(key, JSON.stringify(updatedData));
+      }
+      return updatedData;
+    });
+  }, []);
 
   const completeOnboarding = useCallback(() => {
     if (typeof window !== 'undefined') {
-        // Persist the final data to the permanent location
-        localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(data));
-        // Mark onboarding as complete
+        // This function now correctly persists the data without deleting it.
+        // It moves the final onboarding data to the permanent user settings location.
+        const currentData = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+        if (currentData) {
+          localStorage.setItem(USER_SETTINGS_KEY, currentData);
+        }
         localStorage.setItem('onboardingComplete', 'true');
-        // Clean up temporary onboarding data
+        // Clean up the temporary key now that data is persisted.
         localStorage.removeItem(ONBOARDING_STORAGE_KEY);
     }
-  }, [data]);
+  }, []);
 
   return { data, updateData, isLoaded, completeOnboarding };
 }
