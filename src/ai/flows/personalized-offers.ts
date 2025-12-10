@@ -15,13 +15,25 @@ const PersonalizedOffersInputSchema = z.object({
 });
 export type PersonalizedOffersInput = z.infer<typeof PersonalizedOffersInputSchema>;
 
+const OfferSchema = z.object({
+  productName: z.string().describe('The name of the product for the offer.'),
+  offer: z.string().describe('The description of the special offer.'),
+  emoji: z.string().describe('An emoji representing the product.')
+});
+
 const PersonalizedOffersOutputSchema = z.object({
-  offers: z.string().describe('Personalized offers to customers, in JSON format.'),
+  offers: z.array(OfferSchema).describe('An array of personalized offers for customers.'),
 });
 export type PersonalizedOffersOutput = z.infer<typeof PersonalizedOffersOutputSchema>;
 
 export async function getPersonalizedOffers(input: PersonalizedOffersInput): Promise<PersonalizedOffersOutput> {
-  return personalizedOffersFlow(input);
+  try {
+    return await personalizedOffersFlow(input);
+  } catch (error) {
+    console.error('Error getting personalized offers:', error);
+    // Return a default or empty response in case of an error
+    return { offers: [] };
+  }
 }
 
 const personalizedOffersPrompt = ai.definePrompt({
@@ -34,7 +46,7 @@ const personalizedOffersPrompt = ai.definePrompt({
   {{salesData}}
 
   Based on this data, generate personalized offers that the bakery can provide to customers to increase sales and customer loyalty.
-  Return the offers in JSON format.  The offers should be tailored to the specific products that the customer buys frequently.
+  Return the offers in JSON format. The offers should be tailored to the specific products that the customer buys frequently.
   For example, if a customer frequently buys Yeast Mandazi, offer a discount on Yeast Mandazi or a related product.
   Be concise and provide offers that are likely to be effective. Limit to 3 offers.
   Ensure the returned JSON is valid and can be parsed without errors.
