@@ -18,15 +18,8 @@ import { useEffect } from 'react';
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
-  const { data: onboardingData, isLoaded, loadData } = useOnboarding();
+  const { data: onboardingData, isLoaded } = useOnboarding();
   const { language, setLanguage, t } = useTranslation();
-
-  useEffect(() => {
-    if (!isLoaded) {
-      loadData();
-    }
-  }, [isLoaded, loadData]);
-
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
