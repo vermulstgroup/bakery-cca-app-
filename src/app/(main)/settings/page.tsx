@@ -83,7 +83,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-muted-foreground">
             <div className="flex justify-between"><span>{t('bakery')}:</span> <span className="font-medium text-foreground">{bakeryName}</span></div>
-            <div className="flex justify-between"><span>{t('role')}:</span> <span className="font-medium text-foreground">{t(roleName.toLowerCase())}</span></div>
+            <div className="flex justify-between"><span>{t('role')}:</span> <span className="font-medium text-foreground">{t(roleName)}</span></div>
           </CardContent>
         </Card>
 

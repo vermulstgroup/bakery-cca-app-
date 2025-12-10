@@ -42,7 +42,18 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const t = useCallback((key: string, values?: { [key: string]: string | number }): string => {
-    let translation = translations[language][key] || translations['en'][key] || key;
+    // 1. Try to get the translation from the current language
+    let translation = translations[language]?.[key];
+
+    // 2. If not found, fall back to English
+    if (!translation) {
+      translation = translations['en']?.[key];
+    }
+    
+    // 3. If still not found, return the key itself to prevent crashes
+    if (!translation) {
+      return key;
+    }
     
     if (values) {
       Object.keys(values).forEach(valueKey => {

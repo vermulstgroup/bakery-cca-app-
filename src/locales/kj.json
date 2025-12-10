@@ -97,5 +97,7 @@
   "expense_category_packaging": "Packaging",
   "expense_category_gas_electricity": "Gas/Electricity",
   "expense_category_loan_rent": "Loan/Rent",
-  "expense_category_other": "Other"
+  "expense_category_other": "Other",
+  "Manager": "Manager",
+  "Supervisor": "Supervisor"
 }
