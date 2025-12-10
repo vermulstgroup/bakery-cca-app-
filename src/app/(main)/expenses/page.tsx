@@ -19,6 +19,8 @@ import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from '@/hooks/use-translation';
 import { useOnboarding } from '@/hooks/use-onboarding';
+import type { OnboardingData } from '@/lib/types';
+
 
 export default function ExpensesPage() {
   const { t } = useTranslation();
@@ -40,7 +42,7 @@ export default function ExpensesPage() {
   // Load from local storage on mount and when week changes
   useEffect(() => {
     if (isOnboardingLoaded && onboardingData.bakery) {
-      const weekId = format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const weekId = format(start, 'yyyy-MM-dd');
       const storageKey = `expenses-${onboardingData.bakery}-${weekId}`;
       try {
         const savedExpenses = localStorage.getItem(storageKey);
@@ -60,7 +62,7 @@ export default function ExpensesPage() {
         setExpenses({});
       }
     }
-  }, [currentDate, isOnboardingLoaded, onboardingData.bakery]);
+  }, [currentDate, isOnboardingLoaded, onboardingData.bakery, start]);
 
 
   const totalExpenses = Object.values(expenses).reduce((acc, val) => acc + (Number(val) || 0), 0);
@@ -76,16 +78,24 @@ export default function ExpensesPage() {
   };
 
   const handleSave = () => {
-    const bakeryId = onboardingData?.bakery;
-    console.log('Expenses trying to save, bakery data:', JSON.stringify(onboardingData));
-
-    if (!bakeryId) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Bakery data not found. Please select a bakery in settings.' });
-        return;
-    }
-    
     setIsSaving(true);
     try {
+      const bakeryDataString = localStorage.getItem('onboardingData_local');
+      if (!bakeryDataString) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Bakery data not found. Please select a bakery in settings.' });
+        setIsSaving(false);
+        return;
+      }
+      
+      const bakeryData: OnboardingData = JSON.parse(bakeryDataString);
+      const bakeryId = bakeryData.bakery;
+
+      if (!bakeryId) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Bakery data not found. Please select a bakery in settings.' });
+        setIsSaving(false);
+        return;
+      }
+
       const weekId = format(start, 'yyyy-MM-dd');
       const storageKey = `expenses-${bakeryId}-${weekId}`;
       
