@@ -1,3 +1,6 @@
+
+"use client";
+
 import { BottomNav } from '@/components/shared/bottom-nav';
 
 export default function MainAppLayout({
