@@ -10,10 +10,10 @@ import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from '@/hooks/use-translation';
 import Link from 'next/link';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { useDailyEntries } from '@/lib/firebase/use-daily-entries';
-import { useWeeklyExpenses } from '@/lib/firebase/use-weekly-expenses';
-import { startOfWeek, endOfWeek } from 'date-fns';
+import { startOfWeek, endOfWeek, format as formatDate } from 'date-fns';
 import { PRODUCTS } from '@/lib/data';
+import type { DailyEntry } from '@/lib/types';
+
 
 const CountUp = ({ to }: { to: number }) => {
   const [count, setCount] = useState(0);
@@ -45,14 +45,37 @@ const CountUp = ({ to }: { to: number }) => {
 export default function DashboardPage() {
   const { t } = useTranslation();
   const { data: onboardingData, isLoaded: onboardingLoaded } = useOnboarding();
-
   const [lastSynced, setLastSynced] = useState(t('just_now'));
+  const [entries, setEntries] = useState<DailyEntry[]>([]);
+  const [expenses, setExpenses] = useState<{ expenses: { [key: string]: number } } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const weekStart = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 1 }), []);
-  const weekEnd = useMemo(() => endOfWeek(new Date(), { weekStartsOn: 1 }), []);
 
-  const { entries, loading: entriesLoading } = useDailyEntries(onboardingData.bakery, weekStart, weekEnd);
-  const { expenses, loading: expensesLoading } = useWeeklyExpenses(onboardingData.bakery, weekStart);
+  useEffect(() => {
+    if (onboardingLoaded) {
+      const allEntries: DailyEntry[] = [];
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith(`daily_entry-${onboardingData.bakery}-`)) {
+          try {
+            allEntries.push(JSON.parse(localStorage.getItem(key)!));
+          } catch (e) {
+            console.error('Failed to parse daily entry from localStorage', e);
+          }
+        }
+      });
+      setEntries(allEntries);
+
+      const weekId = formatDate(weekStart, 'yyyy-MM-dd');
+      const storageKey = `expenses-${onboardingData.bakery}-${weekId}`;
+      const savedExpenses = localStorage.getItem(storageKey);
+      if (savedExpenses) {
+        setExpenses(JSON.parse(savedExpenses));
+      }
+      setLoading(false);
+    }
+  }, [onboardingLoaded, onboardingData.bakery, weekStart]);
+
 
   const productPrices = useMemo(() => {
     const prices: { [key: string]: number } = {};
@@ -80,7 +103,7 @@ export default function DashboardPage() {
   // TODO: Calculate trend vs last week
   const [trend] = useState(0);
   
-  const isLoading = !onboardingLoaded || entriesLoading || expensesLoading;
+  const isLoading = !onboardingLoaded || loading;
   const isProfit = profit >= 0;
   const hasData = entries.length > 0 || (expenses && Object.keys(expenses.expenses).length > 0);
   

@@ -36,3 +36,20 @@ export type OnboardingData = {
   products?: string[];
   prices?: { [productId: string]: number };
 };
+
+export type DailyEntryData = {
+  production: { [productId: string]: number };
+  sales: { [productId: string]: number };
+  damages: { [productId: string]: number };
+};
+
+export type DailyEntry = {
+    date: string;
+    quantities: DailyEntryData;
+    bakeryId: string;
+};
+
+export type WeeklyExpense = {
+    weekStartDate: string;
+    expenses: { [categoryId: string]: number };
+};

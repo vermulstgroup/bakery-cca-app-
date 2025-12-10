@@ -9,10 +9,9 @@ import { getSalesInsights, SalesInsightsOutput } from '@/ai/flows/sales-insights
 import { Loader2, BarChart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation } from '@/hooks/use-translation';
-import { useDailyEntries } from '@/lib/firebase/use-daily-entries';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { subWeeks, startOfWeek, endOfWeek } from 'date-fns';
 import { PRODUCTS } from '@/lib/data';
+import type { DailyEntry } from '@/lib/types';
 
 const InsightSkeleton = () => (
   <Card>
@@ -38,13 +37,25 @@ export default function TrendsPage() {
   const [insights, setInsights] = useState<SalesInsightsOutput['insights']>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { data: onboardingData } = useOnboarding();
+  const { data: onboardingData, isLoaded: onboardingLoaded } = useOnboarding();
+  const [entries, setEntries] = useState<DailyEntry[]>([]);
 
-  // Fetch sales data from the last 4 weeks
-  const endDate = useMemo(() => endOfWeek(new Date(), { weekStartsOn: 1 }), []);
-  const startDate = useMemo(() => startOfWeek(subWeeks(endDate, 3), { weekStartsOn: 1 }), [endDate]);
-  
-  const { entries, loading: entriesLoading } = useDailyEntries(onboardingData.bakery, startDate, endDate);
+  useEffect(() => {
+    if (onboardingLoaded) {
+      const allEntries: DailyEntry[] = [];
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith(`daily_entry-${onboardingData.bakery}-`)) {
+          try {
+            allEntries.push(JSON.parse(localStorage.getItem(key)!));
+          } catch (e) {
+            console.error('Failed to parse daily entry from localStorage', e);
+          }
+        }
+      });
+      setEntries(allEntries);
+    }
+  }, [onboardingLoaded, onboardingData.bakery]);
+
 
   const salesDataForAI = useMemo(() => {
     if (!entries || entries.length === 0) return null;
@@ -54,7 +65,10 @@ export default function TrendsPage() {
     const weeklySales: { [week: string]: { product: string, quantity: number }[] } = {};
 
     entries.forEach(entry => {
-      const weekStart = startOfWeek(entry.date, { weekStartsOn: 1 }).toISOString().split('T')[0];
+      // Basic week calculation (can be improved)
+      const entryDate = new Date(entry.date);
+      const weekStart = new Date(entryDate.setDate(entryDate.getDate() - entryDate.getDay() + 1)).toISOString().split('T')[0];
+
       if (!weeklySales[weekStart]) {
         weeklySales[weekStart] = [];
       }
@@ -103,14 +117,14 @@ export default function TrendsPage() {
   };
   
   useEffect(() => {
-    if (!entriesLoading) {
+    if (onboardingLoaded) {
       fetchInsights();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entriesLoading, salesDataForAI])
+  }, [onboardingLoaded, salesDataForAI])
 
   const hasData = useMemo(() => entries && entries.length > 0, [entries]);
-  const isLoading = loading || entriesLoading;
+  const isLoading = loading || !onboardingLoaded;
 
   return (
     <div className="flex h-screen flex-col">

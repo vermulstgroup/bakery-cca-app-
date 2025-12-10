@@ -3,7 +3,6 @@ import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { TranslationProvider } from '@/providers/translation-provider';
-import { FirebaseClientProvider } from '@/firebase';
 
 const APP_NAME = "BISS Bakery App";
 const APP_DESCRIPTION = "Track your bakery's production, sales, and profits";
@@ -38,19 +37,17 @@ export default function RootLayout({
         <link rel="icon" href="/icons/icon-192x192.png" />
       </head>
       <body className="font-body antialiased min-h-svh">
-        <FirebaseClientProvider>
-          <TranslationProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              {children}
-              <Toaster />
-            </ThemeProvider>
-          </TranslationProvider>
-        </FirebaseClientProvider>
+        <TranslationProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </TranslationProvider>
       </body>
     </html>
   );

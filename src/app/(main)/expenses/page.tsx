@@ -19,15 +19,11 @@ import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from '@/hooks/use-translation';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { useFirestore } from '@/firebase';
-import { saveWeeklyExpense } from '@/lib/firebase/weekly-expenses';
-import { useWeeklyExpenses } from '@/lib/firebase/use-weekly-expenses';
 
 export default function ExpensesPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { data: onboardingData, isLoaded: isOnboardingLoaded } = useOnboarding();
-  const firestore = useFirestore();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [expenses, setExpenses] = useState<{ [key: string]: string }>({});
@@ -36,29 +32,31 @@ export default function ExpensesPage() {
   const start = startOfWeek(currentDate, { weekStartsOn: 1 });
   const end = endOfWeek(currentDate, { weekStartsOn: 1 });
   
-  const { expenses: firestoreExpenses, loading: expensesLoading } = useWeeklyExpenses(onboardingData.bakery, start);
-
   const weekLabel = t('week_of_date_range', { 
     start: format(start, 'MMM d'), 
     end: format(end, 'MMM d, yyyy') 
   });
   
-  // DEBUG: Log loaded data from user
-  useEffect(() => {
-    const saved = localStorage.getItem('biss_expenses');
-    console.log('=== EXPENSES PAGE LOADED ===');
-    console.log('localStorage biss_expenses:', saved);
-  }, []);
-
-
   // Load from local storage on mount and when week changes
   useEffect(() => {
     if (isOnboardingLoaded && onboardingData.bakery) {
-      const storageKey = `expenses-${onboardingData.bakery}-${format(start, 'yyyy-MM-dd')}`;
-      const savedExpenses = localStorage.getItem(storageKey);
-      if (savedExpenses) {
-        setExpenses(JSON.parse(savedExpenses));
-      } else {
+      const weekId = format(start, 'yyyy-MM-dd');
+      const storageKey = `expenses-${onboardingData.bakery}-${weekId}`;
+      try {
+        const savedExpenses = localStorage.getItem(storageKey);
+        if (savedExpenses) {
+          const parsed = JSON.parse(savedExpenses);
+          // Ensure values are strings for the input fields
+          const stringifiedExpenses = Object.entries(parsed.expenses).reduce((acc, [key, value]) => {
+            acc[key] = String(value);
+            return acc;
+          }, {} as {[key: string]: string});
+          setExpenses(stringifiedExpenses);
+        } else {
+          setExpenses({});
+        }
+      } catch (error) {
+        console.error("Failed to load expenses from localStorage", error);
         setExpenses({});
       }
     }
@@ -77,20 +75,45 @@ export default function ExpensesPage() {
     handleExpenseChange(categoryId, (currentAmount + amount).toString());
   };
 
-  // DEBUG: User requested save function
   const handleSave = () => {
-    const expenseData = {
-      amount: totalExpenses, // or whatever variable holds the amount
-      timestamp: new Date().toISOString(),
-      debug: true
-    };
-    localStorage.setItem('biss_expenses', JSON.stringify(expenseData));
-    console.log('=== SAVE CLICKED ===');
-    console.log('Saved to localStorage:', JSON.stringify(expenseData));
-    alert('DEBUG: Saved ' + JSON.stringify(expenseData));
+    if (!onboardingData.bakery) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Bakery not selected' });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const weekId = format(start, 'yyyy-MM-dd');
+      const storageKey = `expenses-${onboardingData.bakery}-${weekId}`;
+      const numericExpenses = Object.entries(expenses).reduce((acc, [key, value]) => {
+        acc[key] = Number(value) || 0;
+        return acc;
+      }, {} as {[key: string]: number});
+
+      const dataToSave = {
+        weekStartDate: weekId,
+        expenses: numericExpenses,
+      };
+
+      localStorage.setItem(storageKey, JSON.stringify(dataToSave));
+      
+      toast({
+        title: t('expenses_saved'),
+        description: t('total_expenses_saved_for_week', { 
+            total: formatUGX(totalExpenses), 
+            week: format(start, 'MMM d') 
+        }),
+        className: 'bg-success text-white'
+      });
+
+    } catch (error) {
+      console.error("Error saving expenses to localStorage:", error);
+      toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save expenses.' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const isLoading = !isOnboardingLoaded || expensesLoading;
+  const isLoading = !isOnboardingLoaded;
 
   if (isLoading) {
     return (

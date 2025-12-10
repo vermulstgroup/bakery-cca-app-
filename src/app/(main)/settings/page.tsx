@@ -31,6 +31,9 @@ export default function SettingsPage() {
         if (key.startsWith('expenses-')) {
           localStorage.removeItem(key);
         }
+        if (key.startsWith('daily_entry-')) {
+          localStorage.removeItem(key);
+        }
       });
       router.replace('/welcome');
     }
@@ -44,7 +47,9 @@ export default function SettingsPage() {
   }, [isLoaded, onboardingData.bakery, t]);
 
   // DEBUG: Log what Settings reads
-  console.log('Settings bakery:', bakeryName, 'source: onboardingData.bakery via useOnboarding()');
+  useEffect(() => {
+    console.log('Settings bakery:', bakeryName, 'source: onboardingData.bakery via useOnboarding()');
+  }, [bakeryName]);
 
   const roleName = useMemo(() => {
     if (isLoaded && onboardingData.role) {

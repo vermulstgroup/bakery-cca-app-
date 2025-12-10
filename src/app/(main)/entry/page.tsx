@@ -14,11 +14,14 @@ import { useToast } from "@/hooks/use-toast"
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/use-translation';
 import Link from 'next/link';
-import { useFirestore } from '@/firebase';
-import { saveDailyEntry } from '@/lib/firebase/daily-entries';
-
 
 type EntryType = 'production' | 'sales' | 'damages';
+
+type DailyEntryData = {
+    production: { [productId: string]: number };
+    sales: { [productId: string]: number };
+    damages: { [productId: string]: number };
+};
 
 const ProductCounter = ({ 
     product, 
@@ -77,17 +80,37 @@ export default function DailyEntryPage() {
     const { data: onboardingData, isLoaded } = useOnboarding();
     const [date, setDate] = useState(new Date());
 
-    const firestore = useFirestore();
-
     const userProducts = isLoaded && onboardingData.products ? PRODUCTS.filter(p => onboardingData.products?.includes(p.id)) : [];
     
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
-    const [quantities, setQuantities] = useState<{[key in EntryType]: {[productId: string]: number}}>({
+    const [quantities, setQuantities] = useState<DailyEntryData>({
         production: {},
         sales: {},
         damages: {}
     });
+
+    // Load data for the current date when component mounts or date changes
+    useEffect(() => {
+        if (!isLoaded || !onboardingData.bakery) return;
+        
+        const dateString = format(date, 'yyyy-MM-dd');
+        const storageKey = `daily_entry-${onboardingData.bakery}-${dateString}`;
+        
+        try {
+            const savedData = localStorage.getItem(storageKey);
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                setQuantities(parsedData.quantities);
+            } else {
+                setQuantities({ production: {}, sales: {}, damages: {} });
+            }
+        } catch (error) {
+            console.error("Failed to load daily entry from localStorage", error);
+            setQuantities({ production: {}, sales: {}, damages: {} });
+        }
+    }, [date, isLoaded, onboardingData.bakery]);
+
 
     const handleQuantityChange = (entryType: EntryType, productId: string, newCount: number) => {
         setQuantities(prev => ({
@@ -99,7 +122,7 @@ export default function DailyEntryPage() {
         }));
     };
     
-    const handleSave = async () => {
+    const handleSave = () => {
         if (!onboardingData.bakery) {
             toast({
                 variant: 'destructive',
@@ -111,15 +134,22 @@ export default function DailyEntryPage() {
 
         setSaveStatus('saving');
         try {
-            await saveDailyEntry(firestore, onboardingData.bakery, date, quantities);
+            const dateString = format(date, 'yyyy-MM-dd');
+            const storageKey = `daily_entry-${onboardingData.bakery}-${dateString}`;
+            const dataToSave = {
+                date: date.toISOString(),
+                quantities: quantities,
+                bakeryId: onboardingData.bakery
+            };
+            localStorage.setItem(storageKey, JSON.stringify(dataToSave));
+
             setSaveStatus('saved');
             toast({
                 title: t('saved_successfully'),
                 description: t('entries_saved_for_date', { date: format(date, 'MMMM d') }),
                 className: "bg-success text-white"
             });
-            // Reset quantities after saving
-            setQuantities({ production: {}, sales: {}, damages: {} });
+            
             setTimeout(() => setSaveStatus('idle'), 2000);
         } catch (error) {
             console.error("Error saving daily entry:", error);
