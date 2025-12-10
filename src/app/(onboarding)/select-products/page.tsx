@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { PRODUCTS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { formatUGX } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from '@/hooks/use-translation';
 
 const defaultSelected = ['yeast_mandazi', 'doughnuts', 'loaf_1kg', 'loaf_500g', 'chapati'];
 
@@ -19,6 +20,7 @@ export default function SelectProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
     new Set(data.products || defaultSelected)
   );
+  const { t } = useTranslation();
   
   const bakeryName = isLoaded ? data.bakery ? PRODUCTS.find(p=>p.id === data.bakery) : 'your bakery' : 'your bakery'
 
@@ -48,7 +50,7 @@ export default function SelectProductsPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col" style={{ height: 'calc(100vh - 4rem)'}}>
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 4rem)'}}>
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Which products do you make?</h1>
         <p className="text-muted-foreground">Select all that apply for {bakeryName}.</p>
@@ -78,7 +80,7 @@ export default function SelectProductsPage() {
                 )}
               >
                 <div className="absolute top-2 right-2">
-                   <Checkbox checked={isSelected} className="h-5 w-5"/>
+                   {isSelected ? <CheckCircle2 className="h-5 w-5 text-primary"/> : <div className="h-5 w-5 rounded-full border-2 border-muted" /> }
                 </div>
                 <div className="flex flex-col items-center text-center gap-2 mt-4">
                   <div className="text-5xl">{product.emoji}</div>
