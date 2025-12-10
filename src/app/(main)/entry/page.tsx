@@ -15,15 +15,22 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/use-translation';
 import Link from 'next/link';
 
+type EntryType = 'production' | 'sales' | 'damages';
 
-const ProductCounter = ({ product }: { product: any }) => {
+const ProductCounter = ({ 
+    product, 
+    count,
+    onCountChange 
+}: { 
+    product: any,
+    count: number,
+    onCountChange: (newCount: number) => void
+}) => {
     const { t } = useTranslation();
-    const [count, setCount] = useState(0);
-
     const quickAddValues = [10, 25, 50, 100];
 
     const changeCount = (amount: number) => {
-        setCount(prev => Math.max(0, prev + amount));
+        onCountChange(Math.max(0, count + amount));
     }
 
     return (
@@ -71,8 +78,25 @@ export default function DailyEntryPage() {
     
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
+    const [quantities, setQuantities] = useState<{[key in EntryType]: {[productId: string]: number}}>({
+        production: {},
+        sales: {},
+        damages: {}
+    });
+
+    const handleQuantityChange = (entryType: EntryType, productId: string, newCount: number) => {
+        setQuantities(prev => ({
+            ...prev,
+            [entryType]: {
+                ...prev[entryType],
+                [productId]: newCount
+            }
+        }));
+    };
+    
     const handleSave = () => {
         setSaveStatus('saving');
+        console.log("Saving data:", quantities);
         // Simulate API call
         setTimeout(() => {
             setSaveStatus('saved');
@@ -80,11 +104,13 @@ export default function DailyEntryPage() {
                 title: t('saved_successfully'),
                 description: t('entries_saved_for_date', { date: format(date, 'MMMM d') }),
                 className: "bg-success text-white"
-            })
+            });
+            // Reset quantities after saving
+            setQuantities({ production: {}, sales: {}, damages: {} });
             setTimeout(() => setSaveStatus('idle'), 2000);
         }, 1000);
     }
-
+    
     if (!isLoaded) {
         return (
              <div className="flex h-screen flex-col">
@@ -144,17 +170,38 @@ export default function DailyEntryPage() {
                 <div className="flex-grow overflow-y-auto p-4 space-y-3">
                     <TabsContent value="production" className="mt-0">
                         <div className="space-y-3">
-                            {userProducts.map(p => <ProductCounter key={p.id} product={p} />)}
+                            {userProducts.map(p => 
+                                <ProductCounter 
+                                    key={`prod-${p.id}`} 
+                                    product={p} 
+                                    count={quantities.production[p.id] || 0}
+                                    onCountChange={(newCount) => handleQuantityChange('production', p.id, newCount)}
+                                />
+                            )}
                         </div>
                     </TabsContent>
                     <TabsContent value="sales" className="mt-0">
                         <div className="space-y-3">
-                            {userProducts.map(p => <ProductCounter key={p.id} product={p} />)}
+                            {userProducts.map(p => 
+                                <ProductCounter 
+                                    key={`sales-${p.id}`} 
+                                    product={p} 
+                                    count={quantities.sales[p.id] || 0}
+                                    onCountChange={(newCount) => handleQuantityChange('sales', p.id, newCount)}
+                                />
+                            )}
                         </div>
                     </TabsContent>
                     <TabsContent value="damages" className="mt-0">
                         <div className="space-y-3">
-                            {userProducts.map(p => <ProductCounter key={p.id} product={p} />)}
+                            {userProducts.map(p => 
+                                <ProductCounter 
+                                    key={`dmg-${p.id}`} 
+                                    product={p}
+                                    count={quantities.damages[p.id] || 0}
+                                    onCountChange={(newCount) => handleQuantityChange('damages', p.id, newCount)}
+                                />
+                            )}
                         </div>
                     </TabsContent>
                 </div>
