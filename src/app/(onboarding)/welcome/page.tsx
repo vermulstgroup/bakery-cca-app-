@@ -3,7 +3,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { useState } from 'react';
 import { BAKERIES, ROLES } from '@/lib/data';
@@ -26,8 +26,6 @@ export default function WelcomePage() {
       router.push('/select-products');
     }
   };
-
-  const bakeryName = BAKERIES.find(b => b.id === selectedBakery)?.name || t('your_bakery');
 
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">

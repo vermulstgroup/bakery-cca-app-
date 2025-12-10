@@ -12,7 +12,6 @@ import { PartyPopper } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatUGX } from '@/lib/utils';
 import { useTranslation } from '@/hooks/use-translation';
 
 const PriceSkeleton = () => (

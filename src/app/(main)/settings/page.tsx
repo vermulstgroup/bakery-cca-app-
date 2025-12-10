@@ -2,7 +2,7 @@
 "use client"
 
 import { PageHeader } from '@/components/shared/page-header';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -38,12 +38,12 @@ export default function SettingsPage() {
       <div className="p-4 space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Preferences</CardTitle>
+            <CardTitle>{t('preferences')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <Label htmlFor="language" className="text-base">
-                Language
+                {t('language')}
               </Label>
               <Select value={language} onValueChange={setLanguage}>
                 <SelectTrigger className="w-[180px]">
@@ -59,7 +59,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <Label htmlFor="dark-mode" className="flex items-center gap-2 text-base">
                 {theme === 'dark' ? <Moon /> : <Sun />}
-                Dark Mode
+                {t('dark_mode')}
               </Label>
               <Switch
                 id="dark-mode"
@@ -72,25 +72,25 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Bakery Info</CardTitle>
+            <CardTitle>{t('bakery_info')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-muted-foreground">
-            <div className="flex justify-between"><span>Bakery:</span> <span className="font-medium text-foreground">{bakeryName}</span></div>
-            <div className="flex justify-between"><span>Role:</span> <span className="font-medium text-foreground">{roleName}</span></div>
+            <div className="flex justify-between"><span>{t('bakery')}:</span> <span className="font-medium text-foreground">{bakeryName}</span></div>
+            <div className="flex justify-between"><span>{t('role')}:</span> <span className="font-medium text-foreground">{t(roleName.toLowerCase())}</span></div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Configuration</CardTitle>
+            <CardTitle>{t('configuration')}</CardTitle>
           </CardHeader>
           <CardContent className="divide-y">
             <Button variant="ghost" className="w-full justify-between h-14 text-base" onClick={() => router.push('/select-products')}>
-              Manage Active Products
+              {t('manage_active_products')}
               <ChevronRight />
             </Button>
             <Button variant="ghost" className="w-full justify-between h-14 text-base" onClick={() => router.push('/settings/edit-prices')}>
-              Edit Selling Prices
+              {t('edit_selling_prices')}
               <ChevronRight />
             </Button>
           </CardContent>
@@ -98,17 +98,17 @@ export default function SettingsPage() {
 
         <Card>
             <CardHeader>
-                <CardTitle>About</CardTitle>
+                <CardTitle>{t('about')}</CardTitle>
             </CardHeader>
             <CardContent className="text-muted-foreground text-sm space-y-2">
-                <div className="flex justify-between"><span>App Version:</span> <span>1.0.0</span></div>
-                <p>Made for BISS Bakeries</p>
+                <div className="flex justify-between"><span>{t('app_version')}:</span> <span>1.0.0</span></div>
+                <p>{t('made_for_biss')}</p>
             </CardContent>
         </Card>
 
         <Button variant="destructive" className="w-full" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
-            Log Out & Reset
+            {t('log_out_reset')}
         </Button>
       </div>
     </div>

@@ -1,12 +1,11 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PRODUCTS, BAKERIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { formatUGX } from '@/lib/utils';
 import { cn } from '@/lib/utils';
