@@ -76,24 +76,33 @@ export default function ExpensesPage() {
   };
 
   const handleSave = () => {
-    const bakeryData = localStorage.getItem('onboardingData_local');
-    console.log('Expenses trying to save, bakery data:', bakeryData);
+    const bakeryDataString = localStorage.getItem('onboardingData_local');
 
-    if (!onboardingData.bakery) {
+    if (!bakeryDataString) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Bakery data not found in storage.' });
+        return;
+    }
+
+    const currentOnboardingData = JSON.parse(bakeryDataString);
+    const bakeryId = currentOnboardingData?.bakery;
+
+    if (!bakeryId) {
       toast({ variant: 'destructive', title: 'Error', description: 'Bakery not selected' });
       return;
     }
+    
     setIsSaving(true);
     try {
       const weekId = format(start, 'yyyy-MM-dd');
-      const storageKey = `expenses-${onboardingData.bakery}-${weekId}`;
+      const storageKey = `expenses-${bakeryId}-${weekId}`;
+      
       const numericExpenses = Object.entries(expenses).reduce((acc, [key, value]) => {
         acc[key] = Number(value) || 0;
         return acc;
       }, {} as {[key: string]: number});
 
       const dataToSave = {
-        bakeryId: onboardingData.bakery,
+        bakeryId: bakeryId,
         weekStartDate: weekId,
         expenses: numericExpenses,
       };
