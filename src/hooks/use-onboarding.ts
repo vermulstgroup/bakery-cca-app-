@@ -50,7 +50,7 @@ export function useOnboarding() {
       const currentDataString = localStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (currentDataString) {
           const currentData = JSON.parse(currentDataString);
-          localStorage.setItem(USER_SETTINGS_KEY, currentDataString);
+          localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(currentData));
           localStorage.setItem('onboardingComplete', 'true');
           setData(currentData);
           localStorage.removeItem(ONBOARDING_STORAGE_KEY);
