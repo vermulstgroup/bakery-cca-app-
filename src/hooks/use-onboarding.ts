@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,11 +11,12 @@ export function useOnboarding() {
   const [data, setData] = useState<OnboardingData>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const loadDataFromStorage = useCallback(() => {
+  const loadData = useCallback(() => {
     if (typeof window !== 'undefined') {
       try {
         const onboardingComplete = localStorage.getItem('onboardingComplete') === 'true';
-        const storedData = localStorage.getItem(onboardingComplete ? USER_SETTINGS_KEY : ONBOARDING_STORAGE_KEY);
+        const storageKey = onboardingComplete ? USER_SETTINGS_KEY : ONBOARDING_STORAGE_KEY;
+        const storedData = localStorage.getItem(storageKey);
         
         if (storedData) {
           setData(JSON.parse(storedData));
@@ -28,8 +30,8 @@ export function useOnboarding() {
   }, []);
 
   useEffect(() => {
-    loadDataFromStorage();
-  }, [loadDataFromStorage]);
+    loadData();
+  }, [loadData]);
 
   const updateData = useCallback((newData: Partial<OnboardingData>) => {
     setData(prevData => {
@@ -45,18 +47,16 @@ export function useOnboarding() {
 
   const completeOnboarding = useCallback(() => {
     if (typeof window !== 'undefined') {
-        const currentData = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-        if (currentData) {
-            const parsedData = JSON.parse(currentData);
-            localStorage.setItem(USER_SETTINGS_KEY, currentData);
-            localStorage.setItem('onboardingComplete', 'true');
-            // Update the state to reflect the persisted data immediately
-            setData(parsedData);
-            // Clean up the temporary key now that data is persisted.
-            localStorage.removeItem(ONBOARDING_STORAGE_KEY);
-        }
+      const currentDataString = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (currentDataString) {
+          const currentData = JSON.parse(currentDataString);
+          localStorage.setItem(USER_SETTINGS_KEY, currentDataString);
+          localStorage.setItem('onboardingComplete', 'true');
+          setData(currentData);
+          localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+      }
     }
   }, []);
 
-  return { data, updateData, isLoaded, completeOnboarding };
+  return { data, updateData, isLoaded, completeOnboarding, loadData };
 }
