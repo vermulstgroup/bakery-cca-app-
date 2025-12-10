@@ -1,3 +1,4 @@
+'use client';
 
 import { getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
@@ -8,6 +9,7 @@ let firebaseApp: FirebaseApp;
 let auth: Auth;
 let firestore: Firestore;
 
+// This function ensures Firebase is initialized only once.
 export function initializeFirebase() {
   if (!getApps().length) {
     firebaseApp = initializeApp(firebaseConfig);
@@ -23,3 +25,4 @@ export function initializeFirebase() {
 
 export * from './provider';
 export * from './auth/use-user';
+export * from './client-provider';

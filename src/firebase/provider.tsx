@@ -8,7 +8,6 @@ import React,
   createContext,
   useContext,
   useEffect,
-  useMemo,
   useState,
 } from 'react';
 import { initializeFirebase } from '.';
@@ -26,16 +25,11 @@ export const _FirebaseContext = createContext<FirebaseContext | undefined>(
 export const FirebaseProvider = (
   props: PropsWithChildren<FirebaseContext>
 ) => {
-  const { firebaseApp, auth, firestore } = props;
-  const parentContext = useFirebase();
+  const { firebaseApp, auth, firestore, children } = props;
 
-  // if we're already in a parent context, just pass children
-  if (parentContext) {
-    return props.children;
-  }
   return (
     <_FirebaseContext.Provider value={{ firebaseApp, auth, firestore }}>
-      {props.children}
+      {children}
     </_FirebaseContext.Provider>
   );
 };

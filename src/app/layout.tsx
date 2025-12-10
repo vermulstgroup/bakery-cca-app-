@@ -3,7 +3,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { TranslationProvider } from '@/providers/translation-provider';
-import { PrefirebaseProvider } from '@/firebase/provider';
+import { FirebaseClientProvider } from '@/firebase';
 
 const APP_NAME = "BISS Bakery App";
 const APP_DESCRIPTION = "Track your bakery's production, sales, and profits";
@@ -38,7 +38,7 @@ export default function RootLayout({
         <link rel="icon" href="/icons/icon-192x192.png" />
       </head>
       <body className="font-body antialiased min-h-svh">
-        <PrefirebaseProvider>
+        <FirebaseClientProvider>
           <TranslationProvider>
             <ThemeProvider
               attribute="class"
@@ -50,7 +50,7 @@ export default function RootLayout({
               <Toaster />
             </ThemeProvider>
           </TranslationProvider>
-        </PrefirebaseProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );
