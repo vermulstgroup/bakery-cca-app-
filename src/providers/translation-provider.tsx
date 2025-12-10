@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import en from '@/locales/en.json';
 import kj from '@/locales/kj.json';
 import ach from '@/locales/ach.json';
@@ -63,8 +64,14 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return translation;
   }, [language]);
 
+  const providerValue = useMemo(() => ({
+    language,
+    setLanguage,
+    t
+  }), [language, t]);
+
   return (
-    <TranslationContext.Provider value={{ language, setLanguage, t }}>
+    <TranslationContext.Provider value={providerValue}>
       {children}
     </TranslationContext.Provider>
   );

@@ -81,7 +81,9 @@ export default function TrendsPage() {
         }
       }
     });
-    return weeklySales;
+    
+    // Format for the AI: an array of weekly data objects
+    return Object.entries(weeklySales).map(([week, sales]) => ({ week, sales }));
 
   }, [entries]);
 
