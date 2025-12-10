@@ -45,10 +45,10 @@ const personalizedOffersPrompt = ai.definePrompt({
   Analyze the following sales data from previous weeks:
   {{salesData}}
 
-  Based on this data, generate personalized offers that the bakery can provide to customers to increase sales and customer loyalty.
-  Return the offers in JSON format. The offers should be tailored to the specific products that the customer buys frequently.
-  For example, if a customer frequently buys Yeast Mandazi, offer a discount on Yeast Mandazi or a related product.
-  Be concise and provide offers that are likely to be effective. Limit to 3 offers.
+  Based on this data, generate three creative and distinct personalized offers that the bakery can provide to customers to increase sales and customer loyalty.
+  The offers should be tailored to the specific products that the customer buys frequently.
+  For example, if a customer frequently buys Yeast Mandazi, offer a discount on Yeast Mandazi or a creative bundle with a related product.
+  Be concise, varied, and provide offers that are likely to be effective. Do not repeat the same type of offer (e.g., all discounts).
   Ensure the returned JSON is valid and can be parsed without errors.
   `,
 });
