@@ -13,7 +13,7 @@ const CountUp = ({ to }: { to: number }) => {
     let start = 0;
     const end = to;
     if (end === 0) return;
-    const duration = 800;
+    const duration = 1500;
     const startTime = Date.now();
 
     const animate = () => {
@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const profit = 470000;
   const isProfit = profit >= 0;
   const trend = 12; // percentage
+  const margin = 32; // percentage
   const revenue = 1450000;
   const expenses = 980000;
   const [lastSynced, setLastSynced] = useState('just now');
@@ -51,43 +52,45 @@ export default function DashboardPage() {
     <div className="flex flex-col">
       <AppHeader />
       <div className="flex-1 space-y-6 p-4 md:p-6">
-        <div className={`rounded-xl p-1 ${isProfit ? 'profit-card-gradient' : 'loss-card-gradient'}`}>
-            <Card className="relative rounded-xl border-0 bg-transparent text-primary-foreground shadow-2xl overflow-hidden">
-                <div className="absolute inset-0 bg-white/5"></div>
-                <CardHeader>
-                    <CardTitle className="text-xs font-medium uppercase tracking-[2px] text-primary-foreground/60">
-                        {isProfit ? "PROFIT" : "LOSS"}
+        <div className={`rounded-2xl p-6 shadow-profit-card ${isProfit ? 'profit-card-gradient' : 'loss-card-gradient'}`}>
+            <Card className="relative rounded-xl border-0 bg-transparent text-primary-foreground shadow-none overflow-hidden p-0">
+                <CardHeader className="p-0">
+                    <CardTitle className="text-xs font-medium uppercase tracking-[2px] text-white/80">
+                        THIS WEEK'S PROFIT
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col items-start gap-2">
-                    <div className="text-[56px] font-bold font-currency">
+                <CardContent className="flex flex-col items-start gap-2 p-0 mt-2">
+                    <div className="text-5xl font-bold font-currency text-white">
                         <CountUp to={profit} />
                     </div>
-                    <div className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-sm">
-                        {trend > 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
-                        <span>{trend}% vs last week</span>
+                    <div className="flex items-center gap-2">
+                        <div className="rounded-full bg-white/20 px-3 py-1 text-sm">{margin}% margin</div>
+                        <div className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-sm">
+                            {trend > 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                            <span>{trend}% vs last week</span>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Card>
+          <Card className="rounded-xl shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Revenue</CardTitle>
               <HandCoins className="h-5 w-5 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-currency">{formatUGX(revenue)}</div>
+              <div className="text-2xl font-bold font-currency text-success-700">{formatUGX(revenue)}</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="rounded-xl shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Expenses</CardTitle>
-              <ReceiptText className="h-5 w-5 text-loss" />
+              <ReceiptText className="h-5 w-5 text-stone-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-currency">{formatUGX(expenses)}</div>
+              <div className="text-2xl font-bold font-currency text-stone-600">{formatUGX(expenses)}</div>
             </CardContent>
           </Card>
         </div>

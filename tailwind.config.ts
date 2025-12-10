@@ -17,9 +17,20 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['"Inter"', 'system-ui', 'sans-serif'],
-        headline: ['"Inter"', 'system-ui', 'sans-serif'],
-        currency: ['"Roboto Mono"', 'monospace'],
+        body: ['"Plus Jakarta Sans"', 'sans-serif'],
+        headline: ['"Plus Jakarta Sans"', 'sans-serif'],
+        currency: ['"DM Mono"', 'monospace'],
+      },
+      fontSize: {
+        xs: '12px',
+        sm: '14px',
+        base: '18px',
+        lg: '20px',
+        xl: '24px',
+        '2xl': '28px',
+        '3xl': '32px',
+        '4xl': '40px',
+        '5xl': '48px',
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -80,16 +91,19 @@ export default {
         },
       },
       borderRadius: {
-        'xl': '20px',
-        'lg': 'calc(var(--radius) - 4px)',
-        'md': 'calc(var(--radius) - 6px)',
-        'sm': 'calc(var(--radius) - 8px)',
-        'button': '16px',
+        '2xl': '24px',
+        xl: '20px',
+        lg: '16px',
+        md: '12px',
+        sm: '8px',
+        button: '16px',
       },
        boxShadow: {
-        'lg': '0px 4px 12px rgba(0, 0, 0, 0.06), 0px 1px 2px rgba(0, 0, 0, 0.04)',
-        '2xl': '0px 10px 24px rgba(15, 118, 110, 0.25), 0px 4px 8px rgba(15, 118, 110, 0.15)',
-        'primary-btn': '0px 4px 10px rgba(15, 118, 110, 0.2)',
+        sm: '0 2px 8px rgba(28, 25, 23, 0.06)',
+        md: '0 4px 16px rgba(28, 25, 23, 0.08)',
+        lg: '0 8px 24px rgba(28, 25, 23, 0.10)',
+        'profit-card': '0 12px 40px rgba(245, 158, 11, 0.35)',
+        'primary-btn': '0px 4px 10px rgba(217, 119, 6, 0.25)',
       },
       keyframes: {
         'accordion-down': {

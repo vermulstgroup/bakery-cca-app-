@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { Check } from 'lucide-react';
+import { Check, PartyPopper } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 export default function ConfirmPricesPage() {
@@ -57,13 +57,13 @@ export default function ConfirmPricesPage() {
       </div>
 
       <div className="flex-grow overflow-y-auto pr-2">
-        <Card className="p-2">
+        <Card className="p-2 shadow-sm">
           <div className="space-y-4">
             {selectedProducts.map(product => (
               <div key={product.id} className="flex items-center gap-3">
                 <div className="text-2xl">{product.emoji}</div>
                 <Label htmlFor={product.id} className="flex-grow text-base">{product.name}</Label>
-                <div className="relative w-32">
+                <div className="relative w-36">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">UGX</span>
                   <Input
                     id={product.id}
@@ -71,7 +71,7 @@ export default function ConfirmPricesPage() {
                     inputMode="numeric"
                     value={prices[product.id] || ''}
                     onChange={e => handlePriceChange(product.id, e.target.value)}
-                    className="h-12 pl-12 text-right font-currency"
+                    className="h-14 pl-12 text-right font-currency"
                   />
                 </div>
               </div>
@@ -84,8 +84,10 @@ export default function ConfirmPricesPage() {
         <Button
           onClick={handleFinish}
           className="w-full"
+          size="lg"
         >
-          Start Using Bakery App <Check className="ml-2 h-5 w-5" />
+          <PartyPopper className="mr-2 h-6 w-6" />
+          Start Using App
         </Button>
       </div>
     </div>

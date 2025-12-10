@@ -9,6 +9,7 @@ export type Product = {
 export type Bakery = {
   id: string;
   name: string;
+  region: string;
 };
 
 export type ExpenseCategory = {

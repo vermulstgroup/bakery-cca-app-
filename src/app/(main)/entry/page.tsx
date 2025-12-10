@@ -23,14 +23,14 @@ const ProductCounter = ({ product }: { product: any }) => {
     }
 
     return (
-        <Card className="p-4">
+        <Card className="p-4 rounded-xl shadow-md">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">{product.emoji} {product.name}</h3>
             </div>
             <div className="flex items-center gap-2 mb-4">
-                <Button variant="secondary" size="icon" className="h-14 w-14 rounded-full" onClick={() => changeCount(-1)}><Minus /></Button>
-                <div className="font-currency text-3xl h-14 w-20 flex items-center justify-center rounded-md bg-secondary">{count}</div>
-                <Button size="icon" className="h-14 w-14 rounded-full" onClick={() => changeCount(1)}><Plus /></Button>
+                <Button variant="accent" size="icon" className="h-14 w-14 rounded-full text-2xl font-bold" onClick={() => changeCount(-1)}><Minus /></Button>
+                <div className="font-currency text-3xl h-14 w-24 flex items-center justify-center rounded-md bg-secondary">{count}</div>
+                <Button variant="accent" size="icon" className="h-14 w-14 rounded-full text-2xl font-bold" onClick={() => changeCount(1)}><Plus /></Button>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
                 {quickAddValues.map(val => (
@@ -58,6 +58,7 @@ export default function DailyEntryPage() {
             toast({
                 title: "✓ Saved successfully!",
                 description: `Entries for ${format(date, 'MMMM d')} have been saved.`,
+                className: "bg-success text-white"
             })
             setTimeout(() => setSaveStatus('idle'), 2000);
         }, 1000);
@@ -70,9 +71,9 @@ export default function DailyEntryPage() {
             </PageHeader>
             
             <div className="p-4">
-                 <Card className="flex items-center justify-between p-2 bg-secondary">
+                 <Card className="flex items-center justify-between p-2 bg-secondary rounded-xl shadow-sm">
                     <Button variant="ghost" size="icon" onClick={() => setDate(subDays(date, 1))}><ChevronLeft/></Button>
-                    <div className="text-center font-semibold">
+                    <div className="text-center font-semibold text-base">
                         <p>{format(date, "eeee, MMMM d, yyyy")}</p>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => setDate(addDays(date, 1))}><ChevronRight/></Button>
@@ -108,7 +109,7 @@ export default function DailyEntryPage() {
             </Tabs>
             <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
                 <Button className="w-full" onClick={handleSave} disabled={saveStatus === 'saving'}>
-                    {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved ✓' : 'Done ✓'}
+                    {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved ✓' : 'Done for Today ✓'}
                 </Button>
             </div>
         </div>

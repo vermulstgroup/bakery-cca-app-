@@ -10,7 +10,7 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import { formatUGX } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
-const defaultSelected = ['yeast-mandazi', 'doughnuts', 'loaf-1kg', 'loaf-500g', 'chapati'];
+const defaultSelected = ['yeast_mandazi', 'doughnuts', 'loaf_1kg', 'loaf_500g', 'chapati'];
 
 export default function SelectProductsPage() {
   const router = useRouter();
@@ -70,8 +70,8 @@ export default function SelectProductsPage() {
                 key={product.id}
                 onClick={() => toggleProduct(product.id)}
                 className={cn(
-                  'cursor-pointer p-3 transition-all aspect-square flex flex-col justify-between relative',
-                  isSelected && 'bg-primary/10 border-primary'
+                  'cursor-pointer p-3 transition-all aspect-square flex flex-col justify-between relative shadow-sm',
+                  isSelected && 'bg-primary/10 border-primary ring-2 ring-primary'
                 )}
               >
                 <div className="absolute top-2 right-2">
@@ -80,7 +80,7 @@ export default function SelectProductsPage() {
                 <div className="flex flex-col items-center text-center gap-2">
                   <div className="text-4xl">{product.emoji}</div>
                   <p className="font-semibold text-sm">{product.name}</p>
-                  <p className="text-xs text-muted-foreground font-currency">{formatUGX(product.defaultPrice).replace('UGX', '')}</p>
+                  <p className="text-xs text-muted-foreground font-currency">{formatUGX(product.defaultPrice).replace('UGX ', '')}</p>
                 </div>
               </Card>
             );

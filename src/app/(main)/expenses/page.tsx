@@ -42,6 +42,7 @@ export default function ExpensesPage() {
     toast({
         title: "✓ Expenses Saved!",
         description: `Total expenses of ${formatUGX(totalExpenses)} saved for ${weekLabel}.`,
+        className: 'bg-success text-white'
     });
   };
 
@@ -50,7 +51,7 @@ export default function ExpensesPage() {
       <PageHeader title="Weekly Expenses" />
 
       <div className="p-4 space-y-4">
-        <Card className="flex items-center justify-between p-2 bg-secondary">
+        <Card className="flex items-center justify-between p-2 bg-secondary rounded-xl shadow-sm">
           <Button variant="ghost" size="icon" onClick={() => setCurrentDate(subWeeks(currentDate, 1))}><ChevronLeft/></Button>
           <div className="text-center font-semibold text-base">
             <p>{weekLabel}</p>
@@ -58,12 +59,12 @@ export default function ExpensesPage() {
           <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addWeeks(currentDate, 1))}><ChevronRight/></Button>
         </Card>
 
-        <Card className="sticky top-[70px] z-20">
+        <Card className="sticky top-[70px] z-20 rounded-xl shadow-md">
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Total Expenses This Week</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold font-currency">{formatUGX(totalExpenses)}</p>
+            <p className="text-4xl font-bold font-currency text-stone-600">{formatUGX(totalExpenses)}</p>
           </CardContent>
         </Card>
       </div>
@@ -71,13 +72,14 @@ export default function ExpensesPage() {
       <div className="flex-grow overflow-y-auto px-4">
         <Accordion type="single" collapsible className="w-full">
           {EXPENSE_CATEGORIES.map(category => (
-            <AccordionItem value={category.id} key={category.id}>
-              <AccordionTrigger className="text-lg">
+            <AccordionItem value={category.id} key={category.id} className="border-b-0">
+             <Card className="mb-2 rounded-xl overflow-hidden shadow-sm">
+              <AccordionTrigger className="text-lg p-4 hover:no-underline">
                 <div className="flex items-center gap-4">
                   <span className="text-2xl">{category.emoji}</span>
                   <span>{category.name}</span>
                 </div>
-                <span className="font-currency text-xl text-muted-foreground mr-2">{formatUGX(Number(expenses[category.id] || 0))}</span>
+                <span className="font-currency text-lg text-muted-foreground mr-2">{formatUGX(Number(expenses[category.id] || 0))}</span>
               </AccordionTrigger>
               <AccordionContent className="p-2 bg-secondary/50 rounded-b-md">
                 <div className="space-y-4 p-4">
@@ -95,12 +97,13 @@ export default function ExpensesPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     {category.quickAmounts.map(amount => (
                       <Button key={amount} variant="accent" size="accent" onClick={() => addExpense(category.id, amount)}>
-                        +{formatUGX(amount).replace('UGX', '')}
+                        +{formatUGX(amount).replace('UGX ', '')}
                       </Button>
                     ))}
                   </div>
                 </div>
               </AccordionContent>
+              </Card>
             </AccordionItem>
           ))}
         </Accordion>

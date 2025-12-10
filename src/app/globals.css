@@ -4,52 +4,87 @@
 
 @layer base {
   :root {
-    --background: 220 13% 98%; /* #F9FAFB */
-    --foreground: 224 71% 4%; /* #111827 */
-    --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
-    --primary: 176 76% 27%; /* #0F766E */
-    --primary-foreground: 0 0% 98%;
-    --secondary: 220 14% 96%; /* #F3F4F6 */
-    --secondary-foreground: 224 71% 4%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%; /* #6B7280 */
-    --accent: 38 92% 50%; /* #F59E0B */
-    --accent-foreground: 224 71% 4%;
-    --destructive: 0 84% 60%; /* #EF4444 */
-    --destructive-foreground: 0 0% 98%;
-    --success: 151 70% 45%; /* #10B981 */
-    --loss: 0 84% 60%; /* #EF4444 */
-    --border: 220 13% 91%; /* #E5E7EB */
-    --input: 220 13% 91%;
-    --ring: 176 76% 27%;
+    /* PRIMARY - Golden Amber (Prosperity, MTN MoMo familiar) */
+    --primary-50: 255 251 235; /* #FFFBEB */
+    --primary-100: 254 243 199; /* #FEF3C7 */
+    --primary-200: 253 230 138; /* #FDE68A */
+    --primary-300: 252 211 77; /* #FCD34D */
+    --primary-400: 251 191 36; /* #FBBF24 */
+    --primary-500: 245 158 11; /* #F59E0B */
+    --primary-600: 217 119 6; /* #D97706 */
+    --primary-700: 180 83 9; /* #B45309 */
+
+    /* SUCCESS - Prosperity Green (Money, Growth) */
+    --success-50: 236 253 245; /* #ECFDF5 */
+    --success-100: 209 250 229; /* #D1FAE5 */
+    --success-500: 16 185 129; /* #10B981 */
+    --success-600: 5 150 105; /* #059669 */
+    --success-700: 4 120 87; /* #047857 */
+
+    /* NEUTRAL - Warm Stone (Earth, Heritage) */
+    --stone-50: 250 250 249; /* #FAFAF9 */
+    --stone-100: 245 245 244; /* #F5F5F4 */
+    --stone-200: 231 229 228; /* #E7E5E4 */
+    --stone-300: 214 211 209; /* #D6D3D1 */
+    --stone-400: 168 162 158; /* #A8A29E */
+    --stone-500: 120 113 108; /* #78716C */
+    --stone-600: 87 83 78; /* #57534E */
+    --stone-700: 68 64 60; /* #44403C */
+    --stone-800: 41 37 36; /* #292524 */
+    --stone-900: 28 25 23; /* #1C1917 */
+
+    /* SEMANTIC */
+    --warning: 217 119 6; /* #D97706 */
+    --error: 220 38 38; /* #DC2626 */
+    --info: 37 99 235; /* #2563EB */
+    --destructive: var(--error);
+
+    /* FRAMEWORK */
+    --background: var(--stone-50);
+    --foreground: var(--stone-900);
+    --card: 255 255 255; /* #FFFFFF */
+    --card-foreground: var(--stone-900);
+    --popover: 255 255 255;
+    --popover-foreground: var(--stone-900);
+    --primary: var(--primary-500);
+    --primary-foreground: var(--stone-900);
+    --secondary: var(--stone-100);
+    --secondary-foreground: var(--stone-800);
+    --muted: var(--stone-200);
+    --muted-foreground: var(--stone-500);
+    --accent: var(--primary-400);
+    --accent-foreground: var(--stone-800);
+    --destructive-foreground: var(--stone-50);
+    --success: var(--success-600);
+    --loss: var(--error);
+    --border: var(--stone-200);
+    --input: var(--stone-200);
+    --ring: var(--primary-500);
     --radius: 20px;
   }
 
   .dark {
-    --background: 224 71% 4%; /* #111827 */
-    --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --popover: 224 71% 4%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 175 80% 40%; /* #14B8A6 */
-    --primary-foreground: 0 0% 98%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 28% 65%;
-    --accent: 45 96% 56%; /* #FBBF24 */
-    --accent-foreground: 224 71% 4%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --success: 151 70% 45%;
-    --loss: 0 84% 60%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 175 80% 40%;
+    --background: 28 25 23; /* #1C1917 */
+    --foreground: 250 250 249; /* #FAFAF9 */
+    --card: 41 37 36; /* #292524 */
+    --card-foreground: 250 250 249;
+    --popover: 28 25 23;
+    --popover-foreground: 250 250 249;
+    --primary: var(--primary-500);
+    --primary-foreground: var(--stone-900);
+    --secondary: 41 37 36; /* #292524 */
+    --secondary-foreground: 250 250 249;
+    --muted: 68 64 60; /* #44403C */
+    --muted-foreground: 168 162 158; /* #A8A29E */
+    --accent: var(--primary-400);
+    --accent-foreground: var(--stone-900);
+    --destructive: var(--error);
+    --destructive-foreground: var(--stone-50);
+    --success: var(--success-500);
+    --loss: var(--error);
+    --border: 68 64 60; /* #44403C */
+    --input: 68 64 60;
+    --ring: var(--primary-500);
   }
 }
 
@@ -65,15 +100,15 @@
 }
 
 @layer components {
-  .btn-primary-gradient {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, #14B8A6 100%);
-    @apply text-primary-foreground;
-  }
   .profit-card-gradient {
-    background: linear-gradient(135deg, #115E59 0%, hsl(var(--primary)) 100%);
+    background: linear-gradient(135deg, #D97706 0%, #F59E0B 50%, #FBBF24 100%);
+  }
+  
+  .btn-primary-gradient {
+    background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%);
   }
   .loss-card-gradient {
-    background: linear-gradient(135deg, hsl(var(--loss)) 0%, #F87171 100%);
+     background: linear-gradient(135deg, hsl(var(--loss)) 0%, #F87171 100%);
   }
 }
 
