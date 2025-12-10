@@ -40,7 +40,7 @@ export default function ExpensesPage() {
   // Load from local storage on mount and when week changes
   useEffect(() => {
     if (isOnboardingLoaded && onboardingData.bakery) {
-      const weekId = format(start, 'yyyy-MM-dd');
+      const weekId = format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
       const storageKey = `expenses-${onboardingData.bakery}-${weekId}`;
       try {
         const savedExpenses = localStorage.getItem(storageKey);
@@ -60,7 +60,7 @@ export default function ExpensesPage() {
         setExpenses({});
       }
     }
-  }, [currentDate, isOnboardingLoaded, onboardingData.bakery, start]);
+  }, [currentDate, isOnboardingLoaded, onboardingData.bakery]);
 
 
   const totalExpenses = Object.values(expenses).reduce((acc, val) => acc + (Number(val) || 0), 0);
