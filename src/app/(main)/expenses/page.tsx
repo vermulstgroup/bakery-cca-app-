@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,16 +18,12 @@ import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from '@/hooks/use-translation';
-import { useUser, useFirestore } from '@/firebase';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { saveWeeklyExpense } from '@/lib/firebase/weekly-expenses';
 
 export default function ExpensesPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const { data: onboardingData } = useOnboarding();
+  const { data: onboardingData, isLoaded: isOnboardingLoaded } = useOnboarding();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [expenses, setExpenses] = useState<{ [key: string]: string }>({});
@@ -39,6 +35,26 @@ export default function ExpensesPage() {
     start: format(start, 'MMM d'), 
     end: format(end, 'MMM d, yyyy') 
   });
+  
+  const getStorageKey = useCallback(() => {
+    if (!onboardingData.bakery) return null;
+    const weekId = format(start, 'yyyy-MM-dd');
+    return `expenses-${onboardingData.bakery}-${weekId}`;
+  }, [onboardingData.bakery, start]);
+  
+  useEffect(() => {
+    if (isOnboardingLoaded) {
+      const storageKey = getStorageKey();
+      if (storageKey) {
+        const savedExpenses = localStorage.getItem(storageKey);
+        if (savedExpenses) {
+          setExpenses(JSON.parse(savedExpenses));
+        } else {
+          setExpenses({}); // Clear expenses for new week
+        }
+      }
+    }
+  }, [currentDate, isOnboardingLoaded, getStorageKey]);
 
   const totalExpenses = Object.values(expenses).reduce((acc, val) => acc + (Number(val) || 0), 0);
 
@@ -53,34 +69,26 @@ export default function ExpensesPage() {
   };
 
   const handleSave = async () => {
-    if (!user || !onboardingData.bakery || !firestore) {
+    const storageKey = getStorageKey();
+    if (!storageKey) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'You must be logged in and have a bakery selected to save data.'
+        description: 'Cannot save expenses without a selected bakery.'
       });
       return;
     }
 
     setIsSaving(true);
     try {
-      const expensesToSave = Object.entries(expenses).reduce((acc, [key, value]) => {
-        acc[key] = Number(value) || 0;
-        return acc;
-      }, {} as { [key: string]: number });
-
-      await saveWeeklyExpense(firestore, user.uid, onboardingData.bakery, start, expensesToSave);
-
+      localStorage.setItem(storageKey, JSON.stringify(expenses));
       toast({
           title: t('expenses_saved'),
           description: t('total_expenses_saved_for_week', { total: formatUGX(totalExpenses), week: weekLabel }),
           className: 'bg-success text-white'
       });
-      // Optionally clear fields after saving
-      setExpenses({});
-
     } catch (error) {
-       console.error("Error saving weekly expenses:", error);
+       console.error("Error saving weekly expenses to localStorage:", error);
        toast({
            variant: 'destructive',
            title: 'Save failed',
@@ -90,6 +98,17 @@ export default function ExpensesPage() {
        setIsSaving(false);
     }
   };
+
+  if (!isOnboardingLoaded) {
+    return (
+      <div className="flex h-screen flex-col">
+        <PageHeader title={t('weekly_expenses')} />
+        <div className="flex flex-1 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen flex-col">
@@ -110,6 +129,7 @@ export default function ExpensesPage() {
           </CardHeader>
           <CardContent>
             <p className="text-4xl font-bold font-currency text-foreground">{formatUGX(totalExpenses)}</p>
+
           </CardContent>
         </Card>
       </div>
@@ -154,7 +174,7 @@ export default function ExpensesPage() {
         </Accordion>
       </div>
        <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
-          <Button size="lg" className="w-full" onClick={handleSave} disabled={isSaving || !user}>
+          <Button size="lg" className="w-full" onClick={handleSave} disabled={isSaving || !isOnboardingLoaded}>
               {isSaving ? (
                 <>
                     <Loader2 className="mr-2 h-6 w-6 animate-spin" />

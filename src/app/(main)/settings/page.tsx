@@ -13,7 +13,7 @@ import { BAKERIES, ROLES, LANGUAGES } from '@/lib/data';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation } from '@/hooks/use-translation';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -24,19 +24,33 @@ export default function SettingsPage() {
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('onboardingComplete');
-      localStorage.removeItem('userSettings');
+      localStorage.removeItem('onboardingData_local'); // Correct key
       localStorage.removeItem('selectedLanguage');
+      // Clear all expense data
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('expenses-')) {
+          localStorage.removeItem(key);
+        }
+      });
       router.replace('/welcome');
     }
   }
 
-  const bakeryName = isLoaded && onboardingData.bakery 
-    ? BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_your_bakery')
-    : t('select_your_bakery');
+  const bakeryName = useMemo(() => {
+    if (isLoaded && onboardingData.bakery) {
+      return BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_your_bakery');
+    }
+    return t('select_your_bakery');
+  }, [isLoaded, onboardingData.bakery, t]);
 
-  const roleName = isLoaded && onboardingData.role
-    ? t(onboardingData.role)
-    : 'N/A';
+  const roleName = useMemo(() => {
+    if (isLoaded && onboardingData.role) {
+      const role = ROLES[onboardingData.role.toUpperCase()];
+      return role ? t(role.id) : 'N/A';
+    }
+    return 'N/A';
+  }, [isLoaded, onboardingData.role, t]);
+
 
   return (
     <div className="pb-8">
