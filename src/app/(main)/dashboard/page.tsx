@@ -52,11 +52,11 @@ export default function DashboardPage() {
     <div className="flex flex-col">
       <AppHeader />
       <div className="flex-1 space-y-6 p-4 md:p-6">
-        <div className={`rounded-2xl p-6 shadow-profit-card ${isProfit ? 'profit-card-gradient' : 'loss-card-gradient'}`}>
+        <div className={`rounded-2xl p-6 shadow-lg shadow-primary/25 ${isProfit ? 'profit-card-gradient' : 'loss-card-gradient'}`}>
             <Card className="relative rounded-xl border-0 bg-transparent text-primary-foreground shadow-none overflow-hidden p-0">
                 <CardHeader className="p-0">
-                    <CardTitle className="text-xs font-medium uppercase tracking-[2px] text-white/80">
-                        THIS WEEK'S PROFIT
+                    <CardTitle className="text-xs font-medium uppercase tracking-[2px] text-white/60">
+                        Profit
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-start gap-2 p-0 mt-2">
@@ -75,22 +75,22 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Card className="rounded-xl shadow-md">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Revenue</CardTitle>
               <HandCoins className="h-5 w-5 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-currency text-success-700">{formatUGX(revenue)}</div>
+              <div className="text-2xl font-bold font-currency text-success">{formatUGX(revenue)}</div>
             </CardContent>
           </Card>
-          <Card className="rounded-xl shadow-md">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Expenses</CardTitle>
               <ReceiptText className="h-5 w-5 text-stone-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-currency text-stone-600">{formatUGX(expenses)}</div>
+              <div className="text-2xl font-bold font-currency text-foreground">{formatUGX(expenses)}</div>
             </CardContent>
           </Card>
         </div>

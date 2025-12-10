@@ -51,7 +51,7 @@ export default function ExpensesPage() {
       <PageHeader title="Weekly Expenses" />
 
       <div className="p-4 space-y-4">
-        <Card className="flex items-center justify-between p-2 bg-secondary rounded-xl shadow-sm">
+        <Card className="flex items-center justify-between p-2 bg-secondary rounded-xl">
           <Button variant="ghost" size="icon" onClick={() => setCurrentDate(subWeeks(currentDate, 1))}><ChevronLeft/></Button>
           <div className="text-center font-semibold text-base">
             <p>{weekLabel}</p>
@@ -59,12 +59,12 @@ export default function ExpensesPage() {
           <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addWeeks(currentDate, 1))}><ChevronRight/></Button>
         </Card>
 
-        <Card className="sticky top-[70px] z-20 rounded-xl shadow-md">
+        <Card className="sticky top-[70px] z-20">
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Total Expenses This Week</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold font-currency text-stone-600">{formatUGX(totalExpenses)}</p>
+            <p className="text-4xl font-bold font-currency text-foreground">{formatUGX(totalExpenses)}</p>
           </CardContent>
         </Card>
       </div>
@@ -73,7 +73,7 @@ export default function ExpensesPage() {
         <Accordion type="single" collapsible className="w-full">
           {EXPENSE_CATEGORIES.map(category => (
             <AccordionItem value={category.id} key={category.id} className="border-b-0">
-             <Card className="mb-2 rounded-xl overflow-hidden shadow-sm">
+             <Card className="mb-2 rounded-xl overflow-hidden">
               <AccordionTrigger className="text-lg p-4 hover:no-underline">
                 <div className="flex items-center gap-4">
                   <span className="text-2xl">{category.emoji}</span>
@@ -81,8 +81,8 @@ export default function ExpensesPage() {
                 </div>
                 <span className="font-currency text-lg text-muted-foreground mr-2">{formatUGX(Number(expenses[category.id] || 0))}</span>
               </AccordionTrigger>
-              <AccordionContent className="p-2 bg-secondary/50 rounded-b-md">
-                <div className="space-y-4 p-4">
+              <AccordionContent className="p-4 bg-secondary/50 rounded-b-md">
+                <div className="space-y-4">
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">UGX</span>
                     <Input

@@ -57,7 +57,7 @@ export default function ConfirmPricesPage() {
       </div>
 
       <div className="flex-grow overflow-y-auto pr-2">
-        <Card className="p-2 shadow-sm">
+        <Card className="p-4">
           <div className="space-y-4">
             {selectedProducts.map(product => (
               <div key={product.id} className="flex items-center gap-3">

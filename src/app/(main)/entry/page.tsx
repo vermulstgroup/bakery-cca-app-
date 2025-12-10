@@ -23,7 +23,7 @@ const ProductCounter = ({ product }: { product: any }) => {
     }
 
     return (
-        <Card className="p-4 rounded-xl shadow-md">
+        <Card className="p-4">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">{product.emoji} {product.name}</h3>
             </div>
@@ -71,7 +71,7 @@ export default function DailyEntryPage() {
             </PageHeader>
             
             <div className="p-4">
-                 <Card className="flex items-center justify-between p-2 bg-secondary rounded-xl shadow-sm">
+                 <Card className="flex items-center justify-between p-2 bg-secondary rounded-xl">
                     <Button variant="ghost" size="icon" onClick={() => setDate(subDays(date, 1))}><ChevronLeft/></Button>
                     <div className="text-center font-semibold text-base">
                         <p>{format(date, "eeee, MMMM d, yyyy")}</p>
