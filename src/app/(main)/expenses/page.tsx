@@ -44,12 +44,12 @@ export default function ExpensesPage() {
     end: format(end, 'MMM d, yyyy') 
   });
   
-  // DEBUG: Log loaded data
+  // DEBUG: Log loaded data from user
   useEffect(() => {
-    const key = `expenses-${onboardingData.bakery}-${format(start, 'yyyy-MM-dd')}`;
-    console.log('LOADED:', localStorage.getItem(key));
-    console.log('DEBUG: LOADED debug_expenses', localStorage.getItem('debug_expenses'));
-  }, [onboardingData.bakery, start]);
+    const saved = localStorage.getItem('biss_expenses');
+    console.log('=== EXPENSES PAGE LOADED ===');
+    console.log('localStorage biss_expenses:', saved);
+  }, []);
 
 
   // Load from local storage on mount and when week changes
@@ -78,50 +78,17 @@ export default function ExpensesPage() {
     handleExpenseChange(categoryId, (currentAmount + amount).toString());
   };
 
-  // DEBUG: Test save function
-  const handleSave = async () => {
-    const storageKey = `expenses-${onboardingData.bakery}-${format(start, 'yyyy-MM-dd')}`;
-    
-    // User requested debug code
-     const data = { amount: 75000, category: 'test' };
-     localStorage.setItem('debug_expenses', JSON.stringify(data));
-     console.log('SAVED:', localStorage.getItem('debug_expenses'));
-     alert('Saved! Check console.');
-
-    if (!storageKey) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Cannot save expenses without a selected bakery.'
-      });
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const expensesToSave = Object.entries(expenses).reduce((acc, [key, value]) => {
-        acc[key] = Number(value) || 0;
-        return acc;
-      }, {} as { [key: string]: number });
-
-      // Save to local storage for offline use
-      localStorage.setItem(storageKey, JSON.stringify(expenses));
-      
-      toast({
-          title: t('expenses_saved'),
-          description: t('total_expenses_saved_for_week', { total: formatUGX(totalExpenses), week: weekLabel }),
-          className: 'bg-success text-white'
-      });
-    } catch (error) {
-       console.error("Error saving weekly expenses:", error);
-       toast({
-           variant: 'destructive',
-           title: 'Save failed',
-           description: 'Could not save your weekly expenses. Please try again.'
-       });
-    } finally {
-       setIsSaving(false);
-    }
+  // DEBUG: User requested save function
+  const handleSave = () => {
+    const expenseData = {
+      amount: totalExpenses, // or whatever variable holds the amount
+      timestamp: new Date().toISOString(),
+      debug: true
+    };
+    localStorage.setItem('biss_expenses', JSON.stringify(expenseData));
+    console.log('=== SAVE CLICKED ===');
+    console.log('Saved to localStorage:', JSON.stringify(expenseData));
+    alert('DEBUG: Saved ' + JSON.stringify(expenseData));
   };
 
   const isLoading = !isOnboardingLoaded || expensesLoading;

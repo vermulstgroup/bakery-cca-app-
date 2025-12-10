@@ -39,7 +39,9 @@ export function AppHeader() {
   const { language, setLanguage, t } = useTranslation();
   const selectedBakery = onboardingData.bakery || BAKERIES[0].id;
   const currentBakeryName = BAKERIES.find(b => b.id === selectedBakery)?.name || t('select_bakery');
-  console.log('Dashboard bakery:', selectedBakery);
+
+  // DEBUG: Log what Dashboard reads
+  console.log('Dashboard bakery:', currentBakeryName, 'source: onboardingData.bakery via useOnboarding()');
 
 
   const handleBakeryChange = (bakeryId: string) => {

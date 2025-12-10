@@ -37,12 +37,14 @@ export default function SettingsPage() {
   }
 
   const bakeryName = useMemo(() => {
-    console.log('Settings bakery:', onboardingData.bakery);
     if (isLoaded && onboardingData.bakery) {
       return BAKERIES.find(b => b.id === onboardingData.bakery)?.name || t('select_your_bakery');
     }
     return t('select_your_bakery');
   }, [isLoaded, onboardingData.bakery, t]);
+
+  // DEBUG: Log what Settings reads
+  console.log('Settings bakery:', bakeryName, 'source: onboardingData.bakery via useOnboarding()');
 
   const roleName = useMemo(() => {
     if (isLoaded && onboardingData.role) {
