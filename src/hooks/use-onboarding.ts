@@ -10,17 +10,14 @@ export function useOnboarding() {
   const [data, setData] = useState<OnboardingData>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
+  const loadDataFromStorage = useCallback(() => {
     if (typeof window !== 'undefined') {
       try {
-        const storedSettings = localStorage.getItem(USER_SETTINGS_KEY);
-        if (storedSettings) {
-          setData(JSON.parse(storedSettings));
-        } else {
-          const storedOnboardingData = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-          if (storedOnboardingData) {
-            setData(JSON.parse(storedOnboardingData));
-          }
+        const onboardingComplete = localStorage.getItem('onboardingComplete') === 'true';
+        const storedData = localStorage.getItem(onboardingComplete ? USER_SETTINGS_KEY : ONBOARDING_STORAGE_KEY);
+        
+        if (storedData) {
+          setData(JSON.parse(storedData));
         }
       } catch (error) {
         console.error("Failed to parse user data from localStorage", error);
@@ -29,6 +26,10 @@ export function useOnboarding() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    loadDataFromStorage();
+  }, [loadDataFromStorage]);
 
   const updateData = useCallback((newData: Partial<OnboardingData>) => {
     setData(prevData => {
@@ -44,15 +45,16 @@ export function useOnboarding() {
 
   const completeOnboarding = useCallback(() => {
     if (typeof window !== 'undefined') {
-        // This function now correctly persists the data without deleting it.
-        // It moves the final onboarding data to the permanent user settings location.
         const currentData = localStorage.getItem(ONBOARDING_STORAGE_KEY);
         if (currentData) {
-          localStorage.setItem(USER_SETTINGS_KEY, currentData);
+            const parsedData = JSON.parse(currentData);
+            localStorage.setItem(USER_SETTINGS_KEY, currentData);
+            localStorage.setItem('onboardingComplete', 'true');
+            // Update the state to reflect the persisted data immediately
+            setData(parsedData);
+            // Clean up the temporary key now that data is persisted.
+            localStorage.removeItem(ONBOARDING_STORAGE_KEY);
         }
-        localStorage.setItem('onboardingComplete', 'true');
-        // Clean up the temporary key now that data is persisted.
-        localStorage.removeItem(ONBOARDING_STORAGE_KEY);
     }
   }, []);
 
