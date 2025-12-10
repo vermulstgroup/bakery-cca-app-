@@ -45,7 +45,6 @@
   "dark_mode": "Dark Mode",
   "prices_updated": "✓ Prices Updated",
   "new_prices_saved": "Your new selling prices have been saved.",
-  "saving_prices": "Saving Prices...",
   "save_prices": "Save Prices",
   "ai_powered_trends": "AI-Powered Trends",
   "refreshing": "Refreshing...",
@@ -82,5 +81,6 @@
   "online": "Online",
   "offline": "Offline",
   "select_bakery": "Select Bakery",
-  "configuration": "Configuration"
+  "configuration": "Configuration",
+  "loading_bakery_app": "Loading Bakery App..."
 }
