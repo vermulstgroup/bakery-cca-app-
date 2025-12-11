@@ -2,70 +2,20 @@
 "use client"
 
 import { PageHeader } from '@/components/shared/page-header';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, LogOut, Moon, Sun, AlertTriangle } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
-import { BAKERIES, ROLES, LANGUAGES, PRODUCTS } from '@/lib/data';
+import { BAKERIES, ROLES, LANGUAGES } from '@/lib/data';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation } from '@/hooks/use-translation';
-import { useMemo, useState } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { firebaseAuth } from '@/lib/firebase/config';
+import { useMemo } from 'react';
+import { ProductSelection } from './product-selection';
 
-
-const ProductSelection = () => {
-    const { t } = useTranslation();
-    const { data, updateData, isLoaded } = useOnboarding();
-    const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set(data.products || []));
-
-    const toggleProduct = (productId: string) => {
-        const newSelection = new Set(selectedProducts);
-        if (newSelection.has(productId)) {
-            newSelection.delete(productId);
-        } else {
-            newSelection.add(productId);
-        }
-        setSelectedProducts(newSelection);
-        updateData({ products: Array.from(newSelection) });
-    };
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('manage_active_products')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <ScrollArea className="h-64 pr-4">
-                    <div className="space-y-4">
-                        {PRODUCTS.map(product => (
-                            <div key={product.id} className="flex items-center space-x-3">
-                                <Checkbox
-                                    id={`product-${product.id}`}
-                                    checked={selectedProducts.has(product.id)}
-                                    onCheckedChange={() => toggleProduct(product.id)}
-                                    disabled={!isLoaded}
-                                />
-                                <label
-                                    htmlFor={`product-${product.id}`}
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
-                                >
-                                    <span className="text-xl">{product.emoji}</span>
-                                    {product.name}
-                                </label>
-                            </div>
-                        ))}
-                    </div>
-                </ScrollArea>
-            </CardContent>
-        </Card>
-    );
-}
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -73,10 +23,8 @@ export default function SettingsPage() {
   const { data: onboardingData, updateData, isLoaded } = useOnboarding();
   const { language, setLanguage, t } = useTranslation();
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (typeof window !== 'undefined') {
-      await firebaseAuth.signOut();
-      
       // Clear all local storage related to the app
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('onboarding') || key.startsWith('expenses-') || key.startsWith('daily_entry-')) {
@@ -94,6 +42,9 @@ export default function SettingsPage() {
     updateData({ bakery: bakeryId });
   };
 
+  const handleRoleChange = (roleId: 'manager' | 'supervisor') => {
+    updateData({ role: roleId });
+  };
 
   const bakeryName = useMemo(() => {
     if (isLoaded && onboardingData.bakery) {
@@ -143,10 +94,19 @@ export default function SettingsPage() {
                   </SelectContent>
               </Select>
             </div>
-             <div className="flex justify-between items-center text-muted-foreground">
-                <span className="text-base">{t('role')}:</span> 
-                <span className="font-medium text-foreground">{roleName}</span>
-             </div>
+             <div className="flex items-center justify-between">
+              <Label className="text-base">{t('role')}</Label>
+              <Select value={onboardingData.role || ''} onValueChange={(value) => handleRoleChange(value as 'manager' | 'supervisor')} disabled={!isLoaded}>
+                  <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder={t('select_your_role')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                      {Object.values(ROLES).map(r => (
+                          <SelectItem key={r.id} value={r.id}>{t(r.id)}</SelectItem>
+                      ))}
+                  </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
         

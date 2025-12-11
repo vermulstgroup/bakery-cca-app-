@@ -95,19 +95,6 @@
             }
         },
         "required": ["bakeryId"]
-    },
-    "userProfile": {
-      "title": "User Profile",
-      "description": "Stores user-specific data, linking them to a bakery and role.",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
-        "bakeryId": { "type": "string" },
-        "role": { "type": "string", "enum": ["manager", "supervisor"] },
-        "products": { "type": "array", "items": { "type": "string" } },
-        "prices": { "type": "object", "additionalProperties": { "type": "number" } }
-      },
-      "required": ["userId", "bakeryId", "role"]
     }
   },
   "auth": {
@@ -121,10 +108,6 @@
     "/expense_categories/{expenseCategoryId}": {
         "schema": { "$ref": "#/entities/expenseCategory" },
         "description": "Publicly readable catalog of all expense categories."
-    },
-    "/users/{userId}": {
-      "schema": { "$ref": "#/entities/userProfile" },
-      "description": "Stores user-specific settings and permissions."
     },
     "/bakeries/{bakeryId}": {
       "schema": { "$ref": "#/entities/bakery" },

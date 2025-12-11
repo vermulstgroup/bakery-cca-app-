@@ -1,59 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isUser(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-    
-    function getBakeryId() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.bakeryId;
-    }
-
-    function isMemberOfBakery(bakeryId) {
-      return isSignedIn() && getBakeryId() == bakeryId;
-    }
-
-    // User profiles can be created by anyone, but only the user can read/update their own profile.
-    match /users/{userId} {
-      allow read, update: if isUser(userId);
-      allow create: if isSignedIn();
-    }
-    
-    // Bakery data - organized by bakery ID
-    match /bakeries/{bakeryId} {
-      allow read, write: if isMemberOfBakery(bakeryId);
-      
-      // Daily entries subcollection
-      match /daily_entries/{entryId} {
-        allow read, write: if isMemberOfBakery(bakeryId);
-      }
-      
-      // Weekly expenses subcollection
-      match /weekly_expenses/{expenseId} {
-        allow read, write: if isMemberOfBakery(bakeryId);
-      }
-      
-      // Config subcollection for settings
-      match /config/{configId} {
-        allow read, write: if isMemberOfBakery(bakeryId);
-      }
-    }
-    
-    // These are public, read-only collections
-    match /expense_categories/{categoryId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if false;
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }
