@@ -23,10 +23,15 @@ export default function SelectProductsPage() {
   const bakeryName = isLoaded ? BAKERIES.find(b => b.id === data.bakery)?.name || t('your_bakery') : t('your_bakery');
 
   useEffect(() => {
+    // Redirect if already onboarded
+    if (isLoaded && localStorage.getItem('onboardingComplete') === 'true') {
+        router.replace('/settings');
+        return;
+    }
     if (isLoaded) {
       setSelectedProducts(new Set(data.products || defaultSelected));
     }
-  }, [isLoaded, data.products]);
+  }, [isLoaded, data.products, router]);
 
   const toggleProduct = (productId: string) => {
     const newSelection = new Set(selectedProducts);

@@ -9,13 +9,62 @@ import { Button } from '@/components/ui/button';
 import { ChevronRight, LogOut, Moon, Sun, AlertTriangle } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
-import { BAKERIES, ROLES, LANGUAGES } from '@/lib/data';
+import { BAKERIES, ROLES, LANGUAGES, PRODUCTS } from '@/lib/data';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation } from '@/hooks/use-translation';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
+
+
+const ProductSelection = () => {
+    const { t } = useTranslation();
+    const { data, updateData, isLoaded } = useOnboarding();
+    const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set(data.products || []));
+
+    const toggleProduct = (productId: string) => {
+        const newSelection = new Set(selectedProducts);
+        if (newSelection.has(productId)) {
+            newSelection.delete(productId);
+        } else {
+            newSelection.add(productId);
+        }
+        setSelectedProducts(newSelection);
+        updateData({ products: Array.from(newSelection) });
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{t('manage_active_products')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="h-64 pr-4">
+                    <div className="space-y-4">
+                        {PRODUCTS.map(product => (
+                            <div key={product.id} className="flex items-center space-x-3">
+                                <Checkbox
+                                    id={`product-${product.id}`}
+                                    checked={selectedProducts.has(product.id)}
+                                    onCheckedChange={() => toggleProduct(product.id)}
+                                />
+                                <label
+                                    htmlFor={`product-${product.id}`}
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                                >
+                                    <span className="text-xl">{product.emoji}</span>
+                                    {product.name}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -131,15 +180,13 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        <ProductSelection />
+
         <Card>
           <CardHeader>
             <CardTitle>{t('configuration')}</CardTitle>
           </CardHeader>
-          <CardContent className="divide-y">
-            <Button variant="ghost" className="w-full justify-between h-14 text-base" onClick={() => router.push('/select-products')}>
-              {t('manage_active_products')}
-              <ChevronRight />
-            </Button>
+          <CardContent>
             <Button variant="ghost" className="w-full justify-between h-14 text-base" onClick={() => router.push('/settings/edit-prices')}>
               {t('edit_selling_prices')}
               <ChevronRight />
