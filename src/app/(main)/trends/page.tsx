@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSalesInsights, SalesInsightsOutput } from '@/ai/flows/sales-insights';
-import { Loader2, BarChart, Lightbulb, TrendingUp, TrendingDown } from 'lucide-react';
+import { Loader2, BarChart, Lightbulb, TrendingUp, TrendingDown, Download } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation } from '@/hooks/use-translation';
 import { useOnboarding } from '@/hooks/use-onboarding';
@@ -206,22 +206,42 @@ export default function TrendsPage() {
     }
   }, [onboardingLoaded, entries, expenses, fetchInsights]);
 
+  const handleExport = useCallback(() => {
+    const headers = ['Week', 'Income', 'Cost', 'Profit'];
+    const rows = processedChartData.map(d => [d.date, d.income, d.cost, d.profit].join(','));
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "biss-bakery-trends.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [processedChartData]);
+
   const hasData = useMemo(() => entries.length > 0 || expenses.length > 0, [entries, expenses]);
   const isLoading = loading || !onboardingLoaded;
 
   return (
     <div className="flex flex-col">
       <PageHeader title={t('trends')} showBackButton={false}>
-         <Button variant="ghost" size="sm" onClick={fetchInsights} disabled={isLoading || !hasData}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              {t('refreshing')}
-            </>
-          ) : (
-            t('refresh')
-          )}
-         </Button>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={isLoading || !hasData}>
+              <Download className="mr-2 h-4 w-4" />
+              {t('export')}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={fetchInsights} disabled={isLoading || !hasData}>
+            {isLoading ? (
+                <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {t('refreshing')}
+                </>
+            ) : (
+                t('refresh')
+            )}
+            </Button>
+        </div>
       </PageHeader>
       
       <div className="flex-grow overflow-y-auto p-4 space-y-4">
@@ -344,5 +364,7 @@ export default function TrendsPage() {
     </div>
   );
 }
+
+    
 
     
