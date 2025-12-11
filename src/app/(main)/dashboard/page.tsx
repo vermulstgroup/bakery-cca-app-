@@ -2,40 +2,30 @@
 "use client";
 
 import { AppHeader } from '@/components/shared/app-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatUGX } from '@/lib/utils';
-import { ArrowUp, ArrowDown, HandCoins, ReceiptText, FileText, Loader2, Package, Trash2, TrendingUp, Sun } from 'lucide-react';
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { ArrowUp, ArrowDown, FileText, Loader2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from '@/hooks/use-translation';
 import Link from 'next/link';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { startOfWeek, endOfWeek, format as formatDate } from 'date-fns';
+import { startOfWeek, endOfWeek, format as formatDate, parseISO } from 'date-fns';
 import { PRODUCTS } from '@/lib/data';
-import type { DailyEntry } from '@/lib/types';
+import type { DailyEntry, WeeklyExpense } from '@/lib/types';
+import { getAllDailyEntries, getAllWeeklyExpenses } from '@/lib/firebase/firestore';
 
 
 const CountUp = ({ to }: { to: number }) => {
   const [count, setCount] = useState(0);
-  const hasAnimated = useRef(false);
 
   useEffect(() => {
-    if (hasAnimated.current) {
-        setCount(to);
-        return;
-    }
-
     let start = 0;
     const end = to;
-    if (end === 0) {
-        setCount(0);
+    if (start === end) {
+        setCount(end);
         return;
     };
-    
-    // Only animate on initial load
-    if (end > 0) {
-        hasAnimated.current = true;
-    }
 
     const duration = 1500;
     const startTime = Date.now();
@@ -43,7 +33,7 @@ const CountUp = ({ to }: { to: number }) => {
     const animate = () => {
       const now = Date.now();
       const progress = Math.min(1, (now - startTime) / duration);
-      const current = Math.floor(progress * end);
+      const current = Math.floor(progress * (end - start) + start);
       setCount(current);
       if (progress < 1) {
         requestAnimationFrame(animate);
@@ -61,96 +51,94 @@ const CountUp = ({ to }: { to: number }) => {
 export default function DashboardPage() {
   const { t } = useTranslation();
   const { data: onboardingData, isLoaded: onboardingLoaded } = useOnboarding();
-  const [lastSynced, setLastSynced] = useState(t('just_now'));
   const [entries, setEntries] = useState<DailyEntry[]>([]);
-  const [expenses, setExpenses] = useState<{ expenses: { [key: string]: number } } | null>(null);
+  const [expenses, setExpenses] = useState<WeeklyExpense[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const weekStart = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 1 }), []);
+  const currentDate = new Date();
+  const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
+  const weekEnd = useMemo(() => endOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
 
   useEffect(() => {
-    if (onboardingLoaded) {
-      const allEntries: DailyEntry[] = [];
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith(`daily_entry-${onboardingData.bakery}-`)) {
-          try {
-            allEntries.push(JSON.parse(localStorage.getItem(key)!));
-          } catch (e) {
-            // Silently fail on parse error
-          }
-        }
-      });
-      setEntries(allEntries);
+    if (onboardingLoaded && onboardingData.bakery) {
+      const loadData = async () => {
+        setLoading(true);
+        try {
+          const [allEntries, allExpenses] = await Promise.all([
+            getAllDailyEntries(onboardingData.bakery as string),
+            getAllWeeklyExpenses(onboardingData.bakery as string)
+          ]);
+          setEntries(allEntries);
+          setExpenses(allExpenses);
+        } catch (e) {
+          // Fallback for offline or errors
+          const localEntries: DailyEntry[] = [];
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith(`daily_entry-${onboardingData.bakery}-`)) {
+              localEntries.push(JSON.parse(localStorage.getItem(key)!));
+            }
+          });
+          setEntries(localEntries);
 
-      const weekId = formatDate(weekStart, 'yyyy-MM-dd');
-      const storageKey = `expenses-${onboardingData.bakery}-${weekId}`;
-      const savedExpenses = localStorage.getItem(storageKey);
-      if (savedExpenses) {
-        setExpenses(JSON.parse(savedExpenses));
-      }
-      setLoading(false);
+          const localExpenses: WeeklyExpense[] = [];
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith(`expenses-${onboardingData.bakery}-`)) {
+              localExpenses.push(JSON.parse(localStorage.getItem(key)!));
+            }
+          });
+          setExpenses(localExpenses);
+        } finally {
+            setLoading(false);
+        }
+      };
+      loadData();
     }
-  }, [onboardingLoaded, onboardingData.bakery, weekStart]);
+  }, [onboardingLoaded, onboardingData.bakery]);
 
 
   const productPrices = useMemo(() => {
     const prices: { [key: string]: number } = {};
-    PRODUCTS.forEach(p => {
-        prices[p.id] = onboardingData.prices?.[p.id] ?? p.defaultPrice;
-    });
+    if (onboardingLoaded && onboardingData.products && onboardingData.prices) {
+        PRODUCTS.forEach(p => {
+            prices[p.id] = onboardingData.prices?.[p.id] ?? p.defaultPrice;
+        });
+    }
     return prices;
-  }, [onboardingData.prices]);
+  }, [onboardingLoaded, onboardingData.products, onboardingData.prices]);
 
-  const { revenue, totalExpenses, profit, margin } = useMemo(() => {
-    const revenue = entries.reduce((total, entry) => {
+  const weeklyStats = useMemo(() => {
+    const thisWeeksEntries = entries.filter(e => {
+        try {
+            const entryDate = parseISO(e.date);
+            return entryDate >= weekStart && entryDate <= weekEnd;
+        } catch (err) {
+            return false;
+        }
+    });
+
+    const thisWeeksExpensesDoc = expenses.find(e => e.weekStartDate === formatDate(weekStart, 'yyyy-MM-dd'));
+    const totalExpenses = thisWeeksExpensesDoc ? Object.values(thisWeeksExpensesDoc.expenses).reduce((sum, val) => sum + val, 0) : 0;
+    
+    const revenue = thisWeeksEntries.reduce((total, entry) => {
         const dayRevenue = Object.entries(entry.quantities.sales || {}).reduce((dayTotal, [productId, quantity]) => {
             return dayTotal + (quantity * (productPrices[productId] || 0));
         }, 0);
         return total + dayRevenue;
     }, 0);
 
-    const totalExpenses = Object.values(expenses?.expenses || {}).reduce((acc, val) => acc + val, 0);
     const profit = revenue - totalExpenses;
-    const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
-
-    return { revenue, totalExpenses, profit, margin };
-  }, [entries, expenses, productPrices]);
-
-  const todaysData = useMemo(() => {
-    const todayString = formatDate(new Date(), 'yyyy-MM-dd');
-    const todayEntry = entries.find(e => e.date === todayString);
-
-    if (!todayEntry) return { revenue: 0, productionValue: 0, damagesValue: 0 };
     
-    const revenue = Object.entries(todayEntry.quantities.sales || {}).reduce((total, [productId, quantity]) => {
-      return total + (quantity * (productPrices[productId] || 0));
-    }, 0);
-    
-    const productionValue = Object.entries(todayEntry.quantities.production || {}).reduce((total, [productId, quantity]) => {
-      return total + (quantity * (productPrices[productId] || 0));
-    }, 0);
+    // TODO: Trend calculation logic needed
+    const trend = 12; 
 
-    const damagesValue = Object.entries(todayEntry.quantities.damages || {}).reduce((total, [productId, quantity]) => {
-      return total + (quantity * (productPrices[productId] || 0));
-    }, 0);
-
-    return { revenue, productionValue, damagesValue };
-  }, [entries, productPrices]);
+    return { revenue, totalExpenses, profit, trend, expensesEntered: !!thisWeeksExpensesDoc };
+  }, [entries, expenses, productPrices, weekStart, weekEnd]);
 
 
-  // TODO: Calculate trend vs last week
-  const [trend] = useState(0);
-  
   const isLoading = !onboardingLoaded || loading;
-  const isProfit = profit >= 0;
-  const hasData = entries.length > 0 || (expenses && Object.keys(expenses.expenses).length > 0);
-  
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLastSynced(t('minutes_ago', { count: 2 }));
-    }, 120000);
-    return () => clearInterval(interval);
-  }, [t]);
+  const isProfit = weeklyStats.profit >= 0;
+  const hasData = entries.length > 0;
+  const weekLabel = `Week of ${formatDate(weekStart, 'MMM d')} - ${formatDate(weekEnd, 'd')}`;
 
   if (isLoading) {
     return (
@@ -181,78 +169,84 @@ export default function DashboardPage() {
       </div>
     );
   }
+  
+  const revenuePercent = 100;
+  const expensePercent = weeklyStats.revenue > 0 ? (weeklyStats.totalExpenses / weeklyStats.revenue) * 100 : 0;
+  const profitPercent = weeklyStats.revenue > 0 ? (weeklyStats.profit / weeklyStats.revenue) * 100 : 0;
+
 
   return (
     <div className="flex flex-col">
       <AppHeader />
-      <div className="flex-1 space-y-6 p-4 md:p-6">
-        <div className={`rounded-2xl p-6 shadow-profit ${isProfit ? 'profit-card-gradient' : 'loss-card-gradient'}`}>
-            <Card className="relative rounded-xl border-0 bg-transparent text-primary-foreground shadow-none overflow-hidden p-0">
-                <CardHeader className="p-0">
-                    <CardTitle className="text-xs font-medium uppercase tracking-[2px] text-white/80">
-                        {t('this_weeks_profit')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col items-start gap-2 p-0 mt-2">
-                    <div className="text-[clamp(2.25rem,10vw,2.75rem)] font-bold font-currency text-white">
-                        <CountUp to={profit} />
+      <div className="flex-1 space-y-4 p-4 md:p-6">
+        <Card className="shadow-none border-0">
+            <CardHeader>
+                <CardDescription>{weekLabel}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className={`rounded-2xl p-6 shadow-lg ${isProfit ? 'profit-card-gradient' : 'loss-card-gradient'}`}>
+                    <div className="text-white/80 uppercase tracking-widest text-xs font-semibold">{t('this_weeks_profit')}</div>
+                    <div className="text-white text-4xl font-bold mt-2">
+                        <CountUp to={weeklyStats.profit} />
                     </div>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                        <div className="rounded-full bg-white/20 px-3 py-1 text-sm">{margin}% {t('margin')}</div>
-                        <div className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-sm">
-                            {trend >= 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
-                            <span>{trend}% {t('vs_last_week')}</span>
+                    <div className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-sm text-white mt-4 w-fit">
+                        {weeklyStats.trend >= 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                        <span>{weeklyStats.trend}% {t('vs_last_week')}</span>
+                    </div>
+                </div>
+
+                <div className="space-y-4 pt-6">
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-baseline">
+                            <span className="text-lg font-semibold">{t('revenue')}</span>
+                            <span className="text-lg font-semibold font-currency">{formatUGX(weeklyStats.revenue)}</span>
+                        </div>
+                        <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
+                            <div className="bg-success h-full" style={{ width: `${revenuePercent}%` }} />
                         </div>
                     </div>
-                </CardContent>
-            </Card>
-        </div>
-        
-        <Card>
-            <CardHeader className="flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-semibold">{t('todays_snapshot')}</CardTitle>
-                <Sun className="h-5 w-5 text-muted-foreground"/>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                 <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground flex items-center gap-2"><TrendingUp className="text-success"/> {t('todays_revenue')}</span>
-                    <span className="font-semibold font-currency text-success">{formatUGX(todaysData.revenue)}</span>
+                    
+                    <div className="space-y-2">
+                         <div className="flex justify-between items-baseline">
+                            <span className="text-lg font-semibold text-muted-foreground">- {t('expenses')}</span>
+                            <span className="text-lg font-semibold font-currency">{formatUGX(weeklyStats.totalExpenses)}</span>
+                        </div>
+                         <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
+                            <div className="bg-destructive/70 h-full" style={{ width: `${expensePercent}%` }} />
+                        </div>
+                    </div>
+
+                     <div className="border-t-2 border-dashed my-4" />
+
+                     <div className="space-y-2">
+                         <div className="flex justify-between items-baseline">
+                            <span className="text-xl font-bold text-primary">= {t('profit')}</span>
+                            <span className="text-xl font-bold font-currency text-primary">{formatUGX(weeklyStats.profit)}</span>
+                        </div>
+                         <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
+                            <div className="bg-primary h-full" style={{ width: `${profitPercent}%` }} />
+                        </div>
+                    </div>
                 </div>
-                 <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground flex items-center gap-2"><Package/> {t('production_value')}</span>
-                    <span className="font-semibold font-currency">{formatUGX(todaysData.productionValue)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground flex items-center gap-2"><Trash2 className="text-destructive"/> {t('damages_value')}</span>
-                    <span className="font-semibold font-currency text-destructive">{formatUGX(todaysData.damagesValue)}</span>
-                </div>
+
+                {!weeklyStats.expensesEntered && (
+                    <Card className="mt-6 bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <AlertTriangle className="text-amber-500"/>
+                                <p className="font-semibold text-amber-700 dark:text-amber-300">{t('expenses_not_entered')}</p>
+                            </div>
+                            <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary">
+                                <Link href="/expenses">
+                                    {t('enter_expenses')} <ArrowRight className="ml-2 h-4 w-4"/>
+                                </Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                )}
+
             </CardContent>
         </Card>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t('revenue')}</CardTitle>
-              <HandCoins className="h-5 w-5 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-[clamp(1.25rem,6.5vw,1.5rem)] font-bold font-currency text-success"><CountUp to={revenue} /></div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t('expenses')}</CardTitle>
-              <ReceiptText className="h-5 w-5 text-stone-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-[clamp(1.25rem,6.5vw,1.5rem)] font-bold font-currency text-foreground"><CountUp to={totalExpenses} /></div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="text-center text-sm text-muted-foreground">
-          <p>{t('last_synced')}: {lastSynced}</p>
-        </div>
       </div>
     </div>
   );

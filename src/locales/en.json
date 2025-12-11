@@ -111,9 +111,7 @@
   "total_expenses": "Total Expenses",
   "total_profit": "Total Profit",
   "weekly_performance": "Weekly Performance",
-  "export": "Export"
+  "export": "Export",
+  "expenses_not_entered": "Weekly expenses not entered",
+  "enter_expenses": "Enter Expenses"
 }
-
-    
-
-    
