@@ -72,10 +72,10 @@ export function ProductSelection() {
                                     isSelected ? 'bg-primary/10 border-primary ring-2 ring-primary' : 'hover:bg-accent'
                                 )}
                             >
-                                <div className="absolute top-2 right-2">
+                                <div className="absolute top-2 right-2 pointer-events-none">
                                     {isSelected ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <div className="h-5 w-5 rounded-full border-2 border-muted bg-background" />}
                                 </div>
-                                <div className="flex flex-col items-center text-center gap-2 mt-4">
+                                <div className="flex flex-col items-center text-center gap-2 mt-4 pointer-events-none">
                                     <div className="text-4xl sm:text-5xl">{product.emoji}</div>
                                     <p className="font-semibold text-sm leading-tight">{product.name}</p>
                                 </div>
