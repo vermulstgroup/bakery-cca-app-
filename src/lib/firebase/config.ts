@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import { getAuth, Auth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 // Firebase configuration for Firebase Studio environment
 // The app is automatically configured in Firebase Studio
@@ -11,6 +12,7 @@ const firebaseConfig = {
 // Initialize Firebase only once
 let app: FirebaseApp;
 let db: Firestore;
+let auth: Auth;
 
 function initFirebase() {
   if (getApps().length === 0) {
@@ -19,11 +21,25 @@ function initFirebase() {
     app = getApp();
   }
   db = getFirestore(app);
-  return { app, db };
+  auth = getAuth(app);
+  
+  // Sign in anonymously and log user status
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      // User is signed in.
+    } else {
+      // User is signed out.
+      signInAnonymously(auth).catch(error => {
+        console.error("Anonymous sign-in failed:", error);
+      });
+    }
+  });
+
+  return { app, db, auth };
 }
 
 // Initialize on module load
-const { db: firestore } = initFirebase();
+const { db: firestore, auth: firebaseAuth } = initFirebase();
 
-export { firestore };
+export { firestore, firebaseAuth };
 export const getDb = () => firestore;

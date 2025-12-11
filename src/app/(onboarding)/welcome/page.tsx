@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BAKERIES, ROLES } from '@/lib/data';
 import type { UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -15,15 +15,19 @@ import { useTranslation } from '@/hooks/use-translation';
 export default function WelcomePage() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { data, updateData } = useOnboarding();
+  const { data, updateData, userId } = useOnboarding();
   const [selectedBakery, setSelectedBakery] = useState(data.bakery || '');
   const [selectedRole, setSelectedRole] = useState(data.role || '');
 
+  useEffect(() => {
+    if(userId) {
+      updateData({ userId });
+    }
+  }, [userId, updateData]);
 
   const handleContinue = () => {
     if (selectedBakery && selectedRole) {
       updateData({ bakery: selectedBakery, role: selectedRole as 'manager' | 'supervisor' });
-      // We push to select-products, which will now use firestore
       router.push('/select-products');
     }
   };
@@ -88,7 +92,7 @@ export default function WelcomePage() {
         </div>
 
         <div className="mt-10">
-            <Button size="lg" className="w-full" onClick={handleContinue} disabled={!selectedBakery || !selectedRole}>
+            <Button size="lg" className="w-full" onClick={handleContinue} disabled={!selectedBakery || !selectedRole || !userId}>
               {t('next')} <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
         </div>

@@ -35,6 +35,7 @@ export type OnboardingData = {
   role?: 'manager' | 'supervisor';
   products?: string[];
   prices?: { [productId: string]: number };
+  userId?: string;
 };
 
 export type DailyEntryData = {
@@ -54,3 +55,11 @@ export type WeeklyExpense = {
     weekStartDate: string;
     expenses: { [categoryId: string]: number };
 };
+
+export type UserProfile = {
+  userId: string;
+  bakeryId: string;
+  role: 'manager' | 'supervisor';
+  products: string[];
+  prices: { [productId: string]: number };
+}

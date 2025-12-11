@@ -16,7 +16,7 @@ import { useTranslation } from '@/hooks/use-translation';
 import { useMemo, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import { firebaseAuth } from '@/lib/firebase/config';
 
 
 const ProductSelection = () => {
@@ -49,6 +49,7 @@ const ProductSelection = () => {
                                     id={`product-${product.id}`}
                                     checked={selectedProducts.has(product.id)}
                                     onCheckedChange={() => toggleProduct(product.id)}
+                                    disabled={!isLoaded}
                                 />
                                 <label
                                     htmlFor={`product-${product.id}`}
@@ -72,16 +73,19 @@ export default function SettingsPage() {
   const { data: onboardingData, updateData, isLoaded } = useOnboarding();
   const { language, setLanguage, t } = useTranslation();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('onboardingComplete');
-      localStorage.removeItem('onboardingData_local');
-      localStorage.removeItem('selectedLanguage');
+      await firebaseAuth.signOut();
+      
+      // Clear all local storage related to the app
       Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('expenses-') || key.startsWith('daily_entry-')) {
+        if (key.startsWith('onboarding') || key.startsWith('expenses-') || key.startsWith('daily_entry-')) {
           localStorage.removeItem(key);
         }
       });
+      localStorage.removeItem('selectedLanguage');
+
+      // Use replace to prevent user from going back to the authenticated state
       router.replace('/welcome');
     }
   }
@@ -128,7 +132,7 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-base">{t('bakery')}</Label>
-              <Select value={onboardingData.bakery || ''} onValueChange={handleBakeryChange}>
+              <Select value={onboardingData.bakery || ''} onValueChange={handleBakeryChange} disabled={!isLoaded}>
                   <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder={t('select_your_bakery')} />
                   </SelectTrigger>
