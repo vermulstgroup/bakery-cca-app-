@@ -13,6 +13,7 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import { PRODUCTS } from '@/lib/data';
 import type { DailyEntry } from '@/lib/types';
 import { startOfWeek, parseISO } from 'date-fns';
+import { getAllDailyEntries } from '@/lib/firebase/firestore';
 
 const InsightSkeleton = () => (
   <Card>
@@ -41,19 +42,46 @@ export default function TrendsPage() {
   const { data: onboardingData, isLoaded: onboardingLoaded } = useOnboarding();
   const [entries, setEntries] = useState<DailyEntry[]>([]);
 
-  useEffect(() => {
-    if (onboardingLoaded) {
-      const allEntries: DailyEntry[] = [];
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith(`daily_entry-${onboardingData.bakery}-`)) {
-          try {
-            allEntries.push(JSON.parse(localStorage.getItem(key)!));
-          } catch (e) {
-            console.error('Failed to parse daily entry from localStorage', e);
+   useEffect(() => {
+    if (onboardingLoaded && onboardingData.bakery) {
+      const loadEntries = async () => {
+        setLoading(true);
+        try {
+          let allEntries = await getAllDailyEntries(onboardingData.bakery as string);
+
+          if (allEntries.length === 0) {
+            // Fallback to localStorage if Firestore is empty
+            const localEntries: DailyEntry[] = [];
+            Object.keys(localStorage).forEach(key => {
+              if (key.startsWith(`daily_entry-${onboardingData.bakery}-`)) {
+                try {
+                  localEntries.push(JSON.parse(localStorage.getItem(key)!));
+                } catch (e) {
+                  // Silently ignore parsing errors
+                }
+              }
+            });
+            allEntries = localEntries;
           }
+          setEntries(allEntries);
+        } catch (e) {
+            // Firestore might fail offline, so fallback to localStorage
+            const localEntries: DailyEntry[] = [];
+            Object.keys(localStorage).forEach(key => {
+              if (key.startsWith(`daily_entry-${onboardingData.bakery}-`)) {
+                try {
+                  localEntries.push(JSON.parse(localStorage.getItem(key)!));
+                } catch (parseErr) {
+                   // Silently ignore parsing errors
+                }
+              }
+            });
+            setEntries(localEntries);
+        } finally {
+            setLoading(false);
         }
-      });
-      setEntries(allEntries);
+      };
+      loadEntries();
     }
   }, [onboardingLoaded, onboardingData.bakery]);
 
@@ -66,19 +94,23 @@ export default function TrendsPage() {
     const weeklySales: { [week: string]: { [productName: string]: number } } = {};
 
     entries.forEach(entry => {
-      const entryDate = parseISO(entry.date);
-      const weekStartDate = startOfWeek(entryDate, { weekStartsOn: 1 }).toISOString().split('T')[0];
+      try {
+        const entryDate = parseISO(entry.date);
+        const weekStartDate = startOfWeek(entryDate, { weekStartsOn: 1 }).toISOString().split('T')[0];
 
-      if (!weeklySales[weekStartDate]) {
-        weeklySales[weekStartDate] = {};
-      }
-      
-      const sales = entry.quantities.sales || {};
-      for (const productId in sales) {
-        if (sales[productId] > 0) {
-           const productName = productMap.get(productId) || productId;
-           weeklySales[weekStartDate][productName] = (weeklySales[weekStartDate][productName] || 0) + sales[productId];
+        if (!weeklySales[weekStartDate]) {
+          weeklySales[weekStartDate] = {};
         }
+        
+        const sales = entry.quantities.sales || {};
+        for (const productId in sales) {
+          if (sales[productId] > 0) {
+            const productName = productMap.get(productId) || productId;
+            weeklySales[weekStartDate][productName] = (weeklySales[weekStartDate][productName] || 0) + sales[productId];
+          }
+        }
+      } catch(e) {
+        // Ignore entries with invalid dates
       }
     });
     
@@ -88,7 +120,7 @@ export default function TrendsPage() {
   }, [entries]);
 
   const fetchInsights = useCallback(async () => {
-    if (!salesDataForAI) {
+    if (!salesDataForAI || salesDataForAI.length === 0) {
       setInsights([]);
       setLoading(false);
       return;
@@ -105,7 +137,6 @@ export default function TrendsPage() {
         setError(t('error_getting_insights'));
       }
     } catch (e) {
-      console.error(e);
       setError(t('error_fetching_insights'));
       setInsights([]);
     } finally {
