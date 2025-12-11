@@ -105,5 +105,12 @@
   "todays_snapshot": "Today's Snapshot",
   "todays_revenue": "Today's Revenue",
   "production_value": "Production Value",
-  "damages_value": "Damages Value"
+  "damages_value": "Damages Value",
+  "financial_summary": "Financial Summary",
+  "total_revenue": "Total Revenue",
+  "total_expenses": "Total Expenses",
+  "total_profit": "Total Profit",
+  "weekly_performance": "Weekly Performance"
 }
+
+    
