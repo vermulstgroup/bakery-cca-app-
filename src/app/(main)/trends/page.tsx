@@ -223,6 +223,17 @@ export default function TrendsPage() {
   const hasData = useMemo(() => entries.length > 0 || expenses.length > 0, [entries, expenses]);
   const isLoading = loading || !onboardingLoaded;
 
+  const chartConfig = {
+    income: {
+      label: "Income",
+      color: "hsl(var(--success))",
+    },
+    cost: {
+      label: "Cost",
+      color: "hsl(var(--destructive))",
+    },
+  } as const;
+
   return (
     <div className="flex flex-col">
       <PageHeader title={t('trends')} showBackButton={false}>
@@ -290,7 +301,7 @@ export default function TrendsPage() {
                         <CardTitle>{t('weekly_performance')}</CardTitle>
                     </CardHeader>
                     <CardContent className="h-64">
-                         <ResponsiveContainer width="100%" height="100%">
+                         <ChartContainer config={chartConfig}>
                             <RechartsBarChart data={processedChartData}>
                                 <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                                 <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${formatUGX(value as number / 1000)}k`} />
@@ -299,12 +310,11 @@ export default function TrendsPage() {
                                     content={
                                       <ChartTooltipContent
                                         formatter={(value, name, item) => {
-                                          const isProfit = item.payload.profit >= 0;
                                           return (
                                             <div className="flex flex-col">
                                               <span className="font-bold text-lg">{formatUGX(item.payload.profit)} Profit</span>
-                                              <span className="text-sm text-success">{formatUGX(item.payload.income)} Income</span>
-                                              <span className="text-sm text-destructive">{formatUGX(item.payload.cost)} Cost</span>
+                                              <span className="text-sm" style={{color: 'hsl(var(--success))'}}>{formatUGX(item.payload.income)} Income</span>
+                                              <span className="text-sm" style={{color: 'hsl(var(--destructive))'}}>{formatUGX(item.payload.cost)} Cost</span>
                                             </div>
                                           )
                                         }}
@@ -312,10 +322,10 @@ export default function TrendsPage() {
                                     }
                                 />
                                 <Legend />
-                                <Bar dataKey="income" stackId="a" fill="hsl(var(--success))" name="Income" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="cost" stackId="a" fill="hsl(var(--destructive))" name="Cost" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="income" stackId="a" fill="var(--color-income)" name="Income" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="cost" stackId="a" fill="var(--color-cost)" name="Cost" radius={[4, 4, 0, 0]} />
                             </RechartsBarChart>
-                        </ResponsiveContainer>
+                        </ChartContainer>
                     </CardContent>
                 </Card>
 
@@ -357,3 +367,5 @@ export default function TrendsPage() {
     </div>
   );
 }
+
+    
