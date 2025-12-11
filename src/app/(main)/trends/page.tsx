@@ -14,7 +14,7 @@ import { PRODUCTS } from '@/lib/data';
 import type { DailyEntry, WeeklyExpense } from '@/lib/types';
 import { startOfWeek, parseISO, format as formatDate } from 'date-fns';
 import { getAllDailyEntries, getAllWeeklyExpenses } from '@/lib/firebase/firestore';
-import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { formatUGX } from '@/lib/utils';
 import { ChartTooltip, ChartTooltipContent, ChartContainer } from '@/components/ui/chart';
 
@@ -294,33 +294,26 @@ export default function TrendsPage() {
                             <RechartsBarChart data={processedChartData}>
                                 <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                                 <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${formatUGX(value as number / 1000)}k`} />
-                                <Tooltip
-                                    content={({ active, payload, label }) => {
-                                        if (active && payload && payload.length) {
-                                            return (
-                                                <div className="rounded-lg border bg-background p-2 shadow-sm">
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div className="flex flex-col space-y-1">
-                                                            <span className="text-[0.70rem] uppercase text-muted-foreground">{label}</span>
-                                                            <span className="font-bold text-muted-foreground">
-                                                                Profit
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex flex-col space-y-1">
-                                                            <span className="text-[0.70rem] uppercase text-muted-foreground text-right">Value</span>
-                                                             <span className="font-bold text-right text-success">
-                                                                {formatUGX(payload[0].payload.profit)}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    }}
+                                <ChartTooltip
+                                    cursor={false}
+                                    content={
+                                      <ChartTooltipContent
+                                        formatter={(value, name, item) => {
+                                          const isProfit = item.payload.profit >= 0;
+                                          return (
+                                            <div className="flex flex-col">
+                                              <span className="font-bold text-lg">{formatUGX(item.payload.profit)} Profit</span>
+                                              <span className="text-sm text-success">{formatUGX(item.payload.income)} Income</span>
+                                              <span className="text-sm text-destructive">{formatUGX(item.payload.cost)} Cost</span>
+                                            </div>
+                                          )
+                                        }}
+                                      />
+                                    }
                                 />
-                                <Bar dataKey="income" fill="hsl(var(--success))" name="Income" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="cost" fill="hsl(var(--destructive))" name="Cost" radius={[4, 4, 0, 0]} />
+                                <Legend />
+                                <Bar dataKey="income" stackId="a" fill="hsl(var(--success))" name="Income" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="cost" stackId="a" fill="hsl(var(--destructive))" name="Cost" radius={[4, 4, 0, 0]} />
                             </RechartsBarChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -364,7 +357,3 @@ export default function TrendsPage() {
     </div>
   );
 }
-
-    
-
-    
