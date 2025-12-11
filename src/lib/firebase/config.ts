@@ -6,12 +6,12 @@ import { getAuth, Auth, signInAnonymously, onAuthStateChanged } from 'firebase/a
 // This is a public configuration and is safe to expose.
 // Security is enforced by Firebase Security Rules.
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "p_JGF8954uA6Ak85fF_Hdfd54dfHJH8G",
+  authDomain: "studio-feb-21-a-1191.firebaseapp.com",
+  projectId: "studio-feb-21-a-1191",
+  storageBucket: "studio-feb-21-a-1191.appspot.com",
+  messagingSenderId: "594747738221",
+  appId: "1:594747738221:web:7f6d2f3b9e4a3d8b1c4e7f"
 };
 
 
