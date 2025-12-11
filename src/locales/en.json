@@ -101,5 +101,9 @@
   "expense_category_other": "Other",
   "select_bakery_first": "Select a Bakery First",
   "select_bakery_to_log_expenses": "You need to select a bakery in your settings before you can log expenses.",
-  "go_to_settings": "Go to Settings"
+  "go_to_settings": "Go to Settings",
+  "todays_snapshot": "Today's Snapshot",
+  "todays_revenue": "Today's Revenue",
+  "production_value": "Production Value",
+  "damages_value": "Damages Value"
 }

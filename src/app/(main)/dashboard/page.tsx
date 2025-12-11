@@ -5,7 +5,7 @@ import { AppHeader } from '@/components/shared/app-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatUGX } from '@/lib/utils';
-import { ArrowUp, ArrowDown, HandCoins, ReceiptText, FileText, Loader2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, HandCoins, ReceiptText, FileText, Loader2, Package, Trash2, TrendingUp, Sun } from 'lucide-react';
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useTranslation } from '@/hooks/use-translation';
 import Link from 'next/link';
@@ -28,12 +28,15 @@ const CountUp = ({ to }: { to: number }) => {
     let start = 0;
     const end = to;
     if (end === 0) {
-        // If the target is 0, just set it and don't animate.
         setCount(0);
         return;
     };
     
-    hasAnimated.current = true;
+    // Only animate on initial load
+    if (end > 0) {
+        hasAnimated.current = true;
+    }
+
     const duration = 1500;
     const startTime = Date.now();
 
@@ -45,7 +48,6 @@ const CountUp = ({ to }: { to: number }) => {
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
-        // Ensure the final value is exact
         setCount(end);
       }
     };
@@ -113,6 +115,28 @@ export default function DashboardPage() {
 
     return { revenue, totalExpenses, profit, margin };
   }, [entries, expenses, productPrices]);
+
+  const todaysData = useMemo(() => {
+    const todayString = formatDate(new Date(), 'yyyy-MM-dd');
+    const todayEntry = entries.find(e => e.date === todayString);
+
+    if (!todayEntry) return { revenue: 0, productionValue: 0, damagesValue: 0 };
+    
+    const revenue = Object.entries(todayEntry.quantities.sales || {}).reduce((total, [productId, quantity]) => {
+      return total + (quantity * (productPrices[productId] || 0));
+    }, 0);
+    
+    const productionValue = Object.entries(todayEntry.quantities.production || {}).reduce((total, [productId, quantity]) => {
+      return total + (quantity * (productPrices[productId] || 0));
+    }, 0);
+
+    const damagesValue = Object.entries(todayEntry.quantities.damages || {}).reduce((total, [productId, quantity]) => {
+      return total + (quantity * (productPrices[productId] || 0));
+    }, 0);
+
+    return { revenue, productionValue, damagesValue };
+  }, [entries, productPrices]);
+
 
   // TODO: Calculate trend vs last week
   const [trend] = useState(0);
@@ -183,6 +207,27 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
         </div>
+        
+        <Card>
+            <CardHeader className="flex-row items-center justify-between pb-2">
+                <CardTitle className="text-lg font-semibold">{t('todays_snapshot')}</CardTitle>
+                <Sun className="h-5 w-5 text-muted-foreground"/>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground flex items-center gap-2"><TrendingUp className="text-success"/> {t('todays_revenue')}</span>
+                    <span className="font-semibold font-currency text-success">{formatUGX(todaysData.revenue)}</span>
+                </div>
+                 <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground flex items-center gap-2"><Package/> {t('production_value')}</span>
+                    <span className="font-semibold font-currency">{formatUGX(todaysData.productionValue)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground flex items-center gap-2"><Trash2 className="text-destructive"/> {t('damages_value')}</span>
+                    <span className="font-semibold font-currency text-destructive">{formatUGX(todaysData.damagesValue)}</span>
+                </div>
+            </CardContent>
+        </Card>
 
         <div className="grid grid-cols-2 gap-4">
           <Card>
