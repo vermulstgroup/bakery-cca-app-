@@ -1,6 +1,8 @@
 
 "use client";
 
+import { saveWeeklyExpenses, getWeeklyExpenses } from '@/lib/firebase/firestore';
+
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -106,6 +108,8 @@ export default function ExpensesPage() {
       };
 
       localStorage.setItem(storageKey, JSON.stringify(dataToSave));
+        // Save to Firestore
+        saveWeeklyExpenses(bakeryId, { weekStartDate: weekId, expenses: numericExpenses }).catch(err => console.error('Firestore error:', err));
       
       setSaveStatus('saved');
       toast({

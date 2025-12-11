@@ -1,170 +1,38 @@
-/**
- * This ruleset enforces a collaborative, bakery-centric security model. Access to most data is determined
- * by a user's role within a specific bakery, which is managed through a 'members' map on each bakery document.
- *
- * Core Philosophy:
- * The security model is built around the concept of a 'Bakery' as the primary organizational unit. A user's
- * permissions are not global but are scoped to each bakery they are a member of. This allows for granular
- * control over data access in a multi-bakery environment.
- *
- * Data Structure:
- * The data is organized into top-level 'catalog' collections (`/products`, `/expense_categories`) that are
- * publicly readable, and a core `/bakeries` collection. All operational data, like daily entries and expenses,
- * is stored in subcollections under the specific bakery they belong to (e.g., `/bakeries/{bakeryId}/daily_entries`).
- *
- * Key Security Decisions:
- * - Role-Based Access: Access to a bakery and its subcollections depends on the user's role ('owner', 'manager', 'staff')
- *   defined in a `members` map on the `/bakeries/{bakeryId}` document. This map is the source of truth for all permissions.
- * - No User Listing: Listing all bakeries is disallowed to protect privacy. The client application is expected to manage a
- *   user's bakery memberships separately (e.g., in a user-specific document) to know which bakeries to fetch.
- * - Public Catalogs: Product and expense category information is public and read-only for all users. An admin role (not yet implemented)
- *   would be required to manage this data.
- * - Relational Integrity: Rules enforce that data created within a bakery's subcollection (e.g., a daily entry) must have a
- *   `bakeryId` field that correctly matches its parent path, and this field cannot be changed after creation.
- *
- * Denormalization for Authorization:
- * The primary authorization strategy relies on a denormalized `members` map directly on each `/bakeries/{bakeryId}` document.
- * For example: `{ 'name': 'Main Street Bakery', 'members': { 'user_abc': 'owner', 'user_xyz': 'staff' } }`.
- * This avoids slow and costly lookups. Rules for subcollections (like `/daily_entries`) perform a single `get()` on the parent
- * bakery document to verify the user's role, ensuring fast and secure access checks.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // --------------------------------
-    // Helper Functions
-    // --------------------------------
-
-    /**
-     * Returns the role of the currently authenticated user for a given bakery.
-     * Assumes the /bakeries/{bakeryId} document has a `members` map like: {members: {'uid': 'role'}}
-     * where 'role' can be 'owner', 'manager', or 'staff'.
-     */
-    function getBakeryRole(bakeryId) {
-      return get(/databases/$(database)/documents/bakeries/$(bakeryId)).data.members[request.auth.uid];
-    }
-
-    /**
-     * Checks if a user is a member of any role in a specific bakery.
-     */
-    function isBakeryMember(bakeryId) {
-      return getBakeryRole(bakeryId) != null;
-    }
-
-    /**
-     * Checks if a user has management permissions ('owner' or 'manager') for a bakery.
-     */
-    function isBakeryManager(bakeryId) {
-      let role = getBakeryRole(bakeryId);
-      return role == 'owner' || role == 'manager';
-    }
-
-    /**
-     * Checks if a user has at least staff-level permissions for a bakery.
-     */
-    function isBakeryStaff(bakeryId) {
-      let role = getBakeryRole(bakeryId);
-      return role == 'owner' || role == 'manager' || role == 'staff';
-    }
-
-    /**
-     * Checks if the user is authenticated.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // --------------------------------
-    // Collection Rules
-    // --------------------------------
-
-    /**
-     * @description Publicly readable catalog of all products. Writes are disallowed as there is no admin role defined.
-     * @path /products/{productId}
-     * @allow (get) Any user, signed in or not, can read a product.
-     * @deny (create) Any user attempts to create a new product.
-     * @principle Segregates public data into a read-only collection for performance and security.
-     */
-    match /products/{productId} {
-      allow get, list: if true;
-      allow create: if false; // TODO: Implement admin-only write access
-      allow update: if false; // TODO: Implement admin-only write access
-      allow delete: if false; // TODO: Implement admin-only write access
-    }
-
-    /**
-     * @description Publicly readable catalog of all expense categories. Writes are disallowed as there is no admin role defined.
-     * @path /expense_categories/{expenseCategoryId}
-     * @allow (get) Any user, signed in or not, can read an expense category.
-     * @deny (create) Any user attempts to create a new expense category.
-     * @principle Segregates public data into a read-only collection for performance and security.
-     */
-    match /expense_categories/{expenseCategoryId} {
-      allow get, list: if true;
-      allow create: if false; // TODO: Implement admin-only write access
-      allow update: if false; // TODO: Implement admin-only write access
-      allow delete: if false; // TODO: Implement admin-only write access
-    }
-
-    /**
-     * @description Defines a bakery and its members. This is the root for all bakery-specific data and permissions.
-     * @path /bakeries/{bakeryId}
-     * @allow (create) A signed-in user creates a new bakery, making themselves the owner.
-     * @deny (list) A user tries to list all bakeries in the database.
-     * @deny (update) A 'staff' member tries to change the bakery name.
-     * @principle Implements a role-based, closed collaborator security model using a denormalized members map.
-     */
+    // Bakery data - organized by bakery ID
     match /bakeries/{bakeryId} {
-      allow get: if isBakeryMember(bakeryId);
-      allow list: if false;
-      allow create: if isSignedIn() && request.resource.data.members[request.auth.uid] == 'owner';
-      allow update: if resource != null && isBakeryManager(bakeryId);
-      allow delete: if resource != null && getBakeryRole(bakeryId) == 'owner';
-
-      /**
-       * @description Daily production, sales, and damage entries for a bakery. Accessible by any member of the bakery.
-       * @path /bakeries/{bakeryId}/daily_entries/{dailyEntryId}
-       * @allow (create) A 'staff' member of the bakery adds a new daily entry.
-       * @deny (create) A user who is not a member of the bakery tries to add an entry.
-       * @deny (update) A bakery member tries to change the `bakeryId` of an existing entry.
-       * @principle Enforces relational integrity and inherits permissions from the parent bakery document.
-       */
-      match /daily_entries/{dailyEntryId} {
-        allow get, list: if isBakeryStaff(bakeryId);
-        allow create: if isBakeryStaff(bakeryId) && request.resource.data.bakeryId == bakeryId;
-        allow update: if resource != null && isBakeryStaff(bakeryId) && request.resource.data.bakeryId == resource.data.bakeryId;
-        allow delete: if resource != null && isBakeryStaff(bakeryId);
+      // For development, allow read/write to all bakery data
+      // TODO: Add proper authentication in production
+      allow read, write: if true;
+      
+      // Daily entries subcollection
+      match /daily_entries/{entryId} {
+        allow read, write: if true;
       }
-
-      /**
-       * @description Weekly expense entries for a bakery. Accessible by any member of the bakery.
-       * @path /bakeries/{bakeryId}/weekly_expenses/{weeklyExpenseId}
-       * @allow (create) A 'manager' member of the bakery adds a new weekly expense.
-       * @deny (create) An anonymous user tries to add an expense.
-       * @deny (update) A bakery member tries to change the `bakeryId` of an existing expense.
-       * @principle Enforces relational integrity and inherits permissions from the parent bakery document.
-       */
-      match /weekly_expenses/{weeklyExpenseId} {
-        allow get, list: if isBakeryStaff(bakeryId);
-        allow create: if isBakeryStaff(bakeryId) && request.resource.data.bakeryId == bakeryId;
-        allow update: if resource != null && isBakeryStaff(bakeryId) && request.resource.data.bakeryId == resource.data.bakeryId;
-        allow delete: if resource != null && isBakeryStaff(bakeryId);
+      
+      // Weekly expenses subcollection
+      match /weekly_expenses/{expenseId} {
+        allow read, write: if true;
       }
-
-      /**
-       * @description Bakery-specific configurations, such as active products. Only manageable by owners or managers.
-       * @path /bakeries/{bakeryId}/config/{configId}
-       * @allow (update) An 'owner' of the bakery updates the product price list.
-       * @deny (update) A 'staff' member of the bakery tries to change the configuration.
-       * @principle Provides stricter, manager-only write access for sensitive configuration data.
-       */
+      
+      // Config subcollection
       match /config/{configId} {
-        allow get, list: if isBakeryStaff(bakeryId);
-        allow create: if isBakeryManager(bakeryId) && request.resource.data.bakeryId == bakeryId;
-        allow update: if resource != null && isBakeryManager(bakeryId) && request.resource.data.bakeryId == resource.data.bakeryId;
-        allow delete: if resource != null && isBakeryManager(bakeryId);
+        allow read, write: if true;
       }
+    }
+    
+    // Expense categories - read-only global data
+    match /expense_categories/{categoryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Products - read-only global data
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if false;
     }
   }
 }
