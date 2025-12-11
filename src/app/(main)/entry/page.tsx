@@ -3,7 +3,7 @@
 
 import { saveDailyEntry, getDailyEntry } from '@/lib/firebase/firestore';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,14 +16,9 @@ import { useToast } from "@/hooks/use-toast"
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/use-translation';
 import Link from 'next/link';
+import type { DailyEntry } from '@/lib/types';
 
 type EntryType = 'production' | 'sales' | 'damages';
-
-type DailyEntryData = {
-    production: { [productId: string]: number };
-    sales: { [productId: string]: number };
-    damages: { [productId: string]: number };
-};
 
 const ProductCounter = ({ 
     product, 
@@ -76,6 +71,35 @@ const ProductCounter = ({
     )
 }
 
+const StockDisplay = ({ product, stock }: { product: any, stock: any }) => (
+    <Card className="p-4">
+        <h3 className="text-lg font-semibold mb-3">{product.emoji} {product.name}</h3>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-base">
+            <div className="text-muted-foreground">Opening</div>
+            <div className="font-semibold text-right">{stock.opening}</div>
+            
+            <div className="text-muted-foreground">Production</div>
+            <div className="font-semibold text-right text-green-500">+{stock.production}</div>
+            
+            <div className="font-bold col-span-2 border-t mt-1 pt-1 flex justify-between">
+                <div>Total Available</div>
+                <div className="text-right">{stock.available}</div>
+            </div>
+
+            <div className="text-muted-foreground">Sales</div>
+            <div className="font-semibold text-right text-red-500">-{stock.sales}</div>
+
+            <div className="text-muted-foreground">Damages</div>
+            <div className="font-semibold text-right text-red-500">-{stock.damages}</div>
+            
+            <div className="font-bold col-span-2 border-t mt-1 pt-1 flex justify-between text-primary">
+                <div>Closing Stock</div>
+                <div className="text-right">{stock.closing}</div>
+            </div>
+        </div>
+    </Card>
+);
+
 export default function DailyEntryPage() {
     const { t } = useTranslation();
     const { toast } = useToast();
@@ -86,63 +110,111 @@ export default function DailyEntryPage() {
     
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
-    const [quantities, setQuantities] = useState<DailyEntryData>({
-        production: {},
-        sales: {},
-        damages: {}
-    });
+    const [currentEntry, setCurrentEntry] = useState<DailyEntry | null>(null);
+    const [previousDayEntry, setPreviousDayEntry] = useState<DailyEntry | null>(null);
 
-    // Load data for the current date when component mounts or date changes
+    const quantities = useMemo(() => currentEntry?.quantities || { production: {}, sales: {}, damages: {} }, [currentEntry]);
+
+    // Load data for the current and previous dates
     useEffect(() => {
         if (!isLoaded || !onboardingData.bakery) return;
         
-        const dateString = format(date, 'yyyy-MM-dd');
-        const storageKey = `daily_entry-${onboardingData.bakery}-${dateString}`;
-        
-        try {
-            const savedData = localStorage.getItem(storageKey);
-            if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                setQuantities(parsedData.quantities);
-            } else {
-                setQuantities({ production: {}, sales: {}, damages: {} });
+        const loadData = async () => {
+            const dateString = format(date, 'yyyy-MM-dd');
+            const prevDateString = format(subDays(date, 1), 'yyyy-MM-dd');
+            
+            try {
+                // Try Firestore first
+                const [currentData, prevData] = await Promise.all([
+                    getDailyEntry(onboardingData.bakery!, dateString),
+                    getDailyEntry(onboardingData.bakery!, prevDateString)
+                ]);
+
+                setCurrentEntry(currentData);
+                setPreviousDayEntry(prevData);
+
+                // Fallback for current day if not in Firestore
+                if (!currentData) {
+                    const savedData = localStorage.getItem(`daily_entry-${onboardingData.bakery}-${dateString}`);
+                    if (savedData) setCurrentEntry(JSON.parse(savedData));
+                    else setCurrentEntry({ date: dateString, bakeryId: onboardingData.bakery, quantities: { production: {}, sales: {}, damages: {} } });
+                }
+
+                // Fallback for previous day if not in Firestore
+                if (!prevData) {
+                    const savedPrevData = localStorage.getItem(`daily_entry-${onboardingData.bakery}-${prevDateString}`);
+                    if (savedPrevData) setPreviousDayEntry(JSON.parse(savedPrevData));
+                }
+
+            } catch (error) {
+                // Offline or error state, fallback to localStorage for everything
+                const savedData = localStorage.getItem(`daily_entry-${onboardingData.bakery}-${dateString}`);
+                if (savedData) setCurrentEntry(JSON.parse(savedData));
+                else setCurrentEntry({ date: dateString, bakeryId: onboardingData.bakery, quantities: { production: {}, sales: {}, damages: {} } });
+
+                const savedPrevData = localStorage.getItem(`daily_entry-${onboardingData.bakery}-${prevDateString}`);
+                if (savedPrevData) setPreviousDayEntry(JSON.parse(savedPrevData));
             }
-        } catch (error) {
-            setQuantities({ production: {}, sales: {}, damages: {} });
-        }
+        };
+
+        loadData();
+
     }, [date, isLoaded, onboardingData.bakery]);
 
 
     const handleQuantityChange = (entryType: EntryType, productId: string, newCount: number) => {
-        setQuantities(prev => ({
-            ...prev,
+        const updatedQuantities = {
+            ...quantities,
             [entryType]: {
-                ...prev[entryType],
+                ...quantities[entryType],
                 [productId]: Math.max(0, newCount)
             }
+        };
+
+        const dateString = format(date, 'yyyy-MM-dd');
+        setCurrentEntry(prev => ({
+            date: dateString,
+            bakeryId: prev?.bakeryId || onboardingData.bakery!,
+            quantities: updatedQuantities,
+            closingStock: calculateClosingStocks(updatedQuantities)
         }));
     };
     
-    const handleSave = () => {
+    const calculateClosingStocks = (currentQuantities: any) => {
+        const closingStocks: { [productId: string]: number } = {};
+        userProducts.forEach(p => {
+            const opening = previousDayEntry?.closingStock?.[p.id] || 0;
+            const production = currentQuantities.production[p.id] || 0;
+            const sales = currentQuantities.sales[p.id] || 0;
+            const damages = currentQuantities.damages[p.id] || 0;
+            closingStocks[p.id] = opening + production - sales - damages;
+        });
+        return closingStocks;
+    };
+
+    const handleSave = async () => {
         if (!onboardingData.bakery) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'You must have a bakery selected to save data.'
-            });
+            toast({ variant: 'destructive', title: 'Error', description: 'You must have a bakery selected to save data.' });
             return;
         }
 
         setSaveStatus('saving');
+        
+        const dateString = format(date, 'yyyy-MM-dd');
+        const closingStock = calculateClosingStocks(quantities);
+        const dataToSave: DailyEntry = {
+            bakeryId: onboardingData.bakery,
+            date: dateString,
+            quantities,
+            closingStock,
+        };
+
         try {
-            const dateString = format(date, 'yyyy-MM-dd');
-            const storageKey = `daily_entry-${onboardingData.bakery}-${dateString}`;
-            const dataToSave = {
-                date: date.toISOString(),
-                quantities: quantities,
-                bakeryId: onboardingData.bakery
-            };
-            localStorage.setItem(storageKey, JSON.stringify(dataToSave));
+            // Save to LocalStorage immediately for offline access
+            localStorage.setItem(`daily_entry-${onboardingData.bakery}-${dateString}`, JSON.stringify(dataToSave));
+            
+            // Attempt to save to Firestore
+            await saveDailyEntry(onboardingData.bakery, dataToSave);
 
             setSaveStatus('saved');
             toast({
@@ -156,12 +228,26 @@ export default function DailyEntryPage() {
             toast({
                 variant: 'destructive',
                 title: 'Save failed',
-                description: 'Could not save your daily entry. Please try again.'
+                description: 'Could not save to cloud, but saved on your device.'
             });
             setSaveStatus('idle');
         }
-    }
+    };
     
+    const stockCalculations = useMemo(() => {
+        const stocks: { [productId: string]: any } = {};
+        userProducts.forEach(p => {
+            const opening = previousDayEntry?.closingStock?.[p.id] || 0;
+            const production = quantities.production?.[p.id] || 0;
+            const sales = quantities.sales?.[p.id] || 0;
+            const damages = quantities.damages?.[p.id] || 0;
+            const available = opening + production;
+            const closing = available - sales - damages;
+            stocks[p.id] = { opening, production, sales, damages, available, closing };
+        });
+        return stocks;
+    }, [userProducts, quantities, previousDayEntry]);
+
     if (!isLoaded) {
         return (
              <div className="flex h-screen flex-col">
@@ -211,10 +297,11 @@ export default function DailyEntryPage() {
 
             <Tabs defaultValue="production" className="flex-grow flex flex-col">
                 <div className="px-4">
-                    <TabsList className="grid w-full grid-cols-3 h-14 p-1">
+                    <TabsList className="grid w-full grid-cols-4 h-14 p-1">
                         <TabsTrigger value="production" className="h-full text-base">{t('production')}</TabsTrigger>
                         <TabsTrigger value="sales" className="h-full text-base">{t('sales')}</TabsTrigger>
                         <TabsTrigger value="damages" className="h-full text-base">{t('damages')}</TabsTrigger>
+                        <TabsTrigger value="stock" className="h-full text-base">{t('stock')}</TabsTrigger>
                     </TabsList>
                 </div>
                 
@@ -225,7 +312,7 @@ export default function DailyEntryPage() {
                                 <ProductCounter 
                                     key={`prod-${p.id}`} 
                                     product={p} 
-                                    count={quantities.production[p.id] || 0}
+                                    count={quantities.production?.[p.id] || 0}
                                     onCountChange={(newCount) => handleQuantityChange('production', p.id, newCount)}
                                 />
                             )}
@@ -237,7 +324,7 @@ export default function DailyEntryPage() {
                                 <ProductCounter 
                                     key={`sales-${p.id}`} 
                                     product={p} 
-                                    count={quantities.sales[p.id] || 0}
+                                    count={quantities.sales?.[p.id] || 0}
                                     onCountChange={(newCount) => handleQuantityChange('sales', p.id, newCount)}
                                 />
                             )}
@@ -249,9 +336,16 @@ export default function DailyEntryPage() {
                                 <ProductCounter 
                                     key={`dmg-${p.id}`} 
                                     product={p}
-                                    count={quantities.damages[p.id] || 0}
+                                    count={quantities.damages?.[p.id] || 0}
                                     onCountChange={(newCount) => handleQuantityChange('damages', p.id, newCount)}
                                 />
+                            )}
+                        </div>
+                    </TabsContent>
+                     <TabsContent value="stock" className="mt-0">
+                        <div className="space-y-3">
+                            {userProducts.map(p => 
+                                <StockDisplay key={`stock-${p.id}`} product={p} stock={stockCalculations[p.id]} />
                             )}
                         </div>
                     </TabsContent>

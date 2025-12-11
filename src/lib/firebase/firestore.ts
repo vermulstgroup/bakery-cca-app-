@@ -40,6 +40,7 @@ export async function getDailyEntry(bakeryId: string, date: string): Promise<Dai
       date: data.date,
       quantities: data.quantities,
       bakeryId: data.bakeryId,
+      closingStock: data.closingStock
     } as DailyEntry;
   }
   return null;
@@ -65,6 +66,7 @@ export async function getDailyEntriesForDateRange(
       date: data.date,
       quantities: data.quantities,
       bakeryId: data.bakeryId,
+      closingStock: data.closingStock
     } as DailyEntry;
   });
 }
@@ -80,6 +82,7 @@ export async function getAllDailyEntries(bakeryId: string): Promise<DailyEntry[]
       date: data.date,
       quantities: data.quantities,
       bakeryId: data.bakeryId,
+      closingStock: data.closingStock
     } as DailyEntry;
   });
 }

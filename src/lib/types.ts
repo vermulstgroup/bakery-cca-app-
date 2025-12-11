@@ -47,6 +47,7 @@ export type DailyEntry = {
     date: string;
     quantities: DailyEntryData;
     bakeryId: string;
+    closingStock?: { [productId: string]: number };
 };
 
 export type WeeklyExpense = {
