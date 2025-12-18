@@ -1,10 +1,10 @@
 import type { Product, Bakery, ExpenseCategory, UserRole } from './types';
 
 export const PRODUCTS: Product[] = [
-  { id: 'yeast_mandazi', name: 'Yeast Mandazi', emoji: '🥯', defaultPrice: 500, category: 'mandazi' },
+  { id: 'yeast_mandazi', name: 'Yeast Mandazi', emoji: '🥯', defaultPrice: 500, category: 'mandazi', revenuePerKgFlour: 9300, costPerKgFlour: 5200 },
   { id: 'instant_mandazi', name: 'Instant Mandazi', emoji: '🥯', defaultPrice: 400, category: 'mandazi' },
   { id: 'doughnuts', name: 'Doughnuts', emoji: '🍩', defaultPrice: 1000, category: 'pastry' },
-  { id: 'daddies', name: 'Daddies', emoji: '🥐', defaultPrice: 800, category: 'pastry' },
+  { id: 'daddies', name: 'Daddies', emoji: '🥐', defaultPrice: 800, category: 'pastry', revenuePerKgFlour: 10300, costPerKgFlour: 5700 },
   { id: 'samosa', name: 'Samosa', emoji: '🥟', defaultPrice: 1000, category: 'savory' },
   { id: 'half_cake', name: 'Half Cake', emoji: '🍰', defaultPrice: 5000, category: 'cake' },
   { id: 'kamba_kamba', name: 'Kamba Kamba', emoji: '🥨', defaultPrice: 600, category: 'pastry' },
@@ -20,7 +20,7 @@ export const PRODUCTS: Product[] = [
   { id: 'queen_cake', name: 'Queen Cake', emoji: '🎂', defaultPrice: 5000, category: 'cake' },
   { id: 'wedding_cake', name: 'Wedding Cake', emoji: '🎂', defaultPrice: 50000, category: 'cake' },
   { id: 'spatula_cookies', name: 'Spatula Cookies', emoji: '🍪', defaultPrice: 500, category: 'cookies' },
-  { id: 'italian_cookies', name: 'Italian Cookies', emoji: '🍪', defaultPrice: 600, category: 'cookies' },
+  { id: 'italian_cookies', name: 'Italian Cookies', emoji: '🍪', defaultPrice: 600, category: 'cookies', revenuePerKgFlour: 12500, costPerKgFlour: 7100 },
   { id: 'gnut_biscuit', name: 'Gnut Biscuit', emoji: '🥜', defaultPrice: 500, category: 'biscuits' },
   { id: 'muffin', name: 'Muffin', emoji: '🧁', defaultPrice: 1500, category: 'pastry' },
   { id: 'plain_biscuit', name: 'Plain Biscuit', emoji: '🍪', defaultPrice: 400, category: 'biscuits' },

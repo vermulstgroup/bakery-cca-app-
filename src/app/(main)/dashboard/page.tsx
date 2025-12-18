@@ -158,6 +158,20 @@ export default function DashboardPage() {
     });
   }, [entries, productPrices]);
 
+  // Get products with profitability data (revenue/cost per kg flour)
+  const profitableProducts = useMemo(() => {
+    return PRODUCTS
+      .filter(p => p.revenuePerKgFlour && p.costPerKgFlour)
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        emoji: p.emoji,
+        revenuePerKg: p.revenuePerKgFlour!,
+        costPerKg: p.costPerKgFlour!,
+        profitPerKg: p.revenuePerKgFlour! - p.costPerKgFlour!,
+        marginPercent: Math.round(((p.revenuePerKgFlour! - p.costPerKgFlour!) / p.revenuePerKgFlour!) * 100)
+      }));
+  }, []);
 
   const isLoading = !onboardingLoaded || loading;
   const isProfit = weeklyStats.profit >= 0;
@@ -288,6 +302,43 @@ export default function DashboardPage() {
                                     <span className="text-lg font-bold font-currency text-primary">
                                         {formatUGX(product.revenue)}
                                     </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {profitableProducts.length > 0 && (
+                    <div className="mt-8">
+                        <h3 className="text-xl font-bold mb-4">{t('product_profitability')}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{t('profit_per_kg_flour')}</p>
+                        <div className="space-y-3">
+                            {profitableProducts.map((product) => (
+                                <div
+                                    key={product.id}
+                                    className="p-4 bg-secondary/50 rounded-xl"
+                                >
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <span className="text-2xl">{product.emoji}</span>
+                                        <p className="text-lg font-semibold">{product.name}</p>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-center">
+                                        <div className="bg-background rounded-lg p-2">
+                                            <p className="text-xs text-muted-foreground">{t('revenue')}</p>
+                                            <p className="font-bold text-success font-currency">{formatUGX(product.revenuePerKg)}</p>
+                                        </div>
+                                        <div className="bg-background rounded-lg p-2">
+                                            <p className="text-xs text-muted-foreground">{t('cost')}</p>
+                                            <p className="font-bold text-destructive font-currency">{formatUGX(product.costPerKg)}</p>
+                                        </div>
+                                        <div className="bg-background rounded-lg p-2">
+                                            <p className="text-xs text-muted-foreground">{t('profit')}</p>
+                                            <p className="font-bold text-primary font-currency">{formatUGX(product.profitPerKg)}</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-2 text-center">
+                                        <span className="text-sm font-semibold text-primary">{product.marginPercent}% {t('margin')}</span>
+                                    </div>
                                 </div>
                             ))}
                         </div>

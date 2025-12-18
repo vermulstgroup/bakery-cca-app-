@@ -4,6 +4,9 @@ export type Product = {
   emoji: string;
   defaultPrice: number;
   category: string;
+  // Profitability data per kg of flour (optional - only for key products)
+  revenuePerKgFlour?: number;
+  costPerKgFlour?: number;
 };
 
 export type Bakery = {
