@@ -1,389 +1,586 @@
-
 "use client";
 
-import { saveDailyEntry, getDailyEntry } from '@/lib/firebase/firestore';
-
 import { useState, useEffect, useMemo } from 'react';
-import { PageHeader } from '@/components/shared/page-header';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Loader2, Save, TrendingUp, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronLeft, ChevronRight, Minus, Plus, Loader2, Settings } from 'lucide-react';
-import { PRODUCTS } from '@/lib/data';
+import { Card } from '@/components/ui/card';
+import { PRODUCTS, BAKERIES, getProductMargin, getProductMarginPercent } from '@/lib/data';
+import { formatUGX, cn } from '@/lib/utils';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { format, addDays, subDays } from 'date-fns';
-import { useToast } from "@/hooks/use-toast"
-import { cn } from '@/lib/utils';
-import { useTranslation } from '@/hooks/use-translation';
-import Link from 'next/link';
-import type { DailyEntry } from '@/lib/types';
+import { saveDailyEntry, getDailyEntry } from '@/lib/firebase/firestore';
+import { format, subDays } from 'date-fns';
+import { useToast } from "@/hooks/use-toast";
+import type { DailyEntry, ProductionItem } from '@/lib/types';
 
-type EntryType = 'production' | 'sales' | 'damages';
-
-const ProductCounter = ({
-    product,
-    count,
-    onCountChange
+// Production input component for kg flour
+const ProductionInput = ({
+  product,
+  kgFlour,
+  onKgFlourChange,
 }: {
-    product: any,
-    count: number,
-    onCountChange: (newCount: number) => void
+  product: typeof PRODUCTS[0];
+  kgFlour: number;
+  onKgFlourChange: (kg: number) => void;
 }) => {
-    const { t } = useTranslation();
-    const quickAddValues = [10, 25, 50, 100];
+  const productionValue = kgFlour * product.revenuePerKgFlour;
+  const ingredientCost = kgFlour * product.costPerKgFlour;
+  const margin = getProductMargin(product);
+  const marginPercent = getProductMarginPercent(product);
+  const profit = kgFlour * margin;
 
-    const changeCount = (amount: number) => {
-        onCountChange(Math.max(0, count + amount));
-    }
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        // Allow empty string for typing, treat as 0
-        if (value === '') {
-            onCountChange(0);
-            return;
-        }
-        const parsed = parseInt(value, 10);
-        if (!isNaN(parsed) && parsed >= 0) {
-            onCountChange(parsed);
-        }
-    }
-
-    return (
-        <Card className="p-4">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">{product.emoji} {product.name}</h3>
-            </div>
-            <div className="flex items-center gap-2 mb-4">
-                <Button
-                    variant="accent"
-                    size="icon"
-                    className="rounded-full text-2xl font-bold"
-                    onClick={() => changeCount(-1)}
-                    aria-label={t('decrease_count', { product: product.name })}
-                >
-                    <Minus />
-                </Button>
-                <input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    min="0"
-                    value={count}
-                    onChange={handleInputChange}
-                    className="font-currency text-3xl h-14 w-24 flex items-center justify-center rounded-md bg-secondary text-center focus:outline-none focus:ring-2 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    aria-live="polite"
-                    aria-label={t('count_for_product', { product: product.name })}
-                />
-                <Button
-                    variant="accent"
-                    size="icon"
-                    className="rounded-full text-2xl font-bold"
-                    onClick={() => changeCount(1)}
-                    aria-label={t('increase_count', { product: product.name })}
-                >
-                    <Plus />
-                </Button>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-                {quickAddValues.map(val => (
-                     <Button key={val} variant="accent" size="accent" onClick={() => changeCount(val)}>+{val}</Button>
-                ))}
-            </div>
-        </Card>
-    )
-}
-
-const StockDisplay = ({ product, stock }: { product: any, stock: any }) => (
-    <Card className="p-4">
-        <h3 className="text-lg font-semibold mb-3">{product.emoji} {product.name}</h3>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-base">
-            <div className="text-muted-foreground">Opening</div>
-            <div className="font-semibold text-right">{stock.opening}</div>
-            
-            <div className="text-muted-foreground">Production</div>
-            <div className="font-semibold text-right text-green-500">+{stock.production}</div>
-            
-            <div className="font-bold col-span-2 border-t mt-1 pt-1 flex justify-between">
-                <div>Total Available</div>
-                <div className="text-right">{stock.available}</div>
-            </div>
-
-            <div className="text-muted-foreground">Sales</div>
-            <div className="font-semibold text-right text-red-500">-{stock.sales}</div>
-
-            <div className="text-muted-foreground">Damages</div>
-            <div className="font-semibold text-right text-red-500">-{stock.damages}</div>
-            
-            <div className="font-bold col-span-2 border-t mt-1 pt-1 flex justify-between text-primary">
-                <div>Closing Stock</div>
-                <div className="text-right">{stock.closing}</div>
-            </div>
+  return (
+    <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-3xl">{product.emoji}</span>
+        <div className="flex-1">
+          <h3 className="font-bold text-white">{product.name}</h3>
+          <p className="text-xs text-slate-400">
+            Margin: {formatUGX(margin)}/kg ({marginPercent}%)
+          </p>
         </div>
+      </div>
+
+      {/* kg Flour Input */}
+      <div className="mb-4">
+        <label className="text-sm text-slate-400 mb-2 block">Flour Used (kg)</label>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            inputMode="decimal"
+            step="0.5"
+            min="0"
+            value={kgFlour || ''}
+            onChange={(e) => {
+              const val = parseFloat(e.target.value);
+              onKgFlourChange(isNaN(val) ? 0 : val);
+            }}
+            placeholder="0"
+            className="flex-1 h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
+          <span className="text-slate-400 font-medium">kg</span>
+        </div>
+        {/* Quick add buttons */}
+        <div className="flex gap-2 mt-2">
+          {[1, 2, 5, 10].map((val) => (
+            <button
+              key={val}
+              onClick={() => onKgFlourChange(kgFlour + val)}
+              className="flex-1 py-2 text-sm font-medium bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition-colors"
+            >
+              +{val}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Auto-calculated values */}
+      {kgFlour > 0 && (
+        <div className="space-y-2 pt-3 border-t border-slate-700">
+          <div className="flex justify-between text-sm">
+            <span className="text-slate-400">Production Value</span>
+            <span className="text-green-400 font-bold font-currency">{formatUGX(productionValue)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-slate-400">Ingredient Cost</span>
+            <span className="text-red-400 font-currency">{formatUGX(ingredientCost)}</span>
+          </div>
+          <div className="flex justify-between text-sm font-bold">
+            <span className="text-slate-300">Expected Profit</span>
+            <span className="text-amber-400 font-currency">{formatUGX(profit)}</span>
+          </div>
+        </div>
+      )}
     </Card>
-);
+  );
+};
 
-export default function DailyEntryPage() {
-    const { t } = useTranslation();
-    const { toast } = useToast();
-    const { data: onboardingData, isLoaded } = useOnboarding();
-    const [date, setDate] = useState(new Date());
+// Sales input component
+const SalesInput = ({
+  product,
+  productionValue,
+  salesAmount,
+  onSalesChange,
+}: {
+  product: typeof PRODUCTS[0];
+  productionValue: number;
+  salesAmount: number;
+  onSalesChange: (amount: number) => void;
+}) => {
+  const salesPercent = productionValue > 0 ? (salesAmount / productionValue) * 100 : 0;
+  const getProgressColor = () => {
+    if (salesPercent >= 80) return 'bg-green-500';
+    if (salesPercent >= 50) return 'bg-amber-500';
+    return 'bg-red-500';
+  };
 
-    const userProducts = isLoaded && onboardingData.products ? PRODUCTS.filter(p => onboardingData.products?.includes(p.id)) : [];
-    
-    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-
-    const [currentEntry, setCurrentEntry] = useState<DailyEntry | null>(null);
-    const [previousDayEntry, setPreviousDayEntry] = useState<DailyEntry | null>(null);
-
-    const quantities = useMemo(() => currentEntry?.quantities || { production: {}, sales: {}, damages: {} }, [currentEntry]);
-
-    // Load data for the current and previous dates
-    useEffect(() => {
-        if (!isLoaded || !onboardingData.bakery) return;
-        
-        const loadData = async () => {
-            const dateString = format(date, 'yyyy-MM-dd');
-            const prevDateString = format(subDays(date, 1), 'yyyy-MM-dd');
-            
-            try {
-                // Try Firestore first
-                const [currentData, prevData] = await Promise.all([
-                    getDailyEntry(onboardingData.bakery!, dateString),
-                    getDailyEntry(onboardingData.bakery!, prevDateString)
-                ]);
-
-                setCurrentEntry(currentData);
-                setPreviousDayEntry(prevData);
-
-                // Fallback for current day if not in Firestore
-                if (!currentData) {
-                    const savedData = localStorage.getItem(`daily_entry-${onboardingData.bakery}-${dateString}`);
-                    if (savedData) setCurrentEntry(JSON.parse(savedData));
-                    else setCurrentEntry({ date: dateString, bakeryId: onboardingData.bakery, quantities: { production: {}, sales: {}, damages: {} } });
-                }
-
-                // Fallback for previous day if not in Firestore
-                if (!prevData) {
-                    const savedPrevData = localStorage.getItem(`daily_entry-${onboardingData.bakery}-${prevDateString}`);
-                    if (savedPrevData) setPreviousDayEntry(JSON.parse(savedPrevData));
-                }
-
-            } catch (error) {
-                // Offline or error state, fallback to localStorage for everything
-                const savedData = localStorage.getItem(`daily_entry-${onboardingData.bakery}-${dateString}`);
-                if (savedData) setCurrentEntry(JSON.parse(savedData));
-                else setCurrentEntry({ date: dateString, bakeryId: onboardingData.bakery, quantities: { production: {}, sales: {}, damages: {} } });
-
-                const savedPrevData = localStorage.getItem(`daily_entry-${onboardingData.bakery}-${prevDateString}`);
-                if (savedPrevData) setPreviousDayEntry(JSON.parse(savedPrevData));
-            }
-        };
-
-        loadData();
-
-    }, [date, isLoaded, onboardingData.bakery]);
-
-
-    const handleQuantityChange = (entryType: EntryType, productId: string, newCount: number) => {
-        const updatedQuantities = {
-            ...quantities,
-            [entryType]: {
-                ...quantities[entryType],
-                [productId]: Math.max(0, newCount)
-            }
-        };
-
-        const dateString = format(date, 'yyyy-MM-dd');
-        setCurrentEntry(prev => ({
-            date: dateString,
-            bakeryId: prev?.bakeryId || onboardingData.bakery!,
-            quantities: updatedQuantities,
-            closingStock: calculateClosingStocks(updatedQuantities)
-        }));
-    };
-    
-    const calculateClosingStocks = (currentQuantities: any) => {
-        const closingStocks: { [productId: string]: number } = {};
-        userProducts.forEach(p => {
-            const opening = previousDayEntry?.closingStock?.[p.id] || 0;
-            const production = currentQuantities.production[p.id] || 0;
-            const sales = currentQuantities.sales[p.id] || 0;
-            const damages = currentQuantities.damages[p.id] || 0;
-            closingStocks[p.id] = opening + production - sales - damages;
-        });
-        return closingStocks;
-    };
-
-    const handleSave = async () => {
-        if (!onboardingData.bakery) {
-            toast({ variant: 'destructive', title: 'Error', description: 'You must have a bakery selected to save data.' });
-            return;
-        }
-
-        setSaveStatus('saving');
-        
-        const dateString = format(date, 'yyyy-MM-dd');
-        const closingStock = calculateClosingStocks(quantities);
-        const dataToSave: DailyEntry = {
-            bakeryId: onboardingData.bakery,
-            date: dateString,
-            quantities,
-            closingStock,
-        };
-
-        try {
-            // Save to LocalStorage immediately for offline access
-            localStorage.setItem(`daily_entry-${onboardingData.bakery}-${dateString}`, JSON.stringify(dataToSave));
-            
-            // Attempt to save to Firestore
-            await saveDailyEntry(onboardingData.bakery, dataToSave);
-
-            setSaveStatus('saved');
-            toast({
-                title: t('saved_successfully'),
-                description: t('entries_saved_for_date', { date: format(date, 'MMMM d') }),
-                className: "bg-success text-white"
-            });
-            
-            setTimeout(() => setSaveStatus('idle'), 2000);
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Save failed',
-                description: 'Could not save to cloud, but saved on your device.'
-            });
-            setSaveStatus('idle');
-        }
-    };
-    
-    const stockCalculations = useMemo(() => {
-        const stocks: { [productId: string]: any } = {};
-        userProducts.forEach(p => {
-            const opening = previousDayEntry?.closingStock?.[p.id] || 0;
-            const production = quantities.production?.[p.id] || 0;
-            const sales = quantities.sales?.[p.id] || 0;
-            const damages = quantities.damages?.[p.id] || 0;
-            const available = opening + production;
-            const closing = available - sales - damages;
-            stocks[p.id] = { opening, production, sales, damages, available, closing };
-        });
-        return stocks;
-    }, [userProducts, quantities, previousDayEntry]);
-
-    if (!isLoaded) {
-        return (
-             <div className="flex h-screen flex-col">
-                <PageHeader title={t('daily_entry')}>
-                    <Button variant="ghost" size="sm">{t('today')}</Button>
-                </PageHeader>
-                <div className="flex flex-1 items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-            </div>
-        )
-    }
-
-    if (userProducts.length === 0) {
-        return (
-            <div className="flex h-screen flex-col">
-                <PageHeader title={t('daily_entry')} />
-                <div className="flex flex-1 flex-col items-center justify-center p-8 text-center space-y-4">
-                    <div className="p-4 bg-secondary rounded-full">
-                        <Settings className="h-12 w-12 text-primary" />
-                    </div>
-                    <h2 className="text-2xl font-bold">{t('no_products_setup_title')}</h2>
-                    <p className="text-muted-foreground">{t('no_products_setup_subtitle')}</p>
-                    <Button asChild size="lg">
-                        <Link href="/select-products">{t('go_to_product_settings')}</Link>
-                    </Button>
-                </div>
-            </div>
-        )
-    }
-    
-    return (
-        <div className="flex h-screen flex-col">
-            <PageHeader title={t('daily_entry')}>
-                 <Button variant="ghost" size="sm" onClick={() => setDate(new Date())}>{t('today')}</Button>
-            </PageHeader>
-            
-            <div className="p-4">
-                 <Card className="flex items-center justify-between p-2 bg-secondary rounded-xl">
-                    <Button variant="ghost" size="icon" onClick={() => setDate(subDays(date, 1))} aria-label={t('previous_day')}><ChevronLeft/></Button>
-                    <div className="text-center font-semibold text-base">
-                        <p>{format(date, "EEE, MMM d, yyyy")}</p>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => setDate(addDays(date, 1))} aria-label={t('next_day')}><ChevronRight/></Button>
-                </Card>
-            </div>
-
-            <Tabs defaultValue="production" className="flex-grow flex flex-col">
-                <div className="px-4">
-                    <TabsList className="grid w-full grid-cols-4 h-14 p-1">
-                        <TabsTrigger value="production" className="h-full text-base">{t('production')}</TabsTrigger>
-                        <TabsTrigger value="sales" className="h-full text-base">{t('sales')}</TabsTrigger>
-                        <TabsTrigger value="damages" className="h-full text-base">{t('damages')}</TabsTrigger>
-                        <TabsTrigger value="stock" className="h-full text-base">{t('stock')}</TabsTrigger>
-                    </TabsList>
-                </div>
-                
-                <div className="flex-grow overflow-y-auto p-4 space-y-3">
-                    <TabsContent value="production" className="mt-0">
-                        <div className="space-y-3">
-                            {userProducts.map(p => 
-                                <ProductCounter 
-                                    key={`prod-${p.id}`} 
-                                    product={p} 
-                                    count={quantities.production?.[p.id] || 0}
-                                    onCountChange={(newCount) => handleQuantityChange('production', p.id, newCount)}
-                                />
-                            )}
-                        </div>
-                    </TabsContent>
-                    <TabsContent value="sales" className="mt-0">
-                        <div className="space-y-3">
-                            {userProducts.map(p => 
-                                <ProductCounter 
-                                    key={`sales-${p.id}`} 
-                                    product={p} 
-                                    count={quantities.sales?.[p.id] || 0}
-                                    onCountChange={(newCount) => handleQuantityChange('sales', p.id, newCount)}
-                                />
-                            )}
-                        </div>
-                    </TabsContent>
-                    <TabsContent value="damages" className="mt-0">
-                        <div className="space-y-3">
-                            {userProducts.map(p => 
-                                <ProductCounter 
-                                    key={`dmg-${p.id}`} 
-                                    product={p}
-                                    count={quantities.damages?.[p.id] || 0}
-                                    onCountChange={(newCount) => handleQuantityChange('damages', p.id, newCount)}
-                                />
-                            )}
-                        </div>
-                    </TabsContent>
-                     <TabsContent value="stock" className="mt-0">
-                        <div className="space-y-3">
-                            {userProducts.map(p => 
-                                <StockDisplay key={`stock-${p.id}`} product={p} stock={stockCalculations[p.id]} />
-                            )}
-                        </div>
-                    </TabsContent>
-                </div>
-            </Tabs>
-            <div className="sticky bottom-[64px] p-4 bg-background/80 backdrop-blur-lg border-t">
-                <Button size="lg" className="w-full" onClick={handleSave} disabled={saveStatus === 'saving' || saveStatus === 'saved'}>
-                    {saveStatus === 'saving' ? (
-                        <>
-                            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                            {t('saving')}
-                        </>
-                    ) : saveStatus === 'saved' ? t('saved') : t('done_for_today')}
-                </Button>
-            </div>
+  return (
+    <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-3xl">{product.emoji}</span>
+        <div className="flex-1">
+          <h3 className="font-bold text-white">{product.name}</h3>
+          <p className="text-xs text-slate-400">
+            Production: {formatUGX(productionValue)}
+          </p>
         </div>
-    )
+      </div>
+
+      {/* Sales UGX Input */}
+      <div className="mb-4">
+        <label className="text-sm text-slate-400 mb-2 block">Sales Amount (UGX)</label>
+        <input
+          type="number"
+          inputMode="numeric"
+          min="0"
+          step="1000"
+          value={salesAmount || ''}
+          onChange={(e) => {
+            const val = parseInt(e.target.value, 10);
+            onSalesChange(isNaN(val) ? 0 : val);
+          }}
+          placeholder="0"
+          className="w-full h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-green-500 focus:ring-2 focus:ring-green-500/30 outline-none font-currency [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        {/* Quick add buttons */}
+        <div className="flex gap-2 mt-2">
+          {[10000, 25000, 50000, 100000].map((val) => (
+            <button
+              key={val}
+              onClick={() => onSalesChange(salesAmount + val)}
+              className="flex-1 py-2 text-xs font-medium bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition-colors"
+            >
+              +{(val / 1000)}k
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sales Progress */}
+      {productionValue > 0 && (
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-slate-400">Sales vs Production</span>
+            <span className={cn(
+              "font-bold",
+              salesPercent >= 80 ? 'text-green-400' :
+              salesPercent >= 50 ? 'text-amber-400' : 'text-red-400'
+            )}>
+              {salesPercent.toFixed(0)}%
+            </span>
+          </div>
+          <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className={cn("h-full transition-all duration-300", getProgressColor())}
+              style={{ width: `${Math.min(salesPercent, 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+};
+
+export default function ProductionEntryPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const { data: onboardingData, isLoaded } = useOnboarding();
+  const [activeTab, setActiveTab] = useState<'production' | 'sales' | 'summary'>('production');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [date] = useState(new Date());
+
+  const currentBakery = BAKERIES.find(b => b.id === onboardingData.bakery);
+
+  // Production data state (kg flour per product)
+  const [production, setProduction] = useState<{ [productId: string]: ProductionItem }>({});
+  // Sales data state (UGX per product)
+  const [sales, setSales] = useState<{ [productId: string]: number }>({});
+
+  // Load existing data for today
+  useEffect(() => {
+    if (!isLoaded || !onboardingData.bakery) return;
+
+    const loadData = async () => {
+      const dateString = format(date, 'yyyy-MM-dd');
+      try {
+        const existing = await getDailyEntry(onboardingData.bakery!, dateString);
+        if (existing?.production) {
+          setProduction(existing.production);
+        }
+        if (existing?.sales) {
+          setSales(existing.sales);
+        }
+      } catch {
+        // Fallback to localStorage
+        const stored = localStorage.getItem(`biss-entry-${onboardingData.bakery}-${dateString}`);
+        if (stored) {
+          const data = JSON.parse(stored);
+          if (data.production) setProduction(data.production);
+          if (data.sales) setSales(data.sales);
+        }
+      }
+    };
+    loadData();
+  }, [isLoaded, onboardingData.bakery, date]);
+
+  // Handle kg flour change for a product
+  const handleKgFlourChange = (productId: string, kgFlour: number) => {
+    const product = PRODUCTS.find(p => p.id === productId);
+    if (!product) return;
+
+    setProduction(prev => ({
+      ...prev,
+      [productId]: {
+        kgFlour,
+        productionValueUGX: kgFlour * product.revenuePerKgFlour,
+        ingredientCostUGX: kgFlour * product.costPerKgFlour,
+      },
+    }));
+  };
+
+  // Handle sales change for a product
+  const handleSalesChange = (productId: string, amount: number) => {
+    setSales(prev => ({
+      ...prev,
+      [productId]: amount,
+    }));
+  };
+
+  // Calculate totals
+  const totals = useMemo(() => {
+    let productionValue = 0;
+    let ingredientCost = 0;
+    let salesTotal = 0;
+
+    PRODUCTS.forEach(p => {
+      const prod = production[p.id];
+      if (prod) {
+        productionValue += prod.productionValueUGX || 0;
+        ingredientCost += prod.ingredientCostUGX || 0;
+      }
+      salesTotal += sales[p.id] || 0;
+    });
+
+    const grossProfit = salesTotal - ingredientCost;
+    const margin = salesTotal > 0 ? (grossProfit / salesTotal) * 100 : 0;
+
+    return {
+      productionValue,
+      ingredientCost,
+      salesTotal,
+      grossProfit,
+      margin,
+    };
+  }, [production, sales]);
+
+  // Save handler
+  const handleSave = async () => {
+    if (!onboardingData.bakery) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No bakery selected' });
+      return;
+    }
+
+    setSaveStatus('saving');
+    const dateString = format(date, 'yyyy-MM-dd');
+
+    const dataToSave: DailyEntry = {
+      date: dateString,
+      bakeryId: onboardingData.bakery,
+      production,
+      sales,
+      totals: {
+        productionValue: totals.productionValue,
+        ingredientCost: totals.ingredientCost,
+        salesTotal: totals.salesTotal,
+        profit: totals.grossProfit,
+        margin: totals.margin,
+      },
+    };
+
+    try {
+      // Save to localStorage first
+      localStorage.setItem(`biss-entry-${onboardingData.bakery}-${dateString}`, JSON.stringify(dataToSave));
+
+      // Save to Firestore
+      await saveDailyEntry(onboardingData.bakery, dataToSave);
+
+      setSaveStatus('saved');
+      toast({
+        title: 'Saved successfully',
+        description: `Entry saved for ${format(date, 'MMMM d')}`,
+        className: "bg-green-600 text-white border-none"
+      });
+
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Save failed',
+        description: 'Saved locally, will sync when online.'
+      });
+      setSaveStatus('idle');
+    }
+  };
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white pb-24">
+      <div className="max-w-md mx-auto p-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/dashboard')}
+              className="-ml-2 text-slate-400 hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <h1 className="text-xl font-bold text-amber-400 flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              Daily Entry
+            </h1>
+            <p className="text-slate-400 text-sm">
+              {currentBakery?.name || 'No bakery'} • {format(date, 'EEE, MMM d')}
+            </p>
+          </div>
+          <Button
+            onClick={handleSave}
+            disabled={saveStatus === 'saving'}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            {saveStatus === 'saving' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : saveStatus === 'saved' ? (
+              '✓ Saved'
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-1" />
+                Save
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex gap-2 mb-6">
+          {(['production', 'sales', 'summary'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "flex-1 py-3 rounded-xl font-medium capitalize transition-all",
+                activeTab === tab
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              )}
+            >
+              {tab === 'production' && '📦 '}
+              {tab === 'sales' && '💰 '}
+              {tab === 'summary' && '📊 '}
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Production Tab */}
+        {activeTab === 'production' && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <p className="text-slate-400 text-sm">
+                Enter kg of flour used for each product
+              </p>
+            </div>
+            {PRODUCTS.map((product) => (
+              <ProductionInput
+                key={product.id}
+                product={product}
+                kgFlour={production[product.id]?.kgFlour || 0}
+                onKgFlourChange={(kg) => handleKgFlourChange(product.id, kg)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Sales Tab */}
+        {activeTab === 'sales' && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <p className="text-slate-400 text-sm">
+                Enter actual sales in UGX per product
+              </p>
+            </div>
+            {PRODUCTS.map((product) => (
+              <SalesInput
+                key={product.id}
+                product={product}
+                productionValue={production[product.id]?.productionValueUGX || 0}
+                salesAmount={sales[product.id] || 0}
+                onSalesChange={(amount) => handleSalesChange(product.id, amount)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Summary Tab */}
+        {activeTab === 'summary' && (
+          <div className="space-y-4">
+            {/* Totals Card */}
+            <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+              <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-amber-500" />
+                Today's Summary
+              </h3>
+
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Production Value</span>
+                  <span className="text-green-400 font-bold font-currency">
+                    {formatUGX(totals.productionValue)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Ingredient Cost</span>
+                  <span className="text-red-400 font-currency">
+                    {formatUGX(totals.ingredientCost)}
+                  </span>
+                </div>
+                <div className="border-t border-slate-700 my-2" />
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Total Sales</span>
+                  <span className="text-white font-bold font-currency">
+                    {formatUGX(totals.salesTotal)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-lg">
+                  <span className="text-white font-bold">Gross Profit</span>
+                  <span className={cn(
+                    "font-bold font-currency",
+                    totals.grossProfit >= 0 ? 'text-emerald-400' : 'text-red-400'
+                  )}>
+                    {formatUGX(totals.grossProfit)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Profit Margin</span>
+                  <span className={cn(
+                    "font-bold",
+                    totals.margin >= 20 ? 'text-green-400' :
+                    totals.margin >= 10 ? 'text-amber-400' : 'text-red-400'
+                  )}>
+                    {totals.margin.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Per-Product Breakdown */}
+            <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+              <h3 className="font-bold text-white mb-4">Product Breakdown</h3>
+              <div className="space-y-3">
+                {PRODUCTS.map((product) => {
+                  const prod = production[product.id];
+                  const sold = sales[product.id] || 0;
+                  const cost = prod?.ingredientCostUGX || 0;
+                  const profit = sold - cost;
+
+                  return (
+                    <div key={product.id} className="flex items-center justify-between py-2 border-b border-slate-700 last:border-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{product.emoji}</span>
+                        <div>
+                          <div className="font-medium text-white">{product.name}</div>
+                          <div className="text-xs text-slate-400">
+                            {prod?.kgFlour || 0} kg flour
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-currency text-sm text-slate-300">
+                          Sold: {formatUGX(sold)}
+                        </div>
+                        <div className={cn(
+                          "text-sm font-bold font-currency",
+                          profit >= 0 ? 'text-green-400' : 'text-red-400'
+                        )}>
+                          {profit >= 0 ? '+' : ''}{formatUGX(profit)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            {/* Reference Table */}
+            <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+              <h3 className="font-bold text-white mb-4">Product Reference</h3>
+              <div className="text-xs">
+                <div className="grid grid-cols-4 gap-2 text-slate-400 pb-2 border-b border-slate-700">
+                  <div>Product</div>
+                  <div>Rev/kg</div>
+                  <div>Cost/kg</div>
+                  <div>Margin</div>
+                </div>
+                {PRODUCTS.map((product) => (
+                  <div key={product.id} className="grid grid-cols-4 gap-2 py-2 border-b border-slate-700 last:border-0">
+                    <div className="flex items-center gap-1">
+                      <span>{product.emoji}</span>
+                    </div>
+                    <div className="text-green-400 font-currency">{(product.revenuePerKgFlour / 1000).toFixed(1)}k</div>
+                    <div className="text-red-400 font-currency">{(product.costPerKgFlour / 1000).toFixed(1)}k</div>
+                    <div className="text-amber-400">{getProductMarginPercent(product)}%</div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Save Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/90 backdrop-blur border-t border-slate-700">
+        <div className="max-w-md mx-auto flex items-center justify-between">
+          <div>
+            <div className="text-sm text-slate-400">Today's Profit</div>
+            <div className={cn(
+              "text-xl font-bold font-currency",
+              totals.grossProfit >= 0 ? 'text-emerald-400' : 'text-red-400'
+            )}>
+              {formatUGX(totals.grossProfit)}
+            </div>
+          </div>
+          <Button
+            onClick={handleSave}
+            disabled={saveStatus === 'saving'}
+            size="lg"
+            className="bg-green-600 hover:bg-green-700 text-white px-8"
+          >
+            {saveStatus === 'saving' ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : saveStatus === 'saved' ? (
+              '✓ Saved!'
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Entry
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }

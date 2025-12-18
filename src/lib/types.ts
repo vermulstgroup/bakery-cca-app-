@@ -78,16 +78,16 @@ export type ProductionItem = {
 export type DailyEntry = {
   date: string;
   bakeryId: string;
-  // New kg-flour based production
-  production: {
+  // New kg-flour based production (optional for backwards compat)
+  production?: {
     [productId: string]: ProductionItem;
   };
-  // Sales in UGX
-  sales: {
+  // Sales in UGX (optional for backwards compat)
+  sales?: {
     [productId: string]: number;
   };
-  // Calculated totals
-  totals: {
+  // Calculated totals (optional for backwards compat)
+  totals?: {
     productionValue: number;
     ingredientCost: number;
     salesTotal: number;

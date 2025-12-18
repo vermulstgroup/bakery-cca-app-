@@ -1,352 +1,286 @@
-
 "use client";
 
-import { AppHeader } from '@/components/shared/app-header';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { formatUGX } from '@/lib/utils';
-import { ArrowUp, ArrowDown, FileText, Loader2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { formatUGX, cn } from '@/lib/utils';
+import { ArrowUp, ArrowDown, FileText, Loader2, AlertTriangle, ArrowRight, TrendingUp, Calendar, ScrollText } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
-import { useTranslation } from '@/hooks/use-translation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { startOfWeek, endOfWeek, format as formatDate } from 'date-fns';
-import { PRODUCTS } from '@/lib/data';
-import type { DailyEntry, WeeklyExpense } from '@/lib/types';
-import { getDailyEntriesForDateRange, getWeeklyExpenses } from '@/lib/firebase/firestore';
-
-
-const CountUp = ({ to }: { to: number }) => {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let start = 0;
-    const end = to;
-    if (start === end) {
-        setCount(end);
-        return;
-    };
-
-    const duration = 1500;
-    const startTime = Date.now();
-
-    const animate = () => {
-      const now = Date.now();
-      const progress = Math.min(1, (now - startTime) / duration);
-      const current = Math.floor(progress * (end - start) + start);
-      setCount(current);
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        setCount(end);
-      }
-    };
-    requestAnimationFrame(animate);
-  }, [to]);
-
-  return <span className="font-currency">{formatUGX(count)}</span>;
-};
-
+import { startOfWeek, endOfWeek, format as formatDate, eachDayOfInterval } from 'date-fns';
+import { PRODUCTS, BAKERIES, getProductMarginPercent } from '@/lib/data';
+import type { DailyEntry } from '@/lib/types';
 
 export default function DashboardPage() {
-  const { t } = useTranslation();
+  const router = useRouter();
   const { data: onboardingData, isLoaded: onboardingLoaded } = useOnboarding();
   const [entries, setEntries] = useState<DailyEntry[]>([]);
-  const [expenses, setExpenses] = useState<WeeklyExpense[]>([]);
   const [loading, setLoading] = useState(true);
 
   const currentDate = new Date();
-  const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
-  const weekEnd = useMemo(() => endOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
+  const currentBakery = BAKERIES.find(b => b.id === onboardingData.bakery);
+
+  // Load current week's entries from localStorage
   useEffect(() => {
     if (onboardingLoaded && onboardingData.bakery) {
-      const loadData = async () => {
-        setLoading(true);
-        const weekStartStr = formatDate(weekStart, 'yyyy-MM-dd');
-        const weekEndStr = formatDate(weekEnd, 'yyyy-MM-dd');
+      setLoading(true);
+      const weekStartStr = formatDate(weekStart, 'yyyy-MM-dd');
+      const weekEndStr = formatDate(weekEnd, 'yyyy-MM-dd');
 
-        try {
-          // Only fetch current week's data for better performance
-          const [weekEntries, weekExpenseDoc] = await Promise.all([
-            getDailyEntriesForDateRange(onboardingData.bakery as string, weekStartStr, weekEndStr),
-            getWeeklyExpenses(onboardingData.bakery as string, weekStartStr)
-          ]);
-          setEntries(weekEntries);
-          setExpenses(weekExpenseDoc ? [weekExpenseDoc] : []);
-        } catch (e) {
-          // Fallback for offline or errors - filter localStorage to current week
-          const localEntries: DailyEntry[] = [];
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith(`daily_entry-${onboardingData.bakery}-`)) {
-              const entry = JSON.parse(localStorage.getItem(key)!);
-              // Filter to current week only
-              if (entry.date >= weekStartStr && entry.date <= weekEndStr) {
-                localEntries.push(entry);
-              }
-            }
-          });
-          setEntries(localEntries);
+      const localEntries: DailyEntry[] = [];
 
-          // Get only current week's expenses
-          const expenseKey = `expenses-${onboardingData.bakery}-${weekStartStr}`;
-          const localExpense = localStorage.getItem(expenseKey);
-          setExpenses(localExpense ? [JSON.parse(localExpense)] : []);
-        } finally {
-            setLoading(false);
+      // Check localStorage for entries in this week
+      weekDays.forEach(day => {
+        const dateStr = formatDate(day, 'yyyy-MM-dd');
+        // Check new format first
+        const newFormat = localStorage.getItem(`biss-entry-${onboardingData.bakery}-${dateStr}`);
+        if (newFormat) {
+          localEntries.push(JSON.parse(newFormat));
+        } else {
+          // Fallback to legacy format
+          const legacyFormat = localStorage.getItem(`daily_entry-${onboardingData.bakery}-${dateStr}`);
+          if (legacyFormat) {
+            localEntries.push(JSON.parse(legacyFormat));
+          }
         }
-      };
-      loadData();
+      });
+
+      setEntries(localEntries);
+      setLoading(false);
     }
   }, [onboardingLoaded, onboardingData.bakery, weekStart, weekEnd]);
 
-
-  const productPrices = useMemo(() => {
-    const prices: { [key: string]: number } = {};
-    if (onboardingLoaded && onboardingData.products && onboardingData.prices) {
-        PRODUCTS.forEach(p => {
-            prices[p.id] = onboardingData.prices?.[p.id] ?? p.defaultPrice;
-        });
-    }
-    return prices;
-  }, [onboardingLoaded, onboardingData.products, onboardingData.prices]);
-
+  // Calculate weekly stats from entries
   const weeklyStats = useMemo(() => {
-    // entries already filtered to current week by the query
-    const thisWeeksExpensesDoc = expenses[0]; // We only fetch current week's expense
-    const totalExpenses = thisWeeksExpensesDoc ? Object.values(thisWeeksExpensesDoc.expenses).reduce((sum, val) => sum + val, 0) : 0;
-
-    const revenue = entries.reduce((total, entry) => {
-        const dayRevenue = Object.entries(entry.quantities.sales || {}).reduce((dayTotal, [productId, quantity]) => {
-            return dayTotal + (quantity * (productPrices[productId] || 0));
-        }, 0);
-        return total + dayRevenue;
-    }, 0);
-
-    const profit = revenue - totalExpenses;
-
-    // TODO: Trend calculation logic needed
-    const trend = 12;
-
-    return { revenue, totalExpenses, profit, trend, expensesEntered: !!thisWeeksExpensesDoc };
-  }, [entries, expenses, productPrices]);
-
-  // Calculate top selling products this week
-  const topProducts = useMemo(() => {
-    const productSales: { [productId: string]: number } = {};
+    let totalProduction = 0;
+    let totalCosts = 0;
+    let totalSales = 0;
 
     entries.forEach(entry => {
-      Object.entries(entry.quantities.sales || {}).forEach(([productId, quantity]) => {
-        productSales[productId] = (productSales[productId] || 0) + quantity;
-      });
+      // New format with totals
+      if (entry.totals) {
+        totalProduction += entry.totals.productionValue;
+        totalCosts += entry.totals.ingredientCost;
+        totalSales += entry.totals.salesTotal;
+      }
+      // New format with production/sales
+      else if (entry.production) {
+        Object.values(entry.production).forEach(prod => {
+          totalProduction += prod.productionValueUGX || 0;
+          totalCosts += prod.ingredientCostUGX || 0;
+        });
+        if (entry.sales) {
+          Object.values(entry.sales).forEach(amount => {
+            totalSales += amount;
+          });
+        }
+      }
+      // Legacy format with quantities
+      else if (entry.quantities) {
+        // Calculate from quantities and prices
+        Object.entries(entry.quantities.sales || {}).forEach(([productId, quantity]) => {
+          const product = PRODUCTS.find(p => p.id === productId);
+          if (product) {
+            totalSales += quantity * (onboardingData.prices?.[productId] || product.defaultPrice);
+          }
+        });
+      }
     });
 
-    // Sort by quantity sold and get top 5
-    const sorted = Object.entries(productSales)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 5);
+    const profit = totalSales - totalCosts;
+    const margin = totalSales > 0 ? (profit / totalSales) * 100 : 0;
 
-    return sorted.map(([productId, quantity]) => {
-      const product = PRODUCTS.find(p => p.id === productId);
-      return {
-        id: productId,
-        name: product?.name || productId,
-        emoji: product?.emoji || '',
-        quantity,
-        revenue: quantity * (productPrices[productId] || 0)
-      };
-    });
-  }, [entries, productPrices]);
-
-  // Get products with profitability data (revenue/cost per kg flour)
-  const profitableProducts = useMemo(() => {
-    return PRODUCTS
-      .filter(p => p.revenuePerKgFlour && p.costPerKgFlour)
-      .map(p => ({
-        id: p.id,
-        name: p.name,
-        emoji: p.emoji,
-        revenuePerKg: p.revenuePerKgFlour!,
-        costPerKg: p.costPerKgFlour!,
-        profitPerKg: p.revenuePerKgFlour! - p.costPerKgFlour!,
-        marginPercent: Math.round(((p.revenuePerKgFlour! - p.costPerKgFlour!) / p.revenuePerKgFlour!) * 100)
-      }));
-  }, []);
+    return {
+      production: totalProduction,
+      costs: totalCosts,
+      sales: totalSales,
+      profit,
+      margin,
+      daysRecorded: entries.length,
+    };
+  }, [entries, onboardingData.prices]);
 
   const isLoading = !onboardingLoaded || loading;
-  const isProfit = weeklyStats.profit >= 0;
   const hasData = entries.length > 0;
-  const weekLabel = `Week of ${formatDate(weekStart, 'MMM d')} - ${formatDate(weekEnd, 'd')}`;
+  const weekLabel = `${formatDate(weekStart, 'MMM d')} - ${formatDate(weekEnd, 'MMM d, yyyy')}`;
 
   if (isLoading) {
     return (
-        <div className="flex flex-col">
-            <AppHeader />
-            <div className="flex flex-1 items-center justify-center p-8 text-center space-y-4">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <h2 className="text-2xl font-bold">{t('loading_bakery_app')}</h2>
-            </div>
-        </div>
-    );
-  }
-
-  if (!hasData) {
-    return (
-      <div className="flex flex-col">
-        <AppHeader />
-        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center space-y-4">
-          <div className="p-4 bg-secondary rounded-full">
-            <FileText className="h-12 w-12 text-primary" />
-          </div>
-          <h2 className="text-2xl font-bold">{t('welcome_to_dashboard')}</h2>
-          <p className="text-muted-foreground">{t('welcome_dashboard_subtext')}</p>
-          <Button asChild size="lg">
-            <Link href="/entry">{t('go_to_daily_entry')}</Link>
-          </Button>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
       </div>
     );
   }
-  
-  const revenuePercent = 100;
-  const expensePercent = weeklyStats.revenue > 0 ? (weeklyStats.totalExpenses / weeklyStats.revenue) * 100 : 0;
-  const profitPercent = weeklyStats.revenue > 0 ? (weeklyStats.profit / weeklyStats.revenue) * 100 : 0;
-
 
   return (
-    <div className="flex flex-col">
-      <AppHeader />
-      <div className="flex-1 space-y-4 p-4 md:p-6">
-        <Card className="shadow-none border-0">
-            <CardHeader>
-                <CardDescription>{weekLabel}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className={`rounded-2xl p-6 shadow-lg ${isProfit ? 'profit-card-gradient' : 'loss-card-gradient'}`}>
-                    <div className="text-white/80 uppercase tracking-widest text-xs font-semibold">{t('this_weeks_profit')}</div>
-                    <div className="text-white text-4xl font-bold mt-2">
-                        <CountUp to={weeklyStats.profit} />
-                    </div>
-                    <div className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-sm text-white mt-4 w-fit">
-                        {weeklyStats.trend >= 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
-                        <span>{weeklyStats.trend}% {t('vs_last_week')}</span>
-                    </div>
-                </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white pb-24">
+      <div className="max-w-md mx-auto p-4">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-amber-400">
+                {currentBakery?.name || 'BISS'} Bakery
+              </h1>
+              <p className="text-slate-400 text-sm">Manager: {currentBakery?.manager}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/welcome')}
+              className="text-slate-400 hover:text-white"
+            >
+              Change Role
+            </Button>
+          </div>
+        </div>
 
-                <div className="space-y-4 pt-6">
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-baseline">
-                            <span className="text-lg font-semibold">{t('revenue')}</span>
-                            <span className="text-lg font-semibold font-currency">{formatUGX(weeklyStats.revenue)}</span>
-                        </div>
-                        <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
-                            <div className="bg-success h-full" style={{ width: `${revenuePercent}%` }} />
-                        </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                         <div className="flex justify-between items-baseline">
-                            <span className="text-lg font-semibold text-muted-foreground">- {t('expenses')}</span>
-                            <span className="text-lg font-semibold font-currency">{formatUGX(weeklyStats.totalExpenses)}</span>
-                        </div>
-                         <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
-                            <div className="bg-destructive/70 h-full" style={{ width: `${expensePercent}%` }} />
-                        </div>
-                    </div>
+        {/* Week Label */}
+        <div className="text-center mb-4">
+          <span className="text-sm text-slate-400">Week of {weekLabel}</span>
+        </div>
 
-                     <div className="border-t-2 border-dashed my-4" />
-
-                     <div className="space-y-2">
-                         <div className="flex justify-between items-baseline">
-                            <span className="text-xl font-bold text-primary">= {t('profit')}</span>
-                            <span className="text-xl font-bold font-currency text-primary">{formatUGX(weeklyStats.profit)}</span>
-                        </div>
-                         <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
-                            <div className="bg-primary h-full" style={{ width: `${profitPercent}%` }} />
-                        </div>
-                    </div>
-                </div>
-
-                {!weeklyStats.expensesEntered && (
-                    <Card className="mt-6 bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800">
-                        <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <AlertTriangle className="text-amber-500"/>
-                                <p className="font-semibold text-amber-700 dark:text-amber-300">{t('expenses_not_entered')}</p>
-                            </div>
-                            <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary">
-                                <Link href="/expenses">
-                                    {t('enter_expenses')} <ArrowRight className="ml-2 h-4 w-4"/>
-                                </Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {topProducts.length > 0 && (
-                    <div className="mt-8">
-                        <h3 className="text-xl font-bold mb-4">{t('top_products_this_week')}</h3>
-                        <div className="space-y-3">
-                            {topProducts.map((product, index) => (
-                                <div
-                                    key={product.id}
-                                    className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-2xl">{product.emoji}</span>
-                                        <div>
-                                            <p className="text-lg font-semibold">{product.name}</p>
-                                            <p className="text-sm text-muted-foreground">{product.quantity} {t('units_sold')}</p>
-                                        </div>
-                                    </div>
-                                    <span className="text-lg font-bold font-currency text-primary">
-                                        {formatUGX(product.revenue)}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {profitableProducts.length > 0 && (
-                    <div className="mt-8">
-                        <h3 className="text-xl font-bold mb-4">{t('product_profitability')}</h3>
-                        <p className="text-sm text-muted-foreground mb-4">{t('profit_per_kg_flour')}</p>
-                        <div className="space-y-3">
-                            {profitableProducts.map((product) => (
-                                <div
-                                    key={product.id}
-                                    className="p-4 bg-secondary/50 rounded-xl"
-                                >
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <span className="text-2xl">{product.emoji}</span>
-                                        <p className="text-lg font-semibold">{product.name}</p>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-2 text-center">
-                                        <div className="bg-background rounded-lg p-2">
-                                            <p className="text-xs text-muted-foreground">{t('revenue')}</p>
-                                            <p className="font-bold text-success font-currency">{formatUGX(product.revenuePerKg)}</p>
-                                        </div>
-                                        <div className="bg-background rounded-lg p-2">
-                                            <p className="text-xs text-muted-foreground">{t('cost')}</p>
-                                            <p className="font-bold text-destructive font-currency">{formatUGX(product.costPerKg)}</p>
-                                        </div>
-                                        <div className="bg-background rounded-lg p-2">
-                                            <p className="text-xs text-muted-foreground">{t('profit')}</p>
-                                            <p className="font-bold text-primary font-currency">{formatUGX(product.profitPerKg)}</p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-2 text-center">
-                                        <span className="text-sm font-semibold text-primary">{product.marginPercent}% {t('margin')}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-            </CardContent>
+        {/* Main Profit Card */}
+        <Card className={cn(
+          "p-6 rounded-2xl border-0 mb-6",
+          weeklyStats.profit >= 0
+            ? "bg-gradient-to-br from-emerald-600 to-emerald-800"
+            : "bg-gradient-to-br from-red-600 to-red-800"
+        )}>
+          <div className="text-white/80 text-sm font-medium mb-1">This Week's Profit</div>
+          <div className="text-4xl font-bold text-white font-currency mb-2">
+            {formatUGX(weeklyStats.profit)}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "text-sm font-medium",
+              weeklyStats.margin >= 20 ? 'text-green-200' :
+              weeklyStats.margin >= 10 ? 'text-amber-200' : 'text-red-200'
+            )}>
+              {weeklyStats.margin.toFixed(1)}% margin
+            </span>
+            <span className="text-white/60">•</span>
+            <span className="text-white/80 text-sm">
+              {weeklyStats.daysRecorded}/7 days recorded
+            </span>
+          </div>
         </Card>
+
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+            <div className="text-slate-400 text-sm mb-1">Production</div>
+            <div className="text-xl font-bold text-green-400 font-currency">
+              {formatUGX(weeklyStats.production)}
+            </div>
+          </Card>
+          <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+            <div className="text-slate-400 text-sm mb-1">Total Sales</div>
+            <div className="text-xl font-bold text-white font-currency">
+              {formatUGX(weeklyStats.sales)}
+            </div>
+          </Card>
+          <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+            <div className="text-slate-400 text-sm mb-1">Ingredient Costs</div>
+            <div className="text-xl font-bold text-red-400 font-currency">
+              {formatUGX(weeklyStats.costs)}
+            </div>
+          </Card>
+          <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+            <div className="text-slate-400 text-sm mb-1">Avg Margin</div>
+            <div className={cn(
+              "text-xl font-bold",
+              weeklyStats.margin >= 20 ? 'text-green-400' :
+              weeklyStats.margin >= 10 ? 'text-amber-400' : 'text-red-400'
+            )}>
+              {weeklyStats.margin.toFixed(1)}%
+            </div>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="space-y-3 mb-6">
+          <Button
+            onClick={() => router.push('/entry')}
+            className="w-full bg-amber-500 hover:bg-amber-600 text-white py-4 text-lg"
+          >
+            <ScrollText className="h-5 w-5 mr-2" />
+            Enter Today's Data
+          </Button>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={() => router.push('/summary')}
+              variant="outline"
+              className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+            >
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Summary
+            </Button>
+            <Button
+              onClick={() => router.push('/history')}
+              variant="outline"
+              className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              History
+            </Button>
+          </div>
+        </div>
+
+        {/* No Data State */}
+        {!hasData && (
+          <Card className="bg-amber-500/10 border border-amber-500/30 p-6 rounded-xl text-center">
+            <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-3" />
+            <h3 className="font-bold text-white mb-2">No data this week</h3>
+            <p className="text-slate-400 text-sm mb-4">
+              Start tracking your production and sales to see your progress
+            </p>
+            <Button
+              onClick={() => router.push('/entry')}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              Enter First Entry
+            </Button>
+          </Card>
+        )}
+
+        {/* Product Reference Table */}
+        <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+          <h3 className="font-bold text-white mb-4">Product Reference</h3>
+          <div className="space-y-3">
+            {PRODUCTS.map((product) => (
+              <div key={product.id} className="flex items-center justify-between py-2 border-b border-slate-700 last:border-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{product.emoji}</span>
+                  <div>
+                    <div className="font-medium text-white">{product.name}</div>
+                    <div className="text-xs text-slate-400">
+                      Cost: {formatUGX(product.costPerKgFlour)}/kg
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-green-400 font-currency">
+                    {formatUGX(product.revenuePerKgFlour)}/kg
+                  </div>
+                  <div className="text-xs text-amber-400">
+                    {getProductMarginPercent(product)}% margin
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Footer */}
+        <div className="mt-6 text-center text-sm text-slate-500">
+          Child Care Africa • Uganda
+        </div>
       </div>
     </div>
   );
