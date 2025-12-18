@@ -20,11 +20,11 @@ import type { DailyEntry } from '@/lib/types';
 
 type EntryType = 'production' | 'sales' | 'damages';
 
-const ProductCounter = ({ 
-    product, 
+const ProductCounter = ({
+    product,
     count,
-    onCountChange 
-}: { 
+    onCountChange
+}: {
     product: any,
     count: number,
     onCountChange: (newCount: number) => void
@@ -36,26 +36,49 @@ const ProductCounter = ({
         onCountChange(Math.max(0, count + amount));
     }
 
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        // Allow empty string for typing, treat as 0
+        if (value === '') {
+            onCountChange(0);
+            return;
+        }
+        const parsed = parseInt(value, 10);
+        if (!isNaN(parsed) && parsed >= 0) {
+            onCountChange(parsed);
+        }
+    }
+
     return (
         <Card className="p-4">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">{product.emoji} {product.name}</h3>
             </div>
             <div className="flex items-center gap-2 mb-4">
-                <Button 
-                    variant="accent" 
-                    size="icon" 
-                    className="rounded-full text-2xl font-bold" 
+                <Button
+                    variant="accent"
+                    size="icon"
+                    className="rounded-full text-2xl font-bold"
                     onClick={() => changeCount(-1)}
                     aria-label={t('decrease_count', { product: product.name })}
                 >
                     <Minus />
                 </Button>
-                <div className="font-currency text-3xl h-14 w-24 flex items-center justify-center rounded-md bg-secondary" aria-live="polite">{count}</div>
-                <Button 
-                    variant="accent" 
-                    size="icon" 
-                    className="rounded-full text-2xl font-bold" 
+                <input
+                    type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    min="0"
+                    value={count}
+                    onChange={handleInputChange}
+                    className="font-currency text-3xl h-14 w-24 flex items-center justify-center rounded-md bg-secondary text-center focus:outline-none focus:ring-2 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    aria-live="polite"
+                    aria-label={t('count_for_product', { product: product.name })}
+                />
+                <Button
+                    variant="accent"
+                    size="icon"
+                    className="rounded-full text-2xl font-bold"
                     onClick={() => changeCount(1)}
                     aria-label={t('increase_count', { product: product.name })}
                 >
