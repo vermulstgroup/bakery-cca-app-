@@ -10,10 +10,10 @@ import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from '@/hooks/use-translation';
 import Link from 'next/link';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { startOfWeek, endOfWeek, format as formatDate, parseISO } from 'date-fns';
+import { startOfWeek, endOfWeek, format as formatDate } from 'date-fns';
 import { PRODUCTS } from '@/lib/data';
 import type { DailyEntry, WeeklyExpense } from '@/lib/types';
-import { getAllDailyEntries, getAllWeeklyExpenses } from '@/lib/firebase/firestore';
+import { getDailyEntriesForDateRange, getWeeklyExpenses } from '@/lib/firebase/firestore';
 
 
 const CountUp = ({ to }: { to: number }) => {
@@ -63,37 +63,42 @@ export default function DashboardPage() {
     if (onboardingLoaded && onboardingData.bakery) {
       const loadData = async () => {
         setLoading(true);
+        const weekStartStr = formatDate(weekStart, 'yyyy-MM-dd');
+        const weekEndStr = formatDate(weekEnd, 'yyyy-MM-dd');
+
         try {
-          const [allEntries, allExpenses] = await Promise.all([
-            getAllDailyEntries(onboardingData.bakery as string),
-            getAllWeeklyExpenses(onboardingData.bakery as string)
+          // Only fetch current week's data for better performance
+          const [weekEntries, weekExpenseDoc] = await Promise.all([
+            getDailyEntriesForDateRange(onboardingData.bakery as string, weekStartStr, weekEndStr),
+            getWeeklyExpenses(onboardingData.bakery as string, weekStartStr)
           ]);
-          setEntries(allEntries);
-          setExpenses(allExpenses);
+          setEntries(weekEntries);
+          setExpenses(weekExpenseDoc ? [weekExpenseDoc] : []);
         } catch (e) {
-          // Fallback for offline or errors
+          // Fallback for offline or errors - filter localStorage to current week
           const localEntries: DailyEntry[] = [];
           Object.keys(localStorage).forEach(key => {
             if (key.startsWith(`daily_entry-${onboardingData.bakery}-`)) {
-              localEntries.push(JSON.parse(localStorage.getItem(key)!));
+              const entry = JSON.parse(localStorage.getItem(key)!);
+              // Filter to current week only
+              if (entry.date >= weekStartStr && entry.date <= weekEndStr) {
+                localEntries.push(entry);
+              }
             }
           });
           setEntries(localEntries);
 
-          const localExpenses: WeeklyExpense[] = [];
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith(`expenses-${onboardingData.bakery}-`)) {
-              localExpenses.push(JSON.parse(localStorage.getItem(key)!));
-            }
-          });
-          setExpenses(localExpenses);
+          // Get only current week's expenses
+          const expenseKey = `expenses-${onboardingData.bakery}-${weekStartStr}`;
+          const localExpense = localStorage.getItem(expenseKey);
+          setExpenses(localExpense ? [JSON.parse(localExpense)] : []);
         } finally {
             setLoading(false);
         }
       };
       loadData();
     }
-  }, [onboardingLoaded, onboardingData.bakery]);
+  }, [onboardingLoaded, onboardingData.bakery, weekStart, weekEnd]);
 
 
   const productPrices = useMemo(() => {
@@ -107,19 +112,11 @@ export default function DashboardPage() {
   }, [onboardingLoaded, onboardingData.products, onboardingData.prices]);
 
   const weeklyStats = useMemo(() => {
-    const thisWeeksEntries = entries.filter(e => {
-        try {
-            const entryDate = parseISO(e.date);
-            return entryDate >= weekStart && entryDate <= weekEnd;
-        } catch (err) {
-            return false;
-        }
-    });
-
-    const thisWeeksExpensesDoc = expenses.find(e => e.weekStartDate === formatDate(weekStart, 'yyyy-MM-dd'));
+    // entries already filtered to current week by the query
+    const thisWeeksExpensesDoc = expenses[0]; // We only fetch current week's expense
     const totalExpenses = thisWeeksExpensesDoc ? Object.values(thisWeeksExpensesDoc.expenses).reduce((sum, val) => sum + val, 0) : 0;
-    
-    const revenue = thisWeeksEntries.reduce((total, entry) => {
+
+    const revenue = entries.reduce((total, entry) => {
         const dayRevenue = Object.entries(entry.quantities.sales || {}).reduce((dayTotal, [productId, quantity]) => {
             return dayTotal + (quantity * (productPrices[productId] || 0));
         }, 0);
@@ -127,12 +124,39 @@ export default function DashboardPage() {
     }, 0);
 
     const profit = revenue - totalExpenses;
-    
+
     // TODO: Trend calculation logic needed
-    const trend = 12; 
+    const trend = 12;
 
     return { revenue, totalExpenses, profit, trend, expensesEntered: !!thisWeeksExpensesDoc };
-  }, [entries, expenses, productPrices, weekStart, weekEnd]);
+  }, [entries, expenses, productPrices]);
+
+  // Calculate top selling products this week
+  const topProducts = useMemo(() => {
+    const productSales: { [productId: string]: number } = {};
+
+    entries.forEach(entry => {
+      Object.entries(entry.quantities.sales || {}).forEach(([productId, quantity]) => {
+        productSales[productId] = (productSales[productId] || 0) + quantity;
+      });
+    });
+
+    // Sort by quantity sold and get top 5
+    const sorted = Object.entries(productSales)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5);
+
+    return sorted.map(([productId, quantity]) => {
+      const product = PRODUCTS.find(p => p.id === productId);
+      return {
+        id: productId,
+        name: product?.name || productId,
+        emoji: product?.emoji || '',
+        quantity,
+        revenue: quantity * (productPrices[productId] || 0)
+      };
+    });
+  }, [entries, productPrices]);
 
 
   const isLoading = !onboardingLoaded || loading;
@@ -243,6 +267,31 @@ export default function DashboardPage() {
                             </Button>
                         </CardContent>
                     </Card>
+                )}
+
+                {topProducts.length > 0 && (
+                    <div className="mt-8">
+                        <h3 className="text-xl font-bold mb-4">{t('top_products_this_week')}</h3>
+                        <div className="space-y-3">
+                            {topProducts.map((product, index) => (
+                                <div
+                                    key={product.id}
+                                    className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-2xl">{product.emoji}</span>
+                                        <div>
+                                            <p className="text-lg font-semibold">{product.name}</p>
+                                            <p className="text-sm text-muted-foreground">{product.quantity} {t('units_sold')}</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-lg font-bold font-currency text-primary">
+                                        {formatUGX(product.revenue)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 )}
 
             </CardContent>
