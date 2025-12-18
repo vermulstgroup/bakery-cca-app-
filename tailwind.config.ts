@@ -64,9 +64,19 @@ export default {
         },
         success: {
           DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
         },
-        loss: {
-          DEFAULT: 'hsl(var(--loss))',
+        // Role-specific colors
+        role: {
+          manager: 'hsl(var(--role-manager))',
+          strategic: 'hsl(var(--role-strategic))',
+          supervisor: 'hsl(var(--role-supervisor))',
+        },
+        // Product colors
+        product: {
+          mandazi: 'hsl(var(--product-mandazi))',
+          daddies: 'hsl(var(--product-daddies))',
+          cookies: 'hsl(var(--product-cookies))',
         },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

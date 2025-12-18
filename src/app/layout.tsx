@@ -40,8 +40,8 @@ export default function RootLayout({
         <TranslationProvider>
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
-            enableSystem
+            defaultTheme="dark"
+            forcedTheme="dark"
             disableTransitionOnChange
           >
             {children}
