@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ROLES } from '@/lib/data';
 import type { RoleId, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -11,14 +11,8 @@ import { CheckCircle2 } from 'lucide-react';
 
 export default function WelcomePage() {
   const router = useRouter();
-  const { data, updateData, userId } = useOnboarding();
+  const { data, updateData } = useOnboarding();
   const [selectedRole, setSelectedRole] = useState<RoleId | ''>(data.role || '');
-
-  useEffect(() => {
-    if (userId) {
-      updateData({ userId });
-    }
-  }, [userId, updateData]);
 
   const handleRoleSelect = (roleId: RoleId) => {
     setSelectedRole(roleId);
