@@ -43,28 +43,6 @@ export default function WelcomePage() {
 
         <div className='w-full space-y-8 text-left'>
             <div>
-                <h2 className='text-xl font-semibold ml-1 mb-3 block'>{t('select_your_bakery')}</h2>
-                <div className="space-y-2">
-                {BAKERIES.map((bakery) => {
-                  const isSelected = selectedBakery === bakery.id;
-                  return (
-                    <Card
-                      key={bakery.id}
-                      onClick={() => setSelectedBakery(bakery.id)}
-                      className={cn(
-                        'cursor-pointer p-4 transition-all flex items-center justify-between',
-                        isSelected && 'bg-primary/10 border-primary ring-2 ring-primary'
-                      )}
-                    >
-                      <span className="text-base font-medium">{bakery.name}</span>
-                      {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
-                    </Card>
-                  );
-                })}
-                </div>
-            </div>
-            
-            <div>
                  <h2 className='text-xl font-semibold ml-1 mb-3 block'>{t('select_your_role')}</h2>
                  <div className="space-y-2">
                     {Object.values(ROLES).map((role: UserRole) => {
@@ -87,6 +65,28 @@ export default function WelcomePage() {
                             </Card>
                         )
                     })}
+                </div>
+            </div>
+
+            <div>
+                <h2 className='text-xl font-semibold ml-1 mb-3 block'>{t('select_your_bakery')}</h2>
+                <div className="space-y-2">
+                {BAKERIES.map((bakery) => {
+                  const isSelected = selectedBakery === bakery.id;
+                  return (
+                    <Card
+                      key={bakery.id}
+                      onClick={() => setSelectedBakery(bakery.id)}
+                      className={cn(
+                        'cursor-pointer p-4 transition-all flex items-center justify-between',
+                        isSelected && 'bg-primary/10 border-primary ring-2 ring-primary'
+                      )}
+                    >
+                      <span className="text-base font-medium">{bakery.name}</span>
+                      {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                    </Card>
+                  );
+                })}
                 </div>
             </div>
         </div>
