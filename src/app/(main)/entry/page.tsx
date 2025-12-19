@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Save, TrendingUp, TrendingDown, Calculator, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, TrendingUp, TrendingDown, Calculator, CheckCircle2, AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -28,11 +28,13 @@ const ProductionInput = ({
   product,
   kgFlour,
   onKgFlourChange,
+  onClear,
   disabled = false,
 }: {
   product: typeof PRODUCTS[0];
   kgFlour: number;
   onKgFlourChange: (kg: number) => void;
+  onClear: () => void;
   disabled?: boolean;
 }) => {
   const productionValue = kgFlour * product.revenuePerKgFlour;
@@ -57,23 +59,34 @@ const ProductionInput = ({
       <div className="mb-4">
         <label className="text-sm text-slate-400 mb-2 block">Flour Used (kg)</label>
         <div className="flex items-center gap-2">
-          <input
-            type="number"
-            inputMode="decimal"
-            step="0.5"
-            min="0"
-            value={kgFlour || ''}
-            onChange={(e) => {
-              const val = parseFloat(e.target.value);
-              onKgFlourChange(isNaN(val) ? 0 : val);
-            }}
-            disabled={disabled}
-            placeholder="0"
-            className={cn(
-              "flex-1 h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-              disabled && "opacity-50 cursor-not-allowed"
+          <div className="relative flex-1">
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.5"
+              min="0"
+              value={kgFlour}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                onKgFlourChange(isNaN(val) ? 0 : val);
+              }}
+              disabled={disabled}
+              placeholder="0"
+              className={cn(
+                "w-full h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none pr-10",
+                disabled && "opacity-50 cursor-not-allowed"
+              )}
+            />
+            {kgFlour > 0 && !disabled && (
+              <button
+                onClick={onClear}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-white transition-colors"
+                aria-label="Clear value"
+              >
+                <X className="h-5 w-5" />
+              </button>
             )}
-          />
+          </div>
           <span className="text-slate-400 font-medium">kg</span>
         </div>
         {/* Quick add buttons */}
@@ -127,12 +140,14 @@ const SalesInput = ({
   productionValue,
   salesAmount,
   onSalesChange,
+  onClear,
   disabled = false,
 }: {
   product: typeof PRODUCTS[0];
   productionValue: number;
   salesAmount: number;
   onSalesChange: (amount: number) => void;
+  onClear: () => void;
   disabled?: boolean;
 }) => {
   const salesPercent = productionValue > 0 ? (salesAmount / productionValue) * 100 : 0;
@@ -157,23 +172,34 @@ const SalesInput = ({
       {/* Sales UGX Input */}
       <div className="mb-4">
         <label className="text-sm text-slate-400 mb-2 block">Sales Amount (UGX)</label>
-        <input
-          type="number"
-          inputMode="numeric"
-          min="0"
-          step="1000"
-          value={salesAmount || ''}
-          onChange={(e) => {
-            const val = parseInt(e.target.value, 10);
-            onSalesChange(isNaN(val) ? 0 : val);
-          }}
-          disabled={disabled}
-          placeholder="0"
-          className={cn(
-            "w-full h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-green-500 focus:ring-2 focus:ring-green-500/30 outline-none font-currency [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-            disabled && "opacity-50 cursor-not-allowed"
+        <div className="relative">
+          <input
+            type="number"
+            inputMode="numeric"
+            min="0"
+            step="1000"
+            value={salesAmount}
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              onSalesChange(isNaN(val) ? 0 : val);
+            }}
+            disabled={disabled}
+            placeholder="0"
+            className={cn(
+              "w-full h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-green-500 focus:ring-2 focus:ring-green-500/30 outline-none font-currency [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none pr-10",
+              disabled && "opacity-50 cursor-not-allowed"
+            )}
+          />
+          {salesAmount > 0 && !disabled && (
+            <button
+              onClick={onClear}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-white transition-colors"
+              aria-label="Clear value"
+            >
+              <X className="h-5 w-5" />
+            </button>
           )}
-        />
+        </div>
         {/* Quick add buttons */}
         <div className="flex gap-2 mt-2">
           {[10000, 25000, 50000, 100000].map((val) => (
@@ -539,6 +565,7 @@ export default function ProductionEntryPage() {
                 product={product}
                 kgFlour={production[product.id]?.kgFlour || 0}
                 onKgFlourChange={(kg) => handleKgFlourChange(product.id, kg)}
+                onClear={() => handleKgFlourChange(product.id, 0)}
                 disabled={saveStatus === 'saving'}
               />
             ))}
@@ -560,6 +587,7 @@ export default function ProductionEntryPage() {
                 productionValue={production[product.id]?.productionValueUGX || 0}
                 salesAmount={sales[product.id] || 0}
                 onSalesChange={(amount) => handleSalesChange(product.id, amount)}
+                onClear={() => handleSalesChange(product.id, 0)}
                 disabled={saveStatus === 'saving'}
               />
             ))}

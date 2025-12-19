@@ -7,15 +7,17 @@ import { useState } from 'react';
 import { ROLES } from '@/lib/data';
 import type { RoleId, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 
 export default function WelcomePage() {
   const router = useRouter();
   const { data, updateData } = useOnboarding();
   const [selectedRole, setSelectedRole] = useState<RoleId | ''>(data.role || '');
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleRoleSelect = (roleId: RoleId) => {
     setSelectedRole(roleId);
+    setIsNavigating(true);
     updateData({ role: roleId });
 
     // Route based on role
@@ -73,10 +75,11 @@ export default function WelcomePage() {
             return (
               <Card
                 key={role.id}
-                onClick={() => handleRoleSelect(role.id)}
+                onClick={() => !isNavigating && handleRoleSelect(role.id)}
                 className={cn(
                   'cursor-pointer p-5 transition-all bg-slate-800/50 backdrop-blur-sm border-2',
                   'hover:bg-slate-800/70 active:scale-[0.98]',
+                  isNavigating && 'opacity-50 pointer-events-none',
                   getRoleBorderClass(role.id),
                   isSelected && 'ring-2 ring-offset-2 ring-offset-slate-900',
                   isSelected && role.id === 'bakery-manager' && 'ring-amber-500 border-amber-500',
@@ -93,7 +96,11 @@ export default function WelcomePage() {
                     <p className="text-sm text-slate-400 mt-1">{role.description}</p>
                   </div>
                   {isSelected && (
-                    <CheckCircle2 className={cn('h-6 w-6 shrink-0', getRoleAccentClass(role.id))} />
+                    isNavigating ? (
+                      <Loader2 className={cn('h-6 w-6 shrink-0 animate-spin', getRoleAccentClass(role.id))} />
+                    ) : (
+                      <CheckCircle2 className={cn('h-6 w-6 shrink-0', getRoleAccentClass(role.id))} />
+                    )
                   )}
                 </div>
               </Card>
