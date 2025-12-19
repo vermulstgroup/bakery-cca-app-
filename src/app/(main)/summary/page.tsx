@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, TrendingUp, TrendingDown, Package, DollarSign, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Package, DollarSign, AlertTriangle, GraduationCap, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PRODUCTS, BAKERIES, getProductMarginPercent } from '@/lib/data';
@@ -123,6 +123,14 @@ export default function SummaryPage() {
     ? ((todayTotals.profit - yesterdayTotals.profit) / Math.abs(yesterdayTotals.profit || 1)) * 100
     : null;
 
+  // Mission impact: 20,000 UGX = 1 school day funded
+  const COST_PER_SCHOOL_DAY = 20000;
+  const todaySchoolDays = todayTotals.profit > 0 ? Math.floor(todayTotals.profit / COST_PER_SCHOOL_DAY) : 0;
+  const weekSchoolDays = weekTotals.profit > 0 ? Math.floor(weekTotals.profit / COST_PER_SCHOOL_DAY) : 0;
+
+  // Celebration threshold: profit > 40,000 UGX
+  const showCelebration = todayTotals.profit >= 40000;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 pb-24">
       <div className="max-w-md mx-auto">
@@ -216,6 +224,44 @@ export default function SummaryPage() {
                 <span className="text-slate-400">Ingredient Costs</span>
                 <span className="text-red-400 font-currency">{formatUGX(todayTotals.ingredientCost)}</span>
               </div>
+
+              {/* Mission Impact */}
+              {todaySchoolDays > 0 && (
+                <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg p-4 border border-blue-500/30">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-500/30 p-2 rounded-full">
+                      <GraduationCap className="h-6 w-6 text-blue-400" />
+                    </div>
+                    <div>
+                      <div className="text-sm text-blue-300">Mission Impact</div>
+                      <div className="text-xl font-bold text-white">
+                        {todaySchoolDays} school day{todaySchoolDays !== 1 ? 's' : ''} funded
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        Supporting children's education in Uganda
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Profit Celebration */}
+              {showCelebration && (
+                <div className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 rounded-lg p-4 border border-amber-500/30 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="text-4xl">🎉</div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-amber-400" />
+                        <span className="font-bold text-amber-300">Great day for the children!</span>
+                      </div>
+                      <div className="text-sm text-slate-300">
+                        Today's profit is making a real difference
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-6">
@@ -334,6 +380,19 @@ export default function SummaryPage() {
               />
             </div>
           </div>
+
+          {/* Week Mission Impact */}
+          {weekSchoolDays > 0 && (
+            <div className="mt-4 pt-4 border-t border-slate-700">
+              <div className="flex items-center gap-3 bg-blue-500/10 rounded-lg p-3">
+                <GraduationCap className="h-5 w-5 text-blue-400" />
+                <div>
+                  <span className="text-blue-300 font-bold">{weekSchoolDays} school days</span>
+                  <span className="text-slate-400 text-sm ml-1">funded this week</span>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
 
         {/* Action Button */}

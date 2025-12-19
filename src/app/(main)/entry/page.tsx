@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Save, TrendingUp, Calculator } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, TrendingUp, Calculator, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PRODUCTS, BAKERIES, getProductMargin, getProductMarginPercent } from '@/lib/data';
@@ -305,13 +305,19 @@ export default function ProductionEntryPage() {
       await saveDailyEntry(onboardingData.bakery, dataToSave);
 
       setSaveStatus('saved');
+
+      // Haptic feedback on save success
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+      }
+
       toast({
-        title: 'Saved successfully',
+        title: '✓ Saved successfully',
         description: `Entry saved for ${format(date, 'MMMM d')}`,
         className: "bg-green-600 text-white border-none"
       });
 
-      setTimeout(() => setSaveStatus('idle'), 2000);
+      setTimeout(() => setSaveStatus('idle'), 3000);
     } catch {
       toast({
         variant: 'destructive',
@@ -356,12 +362,20 @@ export default function ProductionEntryPage() {
           <Button
             onClick={handleSave}
             disabled={saveStatus === 'saving'}
-            className="bg-green-600 hover:bg-green-700 text-white"
+            className={cn(
+              "transition-all duration-300",
+              saveStatus === 'saved'
+                ? "bg-emerald-500 hover:bg-emerald-500"
+                : "bg-green-600 hover:bg-green-700"
+            )}
           >
             {saveStatus === 'saving' ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : saveStatus === 'saved' ? (
-              '✓ Saved'
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                Saved
+              </>
             ) : (
               <>
                 <Save className="h-4 w-4 mr-1" />
@@ -563,18 +577,26 @@ export default function ProductionEntryPage() {
             onClick={handleSave}
             disabled={saveStatus === 'saving'}
             size="lg"
-            className="bg-green-600 hover:bg-green-700 text-white px-8"
+            className={cn(
+              "px-8 transition-all duration-300",
+              saveStatus === 'saved'
+                ? "bg-emerald-500 hover:bg-emerald-500 scale-105"
+                : "bg-green-600 hover:bg-green-700"
+            )}
           >
             {saveStatus === 'saving' ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                 Saving...
               </>
             ) : saveStatus === 'saved' ? (
-              '✓ Saved!'
+              <>
+                <CheckCircle2 className="h-5 w-5 mr-2 animate-bounce" />
+                Saved!
+              </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-5 w-5 mr-2" />
                 Save Entry
               </>
             )}
