@@ -327,7 +327,7 @@ export default function SummaryPage() {
               <span>Days recorded</span>
               <span>{weekTotals.daysRecorded}/7</span>
             </div>
-            <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
               <div
                 className="h-full bg-amber-500 transition-all"
                 style={{ width: `${(weekTotals.daysRecorded / 7) * 100}%` }}

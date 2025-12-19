@@ -122,3 +122,9 @@ export const getProductMargin = (product: Product): number => {
 export const getProductMarginPercent = (product: Product): number => {
   return Math.round(((product.revenuePerKgFlour - product.costPerKgFlour) / product.revenuePerKgFlour) * 100);
 };
+
+// Validation limits for input fields
+export const VALIDATION_LIMITS = {
+  MAX_KG_FLOUR: 1000,        // Maximum kg of flour per product per day
+  MAX_SALES_UGX: 50000000,   // Maximum sales per product per day (50M UGX)
+} as const;

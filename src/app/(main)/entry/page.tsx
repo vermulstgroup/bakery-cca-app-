@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PRODUCTS, BAKERIES, getProductMargin, getProductMarginPercent } from '@/lib/data';
+import { PRODUCTS, BAKERIES, getProductMargin, getProductMarginPercent, VALIDATION_LIMITS } from '@/lib/data';
 import { formatUGX, cn } from '@/lib/utils';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { saveDailyEntry, getDailyEntry } from '@/lib/firebase/firestore';
@@ -205,7 +205,7 @@ const SalesInput = ({
               {salesPercent.toFixed(0)}%
             </span>
           </div>
-          <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+          <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
             <div
               className={cn("h-full transition-all duration-300", getProgressColor())}
               style={{ width: `${Math.min(salesPercent, 100)}%` }}
@@ -303,12 +303,22 @@ export default function ProductionEntryPage() {
     loadData();
   }, [isLoaded, onboardingData.bakery, date]);
 
-  // Handle kg flour change for a product (with negative validation)
+  // Handle kg flour change for a product (with validation)
   const handleKgFlourChange = useCallback((productId: string, kgFlour: number) => {
     const product = PRODUCTS.find(p => p.id === productId);
     if (!product) return;
 
-    const safeValue = Math.max(0, kgFlour); // Clamp to 0 minimum
+    // Clamp to valid range
+    let safeValue = Math.max(0, kgFlour);
+    if (safeValue > VALIDATION_LIMITS.MAX_KG_FLOUR) {
+      safeValue = VALIDATION_LIMITS.MAX_KG_FLOUR;
+      toast({
+        title: 'Maximum exceeded',
+        description: `Max flour is ${VALIDATION_LIMITS.MAX_KG_FLOUR} kg per product`,
+        variant: 'destructive'
+      });
+    }
+
     setProduction(prev => ({
       ...prev,
       [productId]: {
@@ -317,16 +327,26 @@ export default function ProductionEntryPage() {
         ingredientCostUGX: safeValue * product.costPerKgFlour,
       },
     }));
-  }, []);
+  }, [toast]);
 
-  // Handle sales change for a product (with negative validation)
+  // Handle sales change for a product (with validation)
   const handleSalesChange = useCallback((productId: string, amount: number) => {
-    const safeValue = Math.max(0, amount); // Clamp to 0 minimum
+    // Clamp to valid range
+    let safeValue = Math.max(0, amount);
+    if (safeValue > VALIDATION_LIMITS.MAX_SALES_UGX) {
+      safeValue = VALIDATION_LIMITS.MAX_SALES_UGX;
+      toast({
+        title: 'Maximum exceeded',
+        description: `Max sales is ${formatUGX(VALIDATION_LIMITS.MAX_SALES_UGX)} per product`,
+        variant: 'destructive'
+      });
+    }
+
     setSales(prev => ({
       ...prev,
       [productId]: safeValue,
     }));
-  }, []);
+  }, [toast]);
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -711,6 +731,32 @@ export default function ProductionEntryPage() {
           </Button>
         </div>
       </div>
+
+      {/* Unsaved Changes Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent className="bg-slate-800 border-slate-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Unsaved Changes
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              You have unsaved changes. Are you sure you want to leave? Your data will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+              Stay
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => router.push('/dashboard')}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Leave Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

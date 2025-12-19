@@ -227,10 +227,13 @@ export default function HistoryPage() {
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-2 h-2 rounded-full",
-                        totals.profit >= 0 ? 'bg-green-500' : 'bg-red-500'
-                      )} />
+                      <div className="flex items-center justify-center w-6 h-6">
+                        {totals.profit >= 0 ? (
+                          <TrendingUp className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 text-red-500" />
+                        )}
+                      </div>
                       <div className="text-left">
                         <div className="font-medium text-white">
                           {format(parseISO(entry.date), 'EEE, MMM d')}

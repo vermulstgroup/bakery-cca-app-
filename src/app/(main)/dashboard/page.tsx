@@ -3,7 +3,7 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatUGX, cn } from '@/lib/utils';
-import { ArrowUp, ArrowDown, FileText, Loader2, AlertTriangle, ArrowRight, TrendingUp, Calendar, ScrollText } from 'lucide-react';
+import { ArrowUp, ArrowDown, FileText, Loader2, AlertTriangle, ArrowRight, TrendingUp, TrendingDown, Calendar, ScrollText } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -152,9 +152,16 @@ export default function DashboardPage() {
             ? "bg-gradient-to-br from-emerald-600 to-emerald-800"
             : "bg-gradient-to-br from-red-600 to-red-800"
         )}>
-          <div className="text-white/80 text-sm font-medium mb-1">This Week's Profit</div>
-          <div className="text-4xl font-bold text-white font-currency mb-2">
-            {formatUGX(weeklyStats.profit)}
+          <div className="text-white/80 text-sm font-medium mb-1 flex items-center gap-2">
+            {weeklyStats.profit >= 0 ? (
+              <TrendingUp className="h-4 w-4" />
+            ) : (
+              <TrendingDown className="h-4 w-4" />
+            )}
+            This Week's {weeklyStats.profit >= 0 ? 'Profit' : 'Loss'}
+          </div>
+          <div className="text-4xl font-bold text-white font-currency mb-2 flex items-center gap-2">
+            {weeklyStats.profit >= 0 ? '+' : ''}{formatUGX(weeklyStats.profit)}
           </div>
           <div className="flex items-center gap-2">
             <span className={cn(
@@ -174,7 +181,10 @@ export default function DashboardPage() {
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
-            <div className="text-slate-400 text-sm mb-1">Production</div>
+            <div className="text-slate-400 text-sm mb-1 flex items-center gap-1">
+              <ArrowUp className="h-3 w-3 text-green-400" />
+              Production
+            </div>
             <div className="text-xl font-bold text-green-400 font-currency">
               {formatUGX(weeklyStats.production)}
             </div>
@@ -186,7 +196,10 @@ export default function DashboardPage() {
             </div>
           </Card>
           <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
-            <div className="text-slate-400 text-sm mb-1">Ingredient Costs</div>
+            <div className="text-slate-400 text-sm mb-1 flex items-center gap-1">
+              <ArrowDown className="h-3 w-3 text-red-400" />
+              Ingredient Costs
+            </div>
             <div className="text-xl font-bold text-red-400 font-currency">
               {formatUGX(weeklyStats.costs)}
             </div>
