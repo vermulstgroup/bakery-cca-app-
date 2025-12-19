@@ -4,8 +4,8 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { TranslationProvider } from '@/providers/translation-provider';
 
-const APP_NAME = "BISS Bakery App";
-const APP_DESCRIPTION = "Track your bakery's production, sales, and profits";
+const APP_NAME = "BISS Bakery - Child Care Africa";
+const APP_DESCRIPTION = "Bakery management for Child Care Africa Uganda - Track production, sales, and profits";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,

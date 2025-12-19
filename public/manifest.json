@@ -1,7 +1,7 @@
 {
-  "name": "BISS Bakery App",
+  "name": "BISS Bakery - Child Care Africa",
   "short_name": "BISS Bakery",
-  "description": "Track your bakery's production, sales, and profits",
+  "description": "Bakery management for Child Care Africa Uganda - Track production, sales, and profits",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FAFAF9",
