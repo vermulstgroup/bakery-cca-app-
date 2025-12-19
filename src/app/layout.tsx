@@ -34,7 +34,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-        <link rel="icon" href="/icons/icon-192x192.png" />
+        <link rel="icon" href="/icons/bread-icon.svg" type="image/svg+xml" />
       </head>
       <body className="font-body antialiased min-h-svh">
         <TranslationProvider>

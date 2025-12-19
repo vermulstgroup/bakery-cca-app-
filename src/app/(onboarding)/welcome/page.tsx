@@ -64,7 +64,7 @@ export default function WelcomePage() {
         {/* Header */}
         <div className="text-center mb-10">
           <span className="text-6xl mb-4 block">🍞</span>
-          <h1 className="text-3xl font-bold text-white mb-2">BISS Bakery Tracker</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Bakery CCA</h1>
           <p className="text-slate-400">Production & Sales Management</p>
         </div>
 

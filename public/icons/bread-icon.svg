@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#F59E0B"/>
+
+  <!-- Bread loaf body -->
+  <ellipse cx="50" cy="58" rx="32" ry="22" fill="#92400E"/>
+
+  <!-- Bread top (golden crust) -->
+  <ellipse cx="50" cy="48" rx="28" ry="18" fill="#D97706"/>
+
+  <!-- Bread highlight -->
+  <ellipse cx="50" cy="44" rx="22" ry="12" fill="#FBBF24"/>
+
+  <!-- Score marks on bread -->
+  <path d="M35 46 Q40 42 45 46" stroke="#92400E" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M45 44 Q50 40 55 44" stroke="#92400E" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M55 46 Q60 42 65 46" stroke="#92400E" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>
