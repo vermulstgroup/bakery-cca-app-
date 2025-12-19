@@ -1,10 +1,20 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Save, TrendingUp, Calculator, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, TrendingUp, TrendingDown, Calculator, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PRODUCTS, BAKERIES, getProductMargin, getProductMarginPercent } from '@/lib/data';
 import { formatUGX, cn } from '@/lib/utils';
 import { useOnboarding } from '@/hooks/use-onboarding';
@@ -18,10 +28,12 @@ const ProductionInput = ({
   product,
   kgFlour,
   onKgFlourChange,
+  disabled = false,
 }: {
   product: typeof PRODUCTS[0];
   kgFlour: number;
   onKgFlourChange: (kg: number) => void;
+  disabled?: boolean;
 }) => {
   const productionValue = kgFlour * product.revenuePerKgFlour;
   const ingredientCost = kgFlour * product.costPerKgFlour;
@@ -55,8 +67,12 @@ const ProductionInput = ({
               const val = parseFloat(e.target.value);
               onKgFlourChange(isNaN(val) ? 0 : val);
             }}
+            disabled={disabled}
             placeholder="0"
-            className="flex-1 h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className={cn(
+              "flex-1 h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+              disabled && "opacity-50 cursor-not-allowed"
+            )}
           />
           <span className="text-slate-400 font-medium">kg</span>
         </div>
@@ -66,7 +82,11 @@ const ProductionInput = ({
             <button
               key={val}
               onClick={() => onKgFlourChange(kgFlour + val)}
-              className="flex-1 py-2 text-sm font-medium bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition-colors"
+              disabled={disabled}
+              className={cn(
+                "flex-1 h-12 text-sm font-medium bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition-colors",
+                disabled && "opacity-50 cursor-not-allowed hover:bg-slate-700"
+              )}
             >
               +{val}
             </button>
@@ -78,15 +98,21 @@ const ProductionInput = ({
       {kgFlour > 0 && (
         <div className="space-y-2 pt-3 border-t border-slate-700">
           <div className="flex justify-between text-sm">
-            <span className="text-slate-400">Production Value</span>
-            <span className="text-green-400 font-bold font-currency">{formatUGX(productionValue)}</span>
+            <span className="text-slate-300">Production Value</span>
+            <span className="text-green-400 font-bold font-currency flex items-center gap-1">
+              <TrendingUp className="h-4 w-4" />
+              {formatUGX(productionValue)}
+            </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-slate-400">Ingredient Cost</span>
-            <span className="text-red-400 font-currency">{formatUGX(ingredientCost)}</span>
+            <span className="text-slate-300">Ingredient Cost</span>
+            <span className="text-red-400 font-currency flex items-center gap-1">
+              <TrendingDown className="h-4 w-4" />
+              {formatUGX(ingredientCost)}
+            </span>
           </div>
           <div className="flex justify-between text-sm font-bold">
-            <span className="text-slate-300">Expected Profit</span>
+            <span className="text-slate-200">Expected Profit</span>
             <span className="text-amber-400 font-currency">{formatUGX(profit)}</span>
           </div>
         </div>
@@ -101,11 +127,13 @@ const SalesInput = ({
   productionValue,
   salesAmount,
   onSalesChange,
+  disabled = false,
 }: {
   product: typeof PRODUCTS[0];
   productionValue: number;
   salesAmount: number;
   onSalesChange: (amount: number) => void;
+  disabled?: boolean;
 }) => {
   const salesPercent = productionValue > 0 ? (salesAmount / productionValue) * 100 : 0;
   const getProgressColor = () => {
@@ -139,8 +167,12 @@ const SalesInput = ({
             const val = parseInt(e.target.value, 10);
             onSalesChange(isNaN(val) ? 0 : val);
           }}
+          disabled={disabled}
           placeholder="0"
-          className="w-full h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-green-500 focus:ring-2 focus:ring-green-500/30 outline-none font-currency [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          className={cn(
+            "w-full h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-green-500 focus:ring-2 focus:ring-green-500/30 outline-none font-currency [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+            disabled && "opacity-50 cursor-not-allowed"
+          )}
         />
         {/* Quick add buttons */}
         <div className="flex gap-2 mt-2">
@@ -148,7 +180,11 @@ const SalesInput = ({
             <button
               key={val}
               onClick={() => onSalesChange(salesAmount + val)}
-              className="flex-1 py-2 text-xs font-medium bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition-colors"
+              disabled={disabled}
+              className={cn(
+                "flex-1 h-12 text-sm font-medium bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition-colors",
+                disabled && "opacity-50 cursor-not-allowed hover:bg-slate-700"
+              )}
             >
               +{(val / 1000)}k
             </button>
@@ -188,6 +224,9 @@ export default function ProductionEntryPage() {
   const [activeTab, setActiveTab] = useState<'production' | 'sales' | 'summary'>('production');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [date] = useState(new Date());
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const initialDataLoaded = useRef(false);
 
   const currentBakery = BAKERIES.find(b => b.id === onboardingData.bakery);
 
@@ -195,6 +234,45 @@ export default function ProductionEntryPage() {
   const [production, setProduction] = useState<{ [productId: string]: ProductionItem }>({});
   // Sales data state (UGX per product)
   const [sales, setSales] = useState<{ [productId: string]: number }>({});
+
+  // Track dirty state when user makes changes (after initial load)
+  useEffect(() => {
+    if (initialDataLoaded.current) {
+      const hasAnyData = Object.values(production).some(p => p.kgFlour > 0) ||
+                        Object.values(sales).some(s => s > 0);
+      if (hasAnyData) {
+        setIsDirty(true);
+      }
+    }
+  }, [production, sales]);
+
+  // Warn before leaving page with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty && saveStatus !== 'saved') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty, saveStatus]);
+
+  // Handle back navigation with unsaved changes
+  const handleBack = () => {
+    if (isDirty && saveStatus !== 'saved') {
+      setShowExitDialog(true);
+    } else {
+      router.push('/dashboard');
+    }
+  };
+
+  // Redirect to bakery selection if no bakery selected
+  useEffect(() => {
+    if (isLoaded && !onboardingData.bakery) {
+      router.replace('/select-bakery');
+    }
+  }, [isLoaded, onboardingData.bakery, router]);
 
   // Load existing data for today
   useEffect(() => {
@@ -219,32 +297,36 @@ export default function ProductionEntryPage() {
           if (data.sales) setSales(data.sales);
         }
       }
+      // Mark initial data as loaded so we can track changes
+      initialDataLoaded.current = true;
     };
     loadData();
   }, [isLoaded, onboardingData.bakery, date]);
 
-  // Handle kg flour change for a product
-  const handleKgFlourChange = (productId: string, kgFlour: number) => {
+  // Handle kg flour change for a product (with negative validation)
+  const handleKgFlourChange = useCallback((productId: string, kgFlour: number) => {
     const product = PRODUCTS.find(p => p.id === productId);
     if (!product) return;
 
+    const safeValue = Math.max(0, kgFlour); // Clamp to 0 minimum
     setProduction(prev => ({
       ...prev,
       [productId]: {
-        kgFlour,
-        productionValueUGX: kgFlour * product.revenuePerKgFlour,
-        ingredientCostUGX: kgFlour * product.costPerKgFlour,
+        kgFlour: safeValue,
+        productionValueUGX: safeValue * product.revenuePerKgFlour,
+        ingredientCostUGX: safeValue * product.costPerKgFlour,
       },
     }));
-  };
+  }, []);
 
-  // Handle sales change for a product
-  const handleSalesChange = (productId: string, amount: number) => {
+  // Handle sales change for a product (with negative validation)
+  const handleSalesChange = useCallback((productId: string, amount: number) => {
+    const safeValue = Math.max(0, amount); // Clamp to 0 minimum
     setSales(prev => ({
       ...prev,
-      [productId]: amount,
+      [productId]: safeValue,
     }));
-  };
+  }, []);
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -273,6 +355,13 @@ export default function ProductionEntryPage() {
     };
   }, [production, sales]);
 
+  // Check if there's any data to save
+  const hasData = useMemo(() => {
+    const hasProduction = Object.values(production).some(p => p.kgFlour > 0);
+    const hasSales = Object.values(sales).some(s => s > 0);
+    return hasProduction || hasSales;
+  }, [production, sales]);
+
   // Save handler
   const handleSave = async () => {
     if (!onboardingData.bakery) {
@@ -298,13 +387,21 @@ export default function ProductionEntryPage() {
     };
 
     try {
-      // Save to localStorage first
+      // Save to localStorage first (always succeeds)
       localStorage.setItem(`biss-entry-${onboardingData.bakery}-${dateString}`, JSON.stringify(dataToSave));
 
-      // Save to Firestore
-      await saveDailyEntry(onboardingData.bakery, dataToSave);
+      // Save to Firestore with timeout to prevent UI hanging
+      const saveWithTimeout = Promise.race([
+        saveDailyEntry(onboardingData.bakery, dataToSave),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Save timeout')), 5000)
+        )
+      ]);
+
+      await saveWithTimeout;
 
       setSaveStatus('saved');
+      setIsDirty(false); // Reset dirty state on successful save
 
       // Haptic feedback on save success
       if (navigator.vibrate) {
@@ -345,7 +442,7 @@ export default function ProductionEntryPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push('/dashboard')}
+              onClick={handleBack}
               className="-ml-2 text-slate-400 hover:text-white"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
@@ -361,11 +458,13 @@ export default function ProductionEntryPage() {
           </div>
           <Button
             onClick={handleSave}
-            disabled={saveStatus === 'saving'}
+            disabled={saveStatus === 'saving' || !hasData}
             className={cn(
               "transition-all duration-300",
               saveStatus === 'saved'
                 ? "bg-emerald-500 hover:bg-emerald-500"
+                : !hasData
+                ? "bg-slate-600 hover:bg-slate-600 opacity-50"
                 : "bg-green-600 hover:bg-green-700"
             )}
           >
@@ -420,6 +519,7 @@ export default function ProductionEntryPage() {
                 product={product}
                 kgFlour={production[product.id]?.kgFlour || 0}
                 onKgFlourChange={(kg) => handleKgFlourChange(product.id, kg)}
+                disabled={saveStatus === 'saving'}
               />
             ))}
           </div>
@@ -440,6 +540,7 @@ export default function ProductionEntryPage() {
                 productionValue={production[product.id]?.productionValueUGX || 0}
                 salesAmount={sales[product.id] || 0}
                 onSalesChange={(amount) => handleSalesChange(product.id, amount)}
+                disabled={saveStatus === 'saving'}
               />
             ))}
           </div>
@@ -575,12 +676,14 @@ export default function ProductionEntryPage() {
           </div>
           <Button
             onClick={handleSave}
-            disabled={saveStatus === 'saving'}
+            disabled={saveStatus === 'saving' || !hasData}
             size="lg"
             className={cn(
               "px-8 transition-all duration-300",
               saveStatus === 'saved'
                 ? "bg-emerald-500 hover:bg-emerald-500 scale-105"
+                : !hasData
+                ? "bg-slate-600 hover:bg-slate-600 opacity-50"
                 : "bg-green-600 hover:bg-green-700"
             )}
           >
@@ -593,6 +696,11 @@ export default function ProductionEntryPage() {
               <>
                 <CheckCircle2 className="h-5 w-5 mr-2 animate-bounce" />
                 Saved!
+              </>
+            ) : !hasData ? (
+              <>
+                <Save className="h-5 w-5 mr-2" />
+                Enter Data First
               </>
             ) : (
               <>

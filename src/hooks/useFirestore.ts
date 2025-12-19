@@ -18,6 +18,7 @@ export function useWeeklyExpenses(bakeryId: string, weekStartDate: string) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!bakeryId || !weekStartDate) {
       setLoading(false);
       return;
     }
@@ -70,6 +71,7 @@ export function useDailyEntry(bakeryId: string, date: string) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!bakeryId || !date) {
       setLoading(false);
       return;
     }
@@ -122,6 +124,7 @@ export function useHistoricalData(bakeryId: string) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!bakeryId) {
       setLoading(false);
       return;
     }

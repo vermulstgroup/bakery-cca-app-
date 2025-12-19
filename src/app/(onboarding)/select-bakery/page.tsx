@@ -7,17 +7,19 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import { useState } from 'react';
 import { BAKERIES, ROLES } from '@/lib/data';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function SelectBakeryPage() {
   const router = useRouter();
   const { data, updateData } = useOnboarding();
   const [selectedBakery, setSelectedBakery] = useState(data.bakery || '');
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const role = data.role ? ROLES[data.role.toUpperCase().replace('-', '_')] : null;
 
   const handleBakerySelect = (bakeryId: string) => {
     setSelectedBakery(bakeryId);
+    setIsNavigating(true);
     updateData({ bakery: bakeryId });
 
     // Route based on role
@@ -65,10 +67,11 @@ export default function SelectBakeryPage() {
             return (
               <Card
                 key={bakery.id}
-                onClick={() => handleBakerySelect(bakery.id)}
+                onClick={() => !isNavigating && handleBakerySelect(bakery.id)}
                 className={cn(
                   'cursor-pointer p-4 transition-all bg-slate-800/50 backdrop-blur-sm border',
                   'hover:bg-slate-800/70 active:scale-[0.98]',
+                  isNavigating && 'opacity-50 pointer-events-none',
                   isSelected
                     ? 'border-amber-500 ring-2 ring-amber-500/30'
                     : 'border-slate-700 hover:border-slate-600'
@@ -85,7 +88,11 @@ export default function SelectBakeryPage() {
                     </div>
                   </div>
                   {isSelected && (
-                    <CheckCircle2 className="h-6 w-6 text-amber-500 shrink-0" />
+                    isNavigating ? (
+                      <Loader2 className="h-6 w-6 text-amber-500 shrink-0 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-6 w-6 text-amber-500 shrink-0" />
+                    )
                   )}
                 </div>
               </Card>

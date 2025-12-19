@@ -155,7 +155,7 @@ export default function SummaryPage() {
               {/* Main KPIs */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-900/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-slate-400 text-sm mb-1">
+                  <div className="flex items-center gap-2 text-slate-300 text-sm mb-1">
                     <Package className="h-4 w-4" />
                     Production
                   </div>
@@ -164,7 +164,7 @@ export default function SummaryPage() {
                   </div>
                 </div>
                 <div className="bg-slate-900/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-slate-400 text-sm mb-1">
+                  <div className="flex items-center gap-2 text-slate-300 text-sm mb-1">
                     <DollarSign className="h-4 w-4" />
                     Sales
                   </div>
@@ -181,7 +181,7 @@ export default function SummaryPage() {
               )}>
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="text-sm text-slate-400 mb-1">Today's Profit</div>
+                    <div className="text-sm text-slate-300 mb-1">Today's Profit</div>
                     <div className={cn(
                       "text-2xl font-bold font-currency",
                       todayTotals.profit >= 0 ? 'text-emerald-400' : 'text-red-400'
@@ -190,7 +190,7 @@ export default function SummaryPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-slate-400 mb-1">Margin</div>
+                    <div className="text-sm text-slate-300 mb-1">Margin</div>
                     <div className={cn(
                       "text-xl font-bold",
                       todayTotals.margin >= 20 ? 'text-green-400' :

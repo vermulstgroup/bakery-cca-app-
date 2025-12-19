@@ -143,23 +143,23 @@ export default function HistoryPage() {
             <h3 className="font-bold text-white mb-3">Period Summary</h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-slate-900/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400 mb-1">Days Recorded</div>
+                <div className="text-sm text-slate-300 mb-1">Days Recorded</div>
                 <div className="text-xl font-bold text-white">{summaryStats.totalDays}</div>
               </div>
               <div className="bg-slate-900/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400 mb-1">Profitable Days</div>
+                <div className="text-sm text-slate-300 mb-1">Profitable Days</div>
                 <div className="text-xl font-bold text-green-400">
                   {summaryStats.profitableDays}/{summaryStats.totalDays}
                 </div>
               </div>
               <div className="bg-slate-900/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400 mb-1">Total Sales</div>
+                <div className="text-sm text-slate-300 mb-1">Total Sales</div>
                 <div className="text-lg font-bold text-white font-currency">
                   {formatUGX(summaryStats.totalSales)}
                 </div>
               </div>
               <div className="bg-slate-900/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400 mb-1">Total Profit</div>
+                <div className="text-sm text-slate-300 mb-1">Total Profit</div>
                 <div className={cn(
                   "text-lg font-bold font-currency",
                   summaryStats.totalProfit >= 0 ? 'text-emerald-400' : 'text-red-400'
