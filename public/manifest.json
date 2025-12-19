@@ -1,7 +1,7 @@
 {
-  "name": "BISS Bakery - Child Care Africa",
-  "short_name": "BISS Bakery",
-  "description": "Bakery management for Child Care Africa Uganda - Track production, sales, and profits",
+  "name": "Bakery CCA",
+  "short_name": "Bakery CCA",
+  "description": "Bakery management for Child Care Africa Uganda",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FAFAF9",

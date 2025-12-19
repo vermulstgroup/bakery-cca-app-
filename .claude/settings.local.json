@@ -29,7 +29,9 @@
       "Bash(gh repo list:*)",
       "Bash(open https://biss-bakery-app.vercel.app/)",
       "Bash(gh repo view:*)",
-      "WebFetch(domain:studio--studio-7015425522-94d4d.us-central1.hosted.app)"
+      "WebFetch(domain:studio--studio-7015425522-94d4d.us-central1.hosted.app)",
+      "Bash(vercel:*)",
+      "Bash(open https://biss-bakery-app.vercel.app/welcome)"
     ]
   }
 }

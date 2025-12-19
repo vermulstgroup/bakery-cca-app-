@@ -1,56 +1,77 @@
 # Review 1: Ugandan Baker (Flavia) Perspective
 
-**Persona:** Low-literacy user, Tecno phone, flour on hands, power cuts common.
+**Date:** 2025-12-19 (Fresh Review)
+**Persona:** Low-literacy user, Tecno phone, flour on hands, power cuts common
 
-## CRITICAL Issues
+---
 
-1. **Confusion on /entry without bakery selection** - `src/app/(main)/entry/page.tsx`
-   - If Flavia deep links to /entry before selecting a bakery, page displays "No bakery" but allows data entry
-   - Data saved won't be retrievable since bakeryId will be missing
+## CRITICAL Issues - 0 Found
 
-2. **Product ID mismatch in select-products** - `src/app/(onboarding)/select-products/page.tsx:15`
-   - defaultSelected uses: 'yeast_mandazi', 'doughnuts', 'loaf_1kg', 'loaf_500g', 'chapati'
-   - Actual IDs: 'yeast-mandazi', 'daddies', 'italian-cookies'
-   - Default selections silently fail
+All previous critical issues have been resolved.
 
-3. **No save confirmation before leaving /entry** - `src/app/(main)/entry/page.tsx`
-   - If power cuts or user navigates away before saving, all data lost
-   - No unsaved changes indicator
+---
 
-## HIGH Issues
+## HIGH Issues - 2 Found
 
-1. **Entry page doesn't redirect without bakery** - `src/app/(main)/entry/page.tsx:289`
-   - Checks `if (!isLoaded)` but never validates `onboardingData.bakery` exists
-   - User can navigate here and be confused
+| # | Issue | File | Severity |
+|---|-------|------|----------|
+| 1 | Supervisor dashboard shows only hardcoded demo data - cannot see real bakery entries | supervisor/page.tsx:13-21 | HIGH |
+| 2 | Strategic dashboard uses generated demo data, not actual entries | strategic/page.tsx:18-38 | HIGH |
 
-2. **Small text on entry cards** - `src/app/(main)/entry/page.tsx:38,46,80-90`
-   - Uses text-xs (12px) for margin info, flour label, production values
-   - Hard to read with flour on fingers
+---
 
-3. **No visual confirmation of save success duration** - `src/app/(main)/entry/page.tsx:319-322`
-   - Toast appears briefly
-   - If power cuts immediately, user unsure if data saved
+## MEDIUM Issues - 4 Found
 
-4. **Power cut recovery unclear** - `src/app/(main)/entry/page.tsx`
-   - Data saves to localStorage but no indicator shows sync status to Firestore
+| # | Issue | File | Severity |
+|---|-------|------|----------|
+| 3 | Reference table text is text-xs (12px) - hard to read | entry/page.tsx:690-707 | MEDIUM |
+| 4 | Date selector week strip buttons are compact | date-select/page.tsx:121-145 | MEDIUM |
+| 5 | Tab buttons ~44px height (borderline for touch) | entry/page.tsx:536-551 | MEDIUM |
+| 6 | No auto-save draft (power cut = data lost if not saved) | entry/page.tsx | MEDIUM |
 
-## MEDIUM Issues
+---
 
-1. **Quick add buttons too small** - `src/app/(main)/entry/page.tsx:69`
-   - +1, +2, +5, +10 buttons are small targets
-   - Hard to tap with floury fingers
+## LOW Issues - 3 Found
 
-2. **Dark theme contrast issues** - `src/app/(main)/entry/page.tsx`
-   - Save button color change (emerald-500) hard to see in low light
-   - text-slate-400 on slate-800/50 may not meet contrast requirements
+| # | Issue | File | Severity |
+|---|-------|------|----------|
+| 7 | Back button has -ml-2 offset | entry/page.tsx:492 | LOW |
+| 8 | Tab navigation uses emoji-only labels | entry/page.tsx:546-548 | LOW |
+| 9 | Hardcoded 300ms navigation delay | welcome/page.tsx:20 | LOW |
 
-3. **No haptic feedback indication** - `src/app/(main)/entry/page.tsx:310`
-   - Vibration sent but if device is silent, no feedback
+---
 
-## LOW Issues
+## Fixed Since Last Review
 
-1. **Tab navigation could be clearer** - `src/app/(main)/entry/page.tsx:396-400`
-   - Emoji tabs help but labels need larger text
+| Fix | Evidence |
+|-----|----------|
+| ✅ Bakery guard - redirects if no bakery | entry/page.tsx:297-301 |
+| ✅ Unsaved changes warning | entry/page.tsx:764-787 AlertDialog |
+| ✅ Quick-add buttons now 48px | entry/page.tsx:100 h-12 class |
+| ✅ Text contrast improved | text-slate-300 instead of slate-400 |
+| ✅ TrendingUp/TrendingDown icons for colorblind | entry/page.tsx:116,123 |
+| ✅ Loading spinner on bakery selection | select-bakery/page.tsx:16 isNavigating |
+| ✅ Negative number validation | entry/page.tsx:338 Math.max(0, value) |
+| ✅ Maximum value validation | entry/page.tsx:339-346 VALIDATION_LIMITS |
+| ✅ Empty entry validation | entry/page.tsx:405 hasData check |
+| ✅ Form disabled during save | entry/page.tsx:73 disabled={disabled} |
+| ✅ Firebase timeout | entry/page.tsx:440-443 Promise.race 5s |
 
-2. **Back button offset** - `src/app/(main)/entry/page.tsx:349`
-   - `-ml-2` might offset strangely on different screens
+---
+
+## Trust & Recovery Analysis
+
+| Question | Status | Notes |
+|----------|--------|-------|
+| Does she KNOW data saved? | ✅ YES | Toast "✓ Saved successfully" + haptic |
+| What if power cuts mid-entry? | ⚠️ PARTIAL | Only saves on button click |
+| Can she tap with floury fingers? | ✅ YES | Quick-add buttons 48px |
+| Would she know what to tap? | ✅ YES | Clear labels and feedback |
+
+---
+
+## Recommendations
+
+1. Add auto-save draft every 30s
+2. Connect supervisor to real data
+3. Increase tab button height to 48px

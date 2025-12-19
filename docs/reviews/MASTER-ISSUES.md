@@ -1,114 +1,172 @@
 # MASTER ISSUES - BISS Bakery App
 
+**Date:** 2025-12-19 (Fresh Review)
+**Status:** Post-12-fix audit
+
 Consolidated findings from 7 expert reviews. Deduplicated and prioritized.
 
 ---
 
-## CRITICAL (Blocks usage) - 6 issues
+## Previous Fix Verification ✅
 
-| # | Issue | Found By | File | Fix Time |
-|---|-------|----------|------|----------|
-| 1 | **Entry page allows save without bakery selected** - User can enter data then see error on save | Flavia, QA | entry/page.tsx:289 | 15 min |
-| 2 | **No unsaved changes warning** - Power cut or back button = silent data loss | Flavia, QA, UX | entry/page.tsx | 30 min |
-| 3 | **Color-only meaning for profit/loss** - Colorblind users cannot distinguish green/red/amber values | Accessibility | entry/page.tsx, summary/page.tsx | 20 min |
-| 4 | **Contrast fails WCAG AA** - text-slate-400 on slate-800/50 is ~1.7:1 (needs 4.5:1) | Accessibility | Multiple files | 30 min |
-| 5 | **Supervisor sees only hardcoded demo data** - Cannot view actual bakery entries | Requirements, UX | supervisor/page.tsx | 45 min |
-| 6 | **Empty/zero entries can be saved** - No validation prevents saving all zeros | QA | entry/page.tsx:250-280 | 15 min |
+All 12 fixes from the previous review have been verified:
 
-**Total Critical Fix Time: ~2.5 hours**
-
----
-
-## HIGH (Major friction) - 12 issues
-
-| # | Issue | Found By | File | Fix Time |
-|---|-------|----------|------|----------|
-| 7 | **Quick-add buttons too small** - +1, +2, +5, +10 are ~32px (need 48px) | Flavia, Accessibility | entry/page.tsx:65-73 | 10 min |
-| 8 | **text-xs (12px) for critical info** - 26 instances, hard to read | Accessibility | Multiple files | 20 min |
-| 9 | **Negative numbers can bypass min="0"** - Manual typing or paste allowed | QA | entry/page.tsx:52,135 | 10 min |
-| 10 | **No loading state during bakery selection** - setTimeout without spinner | UX | select-bakery/page.tsx:31-33 | 10 min |
-| 11 | **Flow A requires 5 taps to enter data** - No shortcut for returning users | UX | Multiple | 30 min |
-| 12 | **localStorage double-format checking** - 14 parse operations per week load | Performance | dashboard/page.tsx:73-74 | 20 min |
-| 13 | **Firebase promises no timeout** - UI could hang if Firestore slow | Performance | entry/page.tsx:187 | 15 min |
-| 14 | **useCallback missing** - Handlers recreated every render | Performance | entry/page.tsx | 15 min |
-| 15 | **Card border inconsistency** - Some have border-slate-700, some none | UI | Multiple | 15 min |
-| 16 | **Typography hierarchy missing** - text-2xl, text-xl mixed without semantic meaning | UI | Multiple | 15 min |
-| 17 | **Supervisor isolated from real data** - No link to actual bakery details | Requirements | supervisor/page.tsx | 30 min |
-| 18 | **Strategic Manager sees demo data only** - Charts show generated, not real data | Requirements | strategic/page.tsx | 30 min |
-
-**Total High Fix Time: ~3.5 hours**
+| Fix | Status |
+|-----|--------|
+| Bakery guard redirect | ✅ Fixed |
+| Unsaved changes warning | ✅ Fixed |
+| Color-only meaning fixed | ✅ Fixed (TrendingUp/Down icons) |
+| Contrast improved | ✅ Fixed (text-slate-300) |
+| Quick-add buttons 48px | ✅ Fixed (h-12) |
+| Negative number validation | ✅ Fixed (Math.max(0)) |
+| Maximum value limits | ✅ Fixed (VALIDATION_LIMITS) |
+| Loading state on bakery select | ✅ Fixed (isNavigating) |
+| Empty entry validation | ✅ Fixed (hasData check) |
+| Form disabled during save | ✅ Fixed |
+| Firebase timeout | ✅ Fixed (5s Promise.race) |
+| useCallback for handlers | ✅ Fixed |
 
 ---
 
-## MEDIUM (Should fix) - 15 issues
+## CRITICAL (Blocks usage) - 0 Issues
 
-| # | Issue | Found By | File | Fix Time |
-|---|-------|----------|------|----------|
-| 19 | Dark theme save button color hard to see in low light | Flavia | entry/page.tsx | 5 min |
-| 20 | Tab buttons ~44px height (borderline) | Accessibility | entry/page.tsx | 10 min |
-| 21 | Decimal allows 0.0001 kg entries | QA | entry/page.tsx:51 | 5 min |
-| 22 | Large numbers may overflow UI (999M UGX) | QA | entry/page.tsx:139 | 10 min |
-| 23 | Form fields not disabled during save | QA | entry/page.tsx:240 | 10 min |
-| 24 | Summary doesn't link back to entry properly | UX | summary/page.tsx:359 | 10 min |
-| 25 | Status color palette inconsistent | UI | supervisor/page.tsx:91-98 | 10 min |
-| 26 | Empty states not designed consistently | UI | Multiple | 20 min |
-| 27 | Skeleton loading UI missing | UI | Multiple | 15 min |
-| 28 | Icon sizing inconsistent (h-4, h-5, h-6 mixed) | UI | Multiple | 10 min |
-| 29 | useMemo chains cascade updates | Performance | trends/page.tsx | 15 min |
-| 30 | Objects created in render | Performance | supervisor/page.tsx:82-90 | 10 min |
-| 31 | Recharts not optimized | Performance | trends/page.tsx, strategic/page.tsx | 15 min |
-| 32 | Data model has three formats | Requirements | types.ts | 30 min |
-| 33 | Margin calculations inconsistent | Requirements | Multiple | 15 min |
-
-**Total Medium Fix Time: ~3.5 hours**
+All previous critical issues have been resolved.
 
 ---
 
-## LOW (Polish) - 12 issues
+## HIGH (Major friction) - 3 Issues
+
+| # | Issue | Found By | File | Impact |
+|---|-------|----------|------|--------|
+| 1 | **Supervisor shows hardcoded demo data** - Cannot see real bakery entries | Flavia, QA, UX, Requirements | supervisor/page.tsx:13-21 | Role is unusable |
+| 2 | **Strategic uses generated demo data** - Charts show fake data, not actual entries | Flavia, QA, UX, Requirements | strategic/page.tsx:18-38 | Role is unusable |
+| 3 | **Trends page bundle 339 kB** - Recharts loads entire library | Performance | trends/page.tsx | Slow on 3G |
+
+---
+
+## MEDIUM (Should fix) - 16 Issues
 
 | # | Issue | Found By | File |
 |---|-------|----------|------|
-| 34 | Tab navigation labels could be larger | Flavia | entry/page.tsx |
-| 35 | Back button -ml-2 offset | Flavia | entry/page.tsx |
-| 36 | Emojis lack aria labels | Accessibility | entry/page.tsx |
-| 37 | localStorage key collision theoretical | QA | entry/page.tsx |
-| 38 | No Firestore/localStorage conflict resolution | QA | entry/page.tsx |
-| 39 | Toast may be missed if user on other tab | QA | entry/page.tsx |
-| 40 | Hardcoded transition timeouts | UX | welcome/page.tsx |
-| 41 | Backdrop blur opacity varies | UI | Multiple |
-| 42 | Gradient backgrounds not reusable | UI | Multiple |
-| 43 | Unnecessary useState for date | Performance | entry/page.tsx |
-| 44 | No React.memo on ProductionInput/SalesInput | Performance | entry/page.tsx |
-| 45 | COST_PER_SCHOOL_DAY hardcoded | Performance | summary/page.tsx |
+| 4 | Tab buttons ~44px height (borderline for 48px) | Flavia, Accessibility | entry/page.tsx:536-551 |
+| 5 | Reference table uses text-xs (12px) | Flavia, Accessibility | entry/page.tsx:690-707 |
+| 6 | Date selector day cells compact | Flavia, Accessibility | date-select/page.tsx:121-145 |
+| 7 | No auto-save draft (power cut risk) | Flavia | entry/page.tsx |
+| 8 | Select dropdown triggers may be <48px | Accessibility | settings/page.tsx:73-98 |
+| 9 | Accordion triggers may be <48px | Accessibility | expenses/page.tsx:101-114 |
+| 10 | Chart tooltips not keyboard accessible | Accessibility | trends/page.tsx |
+| 11 | Decimal allows 0.0001 kg entries | QA | entry/page.tsx:64-72 |
+| 12 | Large numbers may overflow UI | QA | Multiple |
+| 13 | No confirmation before logout | QA | settings/page.tsx:26-37 |
+| 14 | No shortcut for returning users | UX | welcome/page.tsx |
+| 15 | Summary "Update Entry" lacks context | UX | summary/page.tsx |
+| 16 | No undo after saving entry | UX | entry/page.tsx |
+| 17 | Expenses and Entry not cross-linked | UX | expenses/page.tsx |
+| 18 | No data export from Bakery Manager | Requirements | - |
+| 19 | Products limited to 3 | Requirements | data/bakeries.ts |
+
+---
+
+## MEDIUM (Visual/UI) - 9 Issues
+
+| # | Issue | Found By | File |
+|---|-------|----------|------|
+| 20 | Icon sizing inconsistent (h-3/4/5/6) | UI | Multiple |
+| 21 | Backdrop blur opacity varies | UI | Multiple |
+| 22 | Mix of rounded-xl and rounded-2xl | UI | dashboard vs entry |
+| 23 | Gradient backgrounds inline (not reusable) | UI | Multiple |
+| 24 | Tab styling differs between pages | UI | entry vs strategic |
+| 25 | Settings page 28.1 kB (larger than expected) | Performance | settings/page.tsx |
+| 26 | Recharts on 3 routes (repeated bundle) | Performance | trends, strategic, dashboard |
+| 27 | No service worker for PWA | Performance | - |
+| 28 | localStorage reads in loops | Performance | dashboard/page.tsx |
+
+---
+
+## LOW (Polish) - 15 Issues
+
+| # | Issue | Found By | File |
+|---|-------|----------|------|
+| 29 | Back button has -ml-2 offset | Flavia | entry/page.tsx:492 |
+| 30 | Tab navigation uses emoji-only labels | Flavia, Accessibility | entry/page.tsx:546-548 |
+| 31 | Hardcoded 300ms navigation delay | Flavia, UX | welcome/page.tsx:20 |
+| 32 | Clear button (X) may be small | Accessibility | entry/page.tsx:80-87 |
+| 33 | Online/offline dot is color-only | Accessibility | app-header.tsx:47 |
+| 34 | Some text at text-slate-400 | Accessibility | Multiple |
+| 35 | localStorage key collision theoretical | QA | Multiple |
+| 36 | No Firestore/localStorage conflict resolution | QA | entry/page.tsx |
+| 37 | Toast may be missed if on other tab | QA | entry/page.tsx |
+| 38 | History only checks 30 days | QA, UX | history/page.tsx:30-44 |
+| 39 | Hardcoded 5-second Firebase timeout | QA | entry/page.tsx:440-443 |
+| 40 | No skeleton loading in Entry | UX | entry/page.tsx |
+| 41 | Spacing not strictly 8px grid | UI | Multiple |
+| 42 | font-currency used inconsistently | UI | Multiple |
+| 43 | Card border opacity varies (slate-700 vs 600) | UI | Multiple |
+
+---
+
+## LOW (Performance) - 3 Issues
+
+| # | Issue | Found By | File |
+|---|-------|----------|------|
+| 44 | Objects created in render | Performance | supervisor/page.tsx |
+| 45 | Recharts not tree-shaken | Performance | trends/page.tsx |
+| 46 | History loads 30 days at once | Performance | history/page.tsx |
 
 ---
 
 ## Summary Statistics
 
-| Severity | Count | Est. Fix Time |
-|----------|-------|---------------|
-| CRITICAL | 6 | 2.5 hours |
-| HIGH | 12 | 3.5 hours |
-| MEDIUM | 15 | 3.5 hours |
-| LOW | 12 | 1.5 hours |
-| **TOTAL** | **45** | **~11 hours** |
+| Severity | Count | Previous |
+|----------|-------|----------|
+| CRITICAL | 0 | 6 (all fixed) |
+| HIGH | 3 | 12 |
+| MEDIUM | 25 | 15 |
+| LOW | 18 | 12 |
+| **TOTAL** | **46** | 45 |
+
+**Note:** Issue count increased because fresh review found more polish/medium items. However, all CRITICAL issues are now resolved.
+
+---
+
+## Core Issue: Demo Data
+
+The single most impactful remaining issue is that **Supervisor** and **Strategic Manager** roles use hardcoded/generated demo data instead of reading from localStorage/Firestore.
+
+This affects:
+- supervisor/page.tsx - `BAKERIES_DATA` array is hardcoded
+- strategic/page.tsx - `generateDemoData()` creates fake entries
+
+**Impact:** Two of the three user roles are effectively non-functional for real-world use.
 
 ---
 
 ## Recommended Priority
 
-**Fix first (before client demo):**
-1. #1 - Entry without bakery guard
-2. #2 - Unsaved changes warning
-3. #6 - Empty entry validation
-4. #7 - Quick-add button sizes
-5. #3 - Add icons to profit/loss (accessibility)
-6. #4 - Fix contrast on critical text
+**Fix FIRST (blocks 2 roles):**
+1. #1 - Connect Supervisor to real localStorage/Firestore data
+2. #2 - Connect Strategic to real localStorage/Firestore data
 
-**Fix for production:**
-- All HIGH issues
-- MEDIUM issues affecting data integrity
+**Fix for accessibility compliance:**
+3. #4 - Tab buttons to 48px
+4. #8 - Select dropdown triggers to 48px
+
+**Fix for usability:**
+5. #7 - Auto-save draft
+6. #13 - Logout confirmation
 
 **Defer to polish phase:**
-- LOW issues
-- MEDIUM cosmetic issues
+- All LOW issues
+- MEDIUM visual/UI issues
+
+---
+
+## Demo Readiness
+
+| Role | Status |
+|------|--------|
+| Bakery Manager | ✅ DEMO READY |
+| Strategic Manager | ⚠️ Shows demo data only |
+| Supervisor | ⚠️ Shows hardcoded data only |
+
+**Overall:** App is demo-ready for Bakery Manager flow. Strategic and Supervisor roles need real data connection for full functionality.

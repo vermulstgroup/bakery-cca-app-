@@ -1,57 +1,82 @@
 # Review 2: Accessibility Audit
 
-## CRITICAL Issues
+**Date:** 2025-12-19 (Fresh Review)
+**Standards:** WCAG 2.1 AA, 48px touch targets, 4.5:1 contrast
 
-1. **Contrast on slate-800/50 backgrounds** - Multiple files
-   - text-slate-400 (#94a3b8) on slate-800/50 background
-   - Fails WCAG AA standards (requires 4.5:1, this is ~1.7:1)
-   - Files: entry/page.tsx, dashboard/page.tsx, summary/page.tsx
+---
 
-2. **Color-only meaning for profit/loss** - `src/app/(main)/entry/page.tsx:82,86,90`
-   - Production Value (green-400), Ingredient Cost (red-400), Expected Profit (amber-400)
-   - No icons or text labels indicate meaning
-   - Colorblind users cannot distinguish
+## CRITICAL Issues - 0 Found
 
-3. **Product ID mismatch breaks defaults** - `src/app/(onboarding)/select-products/page.tsx:15`
-   - defaultSelected references non-existent IDs
-   - Silently breaks default selection logic
+All previous critical accessibility issues have been resolved.
 
-## HIGH Issues
+---
 
-1. **text-xs (12px) used for critical info** - 26 instances across src/app/
-   - Entry page: lines 38, 46 (margin info, labels)
-   - History page: line 72 (sales info)
-   - WCAG recommends minimum 14px for body text
+## HIGH Issues - 1 Found
 
-2. **Quick-add button targets too small** - `src/app/(main)/entry/page.tsx:65-73`
-   - Four buttons (+1, +2, +5, +10) share row
-   - Each ~60px wide but height py-2 (~32px)
-   - Below 48x48px minimum touch target
+| # | Issue | Element | File | Severity |
+|---|-------|---------|------|----------|
+| 1 | Select dropdown triggers may be <48px | Bakery/Role selects | settings/page.tsx:73-98 | HIGH |
 
-3. **Button heights inconsistent** - `src/app/(onboarding)/select-products/page.tsx:72-73`
-   - "Select All" and "Clear All" use size="sm"
-   - Some areas have h-auto with py-2
+---
 
-4. **Cards use tight padding** - Most cards use p-4 (16px)
-   - Input fields use h-14 (56px) which is good
-   - But surrounding targets are smaller
+## MEDIUM Issues - 5 Found
 
-## MEDIUM Issues
+| # | Issue | Element | File | Severity |
+|---|-------|---------|------|----------|
+| 2 | Tab buttons ~44px height (borderline) | Tab navigation | entry/page.tsx:536-551 | MEDIUM |
+| 3 | Date selector day cells are compact | Week strip | date-select/page.tsx:121-145 | MEDIUM |
+| 4 | Reference table uses text-xs (12px) | Product table | entry/page.tsx:690-707 | MEDIUM |
+| 5 | Accordion triggers may be <48px | Expense items | expenses/page.tsx:101-114 | MEDIUM |
+| 6 | Chart tooltips not keyboard accessible | Recharts | trends/page.tsx | MEDIUM |
 
-1. **Expense quick-amount buttons small** - `src/app/(main)/expenses/page.tsx:217`
-   - In flex wrap, some may be <48px wide
+---
 
-2. **Profit/loss colors lack icons** - summary/page.tsx, dashboard/page.tsx
-   - Need "+" icon for profit, "-" for loss
-   - Currently color-only
+## LOW Issues - 4 Found
 
-3. **No visible focus indicators on cards** - select-bakery/page.tsx
-   - Card onClick elements don't show clear focus outlines
+| # | Issue | Element | File | Severity |
+|---|-------|---------|------|----------|
+| 7 | Emoji icons lack aria-labels | Tab emojis | entry/page.tsx:546-548 | LOW |
+| 8 | Clear button (X) may be small | Input clear | entry/page.tsx:80-87 | LOW |
+| 9 | Online/offline dot is color-only | Status | app-header.tsx:47 | LOW |
+| 10 | Some text at text-slate-400 | Various | Multiple files | LOW |
 
-## LOW Issues
+---
 
-1. **Emojis as primary icons** - entry/page.tsx
-   - No alt text or aria labels for screen readers
+## Fixed Since Last Review
 
-2. **Switch component accessibility** - settings/page.tsx
-   - Uses htmlFor correctly but focus styling unclear
+| Fix | Evidence |
+|-----|----------|
+| ✅ Quick-add buttons 48px | entry/page.tsx:100,211 h-12 class |
+| ✅ Text contrast improved | Multiple files use text-slate-300 |
+| ✅ TrendingUp/TrendingDown icons | entry/page.tsx:116,123 |
+| ✅ Color-only profit/loss fixed | Icons provide non-color meaning |
+
+---
+
+## Touch Target Audit
+
+| Element | Size | Status |
+|---------|------|--------|
+| Quick-add buttons | h-12 (48px) | ✅ PASS |
+| Save button | size="lg" (~48px) | ✅ PASS |
+| Tab buttons | py-3 (~44px) | ⚠️ BORDERLINE |
+| Role/Bakery cards | Full card | ✅ PASS |
+
+---
+
+## Contrast Audit
+
+| Element | Colors | Ratio | Status |
+|---------|--------|-------|--------|
+| Primary text | text-white | >7:1 | ✅ PASS |
+| Secondary | text-slate-300 | ~5.5:1 | ✅ PASS |
+| Muted | text-slate-400 | ~3.5:1 | ⚠️ Large only |
+| Amber accent | text-amber-400 | >4.5:1 | ✅ PASS |
+
+---
+
+## Recommendations
+
+1. Increase tab button height to 48px
+2. Add aria-labels to emoji tabs
+3. Increase date cell padding

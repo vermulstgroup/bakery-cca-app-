@@ -1,102 +1,111 @@
-# Review 7: Performance Analysis
+# Review 7: Performance Audit
 
-## CRITICAL Issues
+**Date:** 2025-12-19 (Fresh Review)
+**Build:** Next.js 15.3.8
 
-1. **localStorage operations not batched** - `src/app/(main)/entry/page.tsx:173-180`
-   - Calls localStorage.setItem for every save without checking if changed
-   - Dashboard loads entries in loop: 7 separate lookups (lines 66-76)
+---
 
-2. **useMemo dependency issues** - `src/app/(main)/dashboard/page.tsx:36-40`
-   - Memoizes date calculations that rarely change
-   - weeklyStats useMemo recalculates on every entry change
-   - Entry page totals updates on every keystroke (line 141)
+## Build Results
 
-3. **useEffect without cleanup** - `src/hooks/use-onboarding.ts:15-30`
-   - Doesn't cleanup onboarding data
-   - entry/page.tsx loads daily entry but doesn't unsubscribe if Firebase uses listeners
+```
+✓ Compiled successfully in 6.0s
+✓ Generating static pages (21/21)
+Total First Load JS shared: 101 kB
+```
 
-4. **Redundant JSON parsing** - `src/app/(main)/dashboard/page.tsx:73-74`
-   - Checks two localStorage formats for EVERY day
-   - 14 parse operations weekly
-   - trends/page.tsx does similar across all keys
+### Route Sizes
 
-5. **Dynamic grid string breaks Tailwind** - `src/components/shared/bottom-nav.tsx:110`
-   - Uses `` `grid-cols-${navItems.length}` ``
-   - Breaks Tailwind static analysis
-   - Then manually sets gridTemplateColumns anyway
+| Route | Size | First Load JS | Status |
+|-------|------|--------------|--------|
+| /entry | 14.6 kB | 249 kB | ⚠️ MEDIUM |
+| /trends | 5.95 kB | 339 kB | ⚠️ HIGH (Recharts) |
+| /expenses | 11.7 kB | 245 kB | ⚠️ MEDIUM |
+| /strategic | 9.32 kB | 221 kB | ⚠️ MEDIUM |
+| /supervisor | 4.4 kB | 216 kB | ⚠️ MEDIUM |
+| /dashboard | 5.61 kB | 121 kB | ✅ OK |
+| /summary | 5.71 kB | 122 kB | ✅ OK |
+| /welcome | 3.25 kB | 112 kB | ✅ OK |
 
-## HIGH Issues
+---
 
-1. **No code splitting** - next.config.ts
-   - All UI components imported statically
-   - TrendsPage imports Recharts statically even when not needed
+## CRITICAL Issues - 0 Found
 
-2. **Firebase promises not handled** - `src/app/(main)/entry/page.tsx:187`
-   - No timeout on saveDailyEntry/getDailyEntry
-   - If Firestore slow/offline, UI could hang
-   - No AbortController
+---
 
-3. **Large dependency list** - package.json
-   - 55 dependencies including full Radix UI suite
-   - All genkit dependencies, recharts, firebase
-   - No tree-shaking evident
+## HIGH Issues - 1 Found
 
-4. **useCallback missing** - `src/app/(main)/entry/page.tsx`
-   - handleKgFlourChange, handleSalesChange, handleSave recreated every render
-   - Causes child component re-renders
+| # | Issue | Impact |
+|---|-------|--------|
+| 1 | Trends page loads 339 kB (Recharts) | Slow on 2G/3G |
 
-5. **useMemo chains** - `src/app/(main)/trends/page.tsx`
-   - Lines 103-122, 137-156, 162-192 chain useMemo
-   - Single data update cascades through all calculations
+---
 
-6. **Inefficient array operations** - `src/app/(main)/history/page.tsx:85-99`
-   - Creates entriesWithTotals by mapping then sorts
-   - Uses .slice().reverse() at line 149 unnecessarily
+## MEDIUM Issues - 4 Found
 
-## MEDIUM Issues
+| # | Issue | Impact |
+|---|-------|--------|
+| 2 | Settings page 28.1 kB | Larger than expected |
+| 3 | Recharts on 3 routes | Repeated bundle |
+| 4 | No service worker for PWA | Repeated requests |
+| 5 | localStorage reads in loops | Potential jank |
 
-1. **localStorage fallback inefficient**
-   - Checks localStorage twice (new + legacy format)
-   - Dashboard: 69-75, Entry: 103-110, Trends: 66-85
-   - Should migrate to single format
+---
 
-2. **Inline calculations in render** - `src/app/(main)/summary/page.tsx:69-78`
-   - Some in useMemo, some inline
-   - Inconsistent pattern
+## LOW Issues - 3 Found
 
-3. **Objects created in render** - `src/app/(main)/supervisor/page.tsx:82-90`
-   - Chart data objects created inside map
-   - Not memoized, recreated every render
+| # | Issue | Impact |
+|---|-------|--------|
+| 6 | Objects created in render | Minor memory |
+| 7 | Recharts not tree-shaken | Bundle larger |
+| 8 | History loads 30 days at once | Slow if years |
 
-4. **Unoptimized Select components** - `src/app/(main)/settings/page.tsx`
-   - BAKERIES and ROLES mapped every render
-   - Options not wrapped in useMemo
+---
 
-5. **Recharts not optimized** - trends/page.tsx, strategic/page.tsx
-   - Charts re-render even when data unchanged
-   - No memoization on chart components
+## Fixed Since Last Review
 
-## LOW Issues
+| Fix | Evidence |
+|-----|----------|
+| ✅ useCallback for handlers | entry/page.tsx:333,359 |
+| ✅ Firebase timeout | entry/page.tsx:440-443 5s |
+| ✅ useMemo for calculations | entry/page.tsx:378-409 |
 
-1. **Unnecessary state** - `src/app/(main)/entry/page.tsx:85-86`
-   - `const [date] = useState(new Date())` but never updated
-   - Should be `const date = new Date()`
+---
 
-2. **Missing useEffect dependency** - `src/app/(main)/summary/page.tsx:45`
-   - Uses `today` without tracking it
-   - Component could be stale after midnight
+## Bundle Analysis
 
-3. **No React.memo on child components**
-   - ProductionInput and SalesInput are heavy
-   - Re-render when siblings change
+| Package | Size Impact |
+|---------|-------------|
+| Recharts | ~150 kB |
+| Firebase | ~50 kB |
+| Radix UI | ~30 kB |
+| date-fns | ~15 kB |
 
-4. **Toast not debounced**
-   - Rapid clicks could queue multiple toasts
+---
 
-5. **Hardcoded magic numbers**
-   - COST_PER_SCHOOL_DAY = 20000 in summary page
-   - Should be in data.ts
+## localStorage Efficiency ✅ OK
 
-6. **No pagination** - history page
-   - Loads last 30 days from all localStorage keys
-   - Expensive if app used for years
+| Pattern | Size |
+|---------|------|
+| biss-entry-{bakery}-{date} | ~1-2 KB/day |
+| expenses-{bakery}-{week} | ~500 B/week |
+| onboarding | ~200 B |
+
+**Total:** < 100 KB for 30 days ✅
+
+---
+
+## Mobile Performance
+
+| Scenario | Expected |
+|----------|----------|
+| 4G LTE | ✅ Good (<2s) |
+| 3G | ⚠️ Moderate (3-5s) |
+| Offline | ✅ Works |
+
+---
+
+## Recommendations
+
+1. Dynamic import Recharts
+2. Add service worker (next-pwa)
+3. Audit settings page for unused imports

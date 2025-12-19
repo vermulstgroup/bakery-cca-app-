@@ -1,225 +1,254 @@
 # FIX PLAN - BISS Bakery App
 
-Ordered sequence of fixes for pre-demo release.
+**Date:** 2025-12-19 (Fresh Review)
+**Status:** Post-12-fix audit - New issues identified
 
 ---
 
-## Phase A: Critical Fixes (Must complete)
+## Previous Fixes - ALL VERIFIED ✅
 
-### Fix 1: Add bakery guard to entry page
-**File:** `src/app/(main)/entry/page.tsx`
-**Change:** Add useEffect to redirect to /select-bakery if no bakery selected
+All 12 fixes from the previous audit have been implemented and verified:
+
+| # | Fix | Status |
+|---|-----|--------|
+| 1 | Bakery guard | ✅ Complete |
+| 2 | Empty validation | ✅ Complete |
+| 3 | Profit/loss icons | ✅ Complete |
+| 4 | Contrast fixes | ✅ Complete |
+| 5 | Button sizes 48px | ✅ Complete |
+| 6 | Loading state | ✅ Complete |
+| 7 | Negative validation | ✅ Complete |
+| 8 | useCallback handlers | ✅ Complete |
+| 9 | Text size increases | ✅ Complete |
+| 10 | Card borders | ✅ Complete |
+| 11 | Firebase timeout | ✅ Complete |
+| 12 | Form disabled state | ✅ Complete |
+
+---
+
+## New Fix Plan
+
+### Phase A: HIGH Priority (Blocks 2 roles)
+
+#### Fix A1: Connect Supervisor to Real Data
+**Issue:** #1 - Supervisor shows hardcoded demo data
+**File:** `src/app/(main)/supervisor/page.tsx`
+**Current:** Lines 13-21 have hardcoded `BAKERIES_DATA` array
+**Change:** Read from localStorage entries for all 5 bakeries
+
 ```tsx
-useEffect(() => {
-  if (isLoaded && !onboardingData.bakery) {
-    router.replace('/select-bakery');
+// Replace hardcoded BAKERIES_DATA with:
+const loadAllBakeryData = () => {
+  const bakeries = ['kampala-central', 'jinja-main', 'mbale-town', 'gulu-central', 'mbarara-west'];
+  return bakeries.map(bakeryId => {
+    // Load last 7 days of entries from localStorage
+    const entries = loadEntriesForBakery(bakeryId, 7);
+    const todayEntry = entries[0] || null;
+    return {
+      id: bakeryId,
+      name: getBakeryName(bakeryId),
+      todayEntry,
+      weeklyProfit: calculateWeeklyProfit(entries),
+      status: todayEntry ? 'entered' : 'pending'
+    };
+  });
+};
+```
+
+**Priority:** HIGH | **Impact:** Makes Supervisor role functional
+
+---
+
+#### Fix A2: Connect Strategic to Real Data
+**Issue:** #2 - Strategic uses generated demo data
+**File:** `src/app/(main)/strategic/page.tsx`
+**Current:** Lines 18-38 call `generateDemoData()`
+**Change:** Read 12 weeks of actual entries from localStorage
+
+```tsx
+// Replace generateDemoData() with:
+const loadStrategicData = (bakeryId: string) => {
+  const weeks: WeekData[] = [];
+  for (let w = 0; w < 12; w++) {
+    const weekStart = getWeekStart(subWeeks(new Date(), w));
+    const entries = loadWeekEntries(bakeryId, weekStart);
+    weeks.push({
+      weekOf: weekStart,
+      entries,
+      profit: sumProfit(entries),
+      flour: sumFlour(entries)
+    });
   }
-}, [isLoaded, onboardingData.bakery, router]);
-```
-**Priority:** CRITICAL | **Time:** 15 min
-
----
-
-### Fix 2: Add empty entry validation
-**File:** `src/app/(main)/entry/page.tsx`
-**Change:** Disable save button if all production values are 0
-```tsx
-const hasData = Object.values(production).some(p => p.kgFlour > 0) ||
-                Object.values(sales).some(s => s > 0);
-// Then in button: disabled={saveStatus === 'saving' || !hasData}
-```
-**Priority:** CRITICAL | **Time:** 15 min
-
----
-
-### Fix 3: Add icons to profit/loss indicators
-**File:** `src/app/(main)/entry/page.tsx`, `src/app/(main)/summary/page.tsx`
-**Change:** Add TrendingUp/TrendingDown icons next to green/red values
-```tsx
-import { TrendingUp, TrendingDown } from 'lucide-react';
-// Before green amounts: <TrendingUp className="h-4 w-4 inline mr-1" />
-// Before red amounts: <TrendingDown className="h-4 w-4 inline mr-1" />
-```
-**Priority:** CRITICAL | **Time:** 20 min
-
----
-
-### Fix 4: Fix contrast on slate-400 text
-**File:** Multiple files
-**Change:** Replace text-slate-400 with text-slate-300 for better contrast
-```tsx
-// Find: text-slate-400
-// Replace: text-slate-300 (for important labels)
-// Or: text-slate-200 (for very important text)
-```
-**Priority:** CRITICAL | **Time:** 30 min
-
----
-
-### Fix 5: Increase quick-add button sizes
-**File:** `src/app/(main)/entry/page.tsx`
-**Change:** Update quick-add buttons to 48px height
-```tsx
-// Line 69 and 151:
-className="flex-1 h-12 text-sm font-medium bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition-colors"
-```
-**Priority:** HIGH | **Time:** 10 min
-
----
-
-### Fix 6: Add loading state to bakery selection
-**File:** `src/app/(onboarding)/select-bakery/page.tsx`
-**Change:** Add isNavigating state with spinner
-```tsx
-const [isNavigating, setIsNavigating] = useState(false);
-
-const handleBakerySelect = (bakeryId: string) => {
-  setIsNavigating(true);
-  setSelectedBakery(bakeryId);
-  // ... rest of logic
-};
-// Add spinner overlay when isNavigating
-```
-**Priority:** HIGH | **Time:** 10 min
-
----
-
-### Fix 7: Add negative number validation
-**File:** `src/app/(main)/entry/page.tsx`
-**Change:** Validate and clamp values to >= 0
-```tsx
-const handleKgFlourChange = (productId: string, kgFlour: number) => {
-  const safeValue = Math.max(0, kgFlour); // Clamp to 0 minimum
-  // ... rest of logic
+  return weeks.reverse();
 };
 ```
-**Priority:** HIGH | **Time:** 10 min
+
+**Priority:** HIGH | **Impact:** Makes Strategic role functional
 
 ---
 
-### Fix 8: Add useCallback to handlers
-**File:** `src/app/(main)/entry/page.tsx`
-**Change:** Wrap handlers in useCallback
+### Phase B: MEDIUM Accessibility Fixes
+
+#### Fix B1: Tab Buttons to 48px
+**Issue:** #4 - Tab buttons ~44px (borderline)
+**File:** `src/app/(main)/entry/page.tsx:536-551`
+**Change:** Increase `py-3` to `py-3.5` or use `min-h-[48px]`
+
 ```tsx
-const handleKgFlourChange = useCallback((productId: string, kgFlour: number) => {
-  // ... existing logic
-}, []);
-
-const handleSalesChange = useCallback((productId: string, amount: number) => {
-  // ... existing logic
-}, []);
+// Change tab button classes from:
+className="py-3 px-4 text-sm font-medium rounded-full..."
+// To:
+className="py-3.5 px-4 text-sm font-medium rounded-full min-h-[48px]..."
 ```
-**Priority:** HIGH | **Time:** 15 min
+
+**Priority:** MEDIUM | **Impact:** WCAG 2.1 AA compliance
 
 ---
 
-## Phase B: High-Impact UX Fixes
+#### Fix B2: Increase Reference Table Text
+**Issue:** #5 - Reference table uses text-xs (12px)
+**File:** `src/app/(main)/entry/page.tsx:690-707`
+**Change:** Replace `text-xs` with `text-sm`
 
-### Fix 9: Increase text-xs to text-sm
-**Files:** entry/page.tsx, summary/page.tsx, history/page.tsx
-**Change:** Replace text-xs with text-sm for important labels
-**Priority:** HIGH | **Time:** 20 min
-
----
-
-### Fix 10: Standardize card borders
-**Files:** All page files using Card component
-**Change:** Ensure all cards have `border border-slate-700 rounded-xl`
-**Priority:** HIGH | **Time:** 15 min
+**Priority:** MEDIUM | **Impact:** Readability for low-vision users
 
 ---
 
-### Fix 11: Add Firebase timeout
+#### Fix B3: Date Selector Cell Padding
+**Issue:** #6 - Date selector day cells compact
+**File:** `src/app/(onboarding)/date-select/page.tsx:121-145`
+**Change:** Increase cell size/padding for 48px touch targets
+
+**Priority:** MEDIUM | **Impact:** Touch accuracy on mobile
+
+---
+
+#### Fix B4: Select Dropdown Heights
+**Issue:** #8 - Select dropdown triggers may be <48px
+**File:** `src/app/(main)/settings/page.tsx:73-98`
+**Change:** Add `min-h-[48px]` to Select triggers
+
+**Priority:** MEDIUM | **Impact:** WCAG 2.1 AA compliance
+
+---
+
+### Phase C: MEDIUM UX Fixes
+
+#### Fix C1: Auto-save Draft
+**Issue:** #7 - No auto-save draft (power cut risk)
 **File:** `src/app/(main)/entry/page.tsx`
-**Change:** Add Promise.race with timeout
+**Change:** Add useEffect to save draft to localStorage every 30s
+
 ```tsx
-const saveWithTimeout = Promise.race([
-  saveDailyEntry(bakeryId, dataToSave),
-  new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-]);
+// Add auto-save draft
+useEffect(() => {
+  const timer = setInterval(() => {
+    if (hasChanges && !saveStatus) {
+      localStorage.setItem(`draft-${bakeryId}-${selectedDate}`, JSON.stringify({
+        production, sales, timestamp: Date.now()
+      }));
+    }
+  }, 30000);
+  return () => clearInterval(timer);
+}, [production, sales, hasChanges, bakeryId, selectedDate, saveStatus]);
 ```
-**Priority:** HIGH | **Time:** 15 min
+
+**Priority:** MEDIUM | **Impact:** Data protection during power cuts
 
 ---
 
-## Phase C: Medium Fixes (If time permits)
+#### Fix C2: Logout Confirmation
+**Issue:** #13 - No confirmation before logout
+**File:** `src/app/(main)/settings/page.tsx:26-37`
+**Change:** Add AlertDialog before clearing data
 
-### Fix 12: Disable form during save
-**File:** `src/app/(main)/entry/page.tsx`
-**Change:** Add disabled prop to inputs when saveStatus === 'saving'
-**Priority:** MEDIUM | **Time:** 10 min
+**Priority:** MEDIUM | **Impact:** Prevent accidental data loss
 
 ---
 
-### Fix 13: Move COST_PER_SCHOOL_DAY to data.ts
-**File:** `src/lib/data.ts`, `src/app/(main)/summary/page.tsx`
-**Change:** Export constant from data.ts
-**Priority:** LOW | **Time:** 5 min
+### Phase D: Performance (Optional)
+
+#### Fix D1: Dynamic Import Recharts
+**Issue:** #3 - Trends page 339 kB bundle
+**File:** `src/app/(main)/trends/page.tsx`
+**Change:** Use `next/dynamic` for Recharts components
+
+```tsx
+import dynamic from 'next/dynamic';
+
+const LineChart = dynamic(
+  () => import('recharts').then(mod => mod.LineChart),
+  { loading: () => <Skeleton className="h-64" />, ssr: false }
+);
+```
+
+**Priority:** LOW | **Impact:** 3G load time improvement
 
 ---
 
 ## Dependency Order
 
 ```
-Fix 1 (bakery guard)
+Fix A1 (Supervisor real data)
+Fix A2 (Strategic real data)
+    ↓ (both can run in parallel)
+Fix B1-B4 (Accessibility)
+    ↓ (all can run in parallel)
+Fix C1-C2 (UX)
     ↓
-Fix 2 (empty validation)
-    ↓
-Fix 7 (negative numbers)
-    ↓
-Fix 8 (useCallback) ← depends on handlers existing
-    ↓
-Fix 3 (icons) ← can be parallel
-Fix 4 (contrast) ← can be parallel
-Fix 5 (button sizes) ← can be parallel
+Fix D1 (Performance - optional)
 ```
 
 ---
 
 ## Execution Checklist
 
-- [x] Fix 1: Bakery guard ✓
-- [x] Fix 2: Empty validation ✓
-- [x] Fix 3: Add icons to profit/loss ✓
-- [x] Fix 4: Fix contrast ✓
-- [x] Fix 5: Button sizes ✓
-- [x] Fix 6: Loading state ✓
-- [x] Fix 7: Negative validation ✓
-- [x] Fix 8: useCallback ✓
-- [x] Fix 9: Text sizes ✓
-- [x] Fix 10: Card borders ✓
-- [x] Fix 11: Firebase timeout ✓
-- [x] Fix 12: Form disabled state ✓
-- [x] Fix 13: Move constant (N/A - constant not in codebase)
+### Phase A - HIGH
+- [ ] Fix A1: Connect Supervisor to real data
+- [ ] Fix A2: Connect Strategic to real data
+
+### Phase B - MEDIUM (Accessibility)
+- [ ] Fix B1: Tab buttons to 48px
+- [ ] Fix B2: Reference table text-sm
+- [ ] Fix B3: Date selector padding
+- [ ] Fix B4: Select dropdown heights
+
+### Phase C - MEDIUM (UX)
+- [ ] Fix C1: Auto-save draft
+- [ ] Fix C2: Logout confirmation
+
+### Phase D - Performance (Optional)
+- [ ] Fix D1: Dynamic import Recharts
 
 ---
 
-## Estimated Total Time
+## Estimated Time
 
-| Phase | Fixes | Time |
-|-------|-------|------|
-| Phase A | 1-8 | ~2 hours |
-| Phase B | 9-11 | ~50 min |
-| Phase C | 12-13 | ~15 min |
-| **Total** | 13 fixes | **~3 hours** |
+| Phase | Fixes | Est. Time |
+|-------|-------|-----------|
+| Phase A | A1-A2 | 2-3 hours |
+| Phase B | B1-B4 | 30 min |
+| Phase C | C1-C2 | 45 min |
+| Phase D | D1 | 30 min |
+| **Total** | 9 fixes | **~4-5 hours** |
 
 ---
 
-## Execution Summary (Completed 2025-12-19)
+## Recommendation
 
-All 12 applicable fixes have been successfully implemented:
+**For demo:** The app is already demo-ready for the **Bakery Manager** flow. All critical issues are resolved.
 
-### Files Modified:
-- `src/app/(main)/entry/page.tsx` - Fixes 1,2,3,4,5,7,8,11,12
-- `src/app/(onboarding)/select-bakery/page.tsx` - Fix 6
-- `src/app/(main)/summary/page.tsx` - Fixes 4,9
-- `src/app/(main)/history/page.tsx` - Fixes 4,9
-- `src/hooks/useFirestore.ts` - Syntax error fix (pre-existing)
+**For production:**
+- Fixes A1 and A2 are essential to make Strategic and Supervisor roles functional
+- Phase B fixes bring app to WCAG 2.1 AA compliance
+- Phase C improves data safety
 
-### Key Improvements:
-1. **Data Integrity**: Bakery guard, empty validation, negative number validation
-2. **Accessibility**: TrendingUp/TrendingDown icons, improved contrast, larger buttons
-3. **Performance**: useCallback for handlers, Firebase timeout
-4. **UX**: Loading states, form disabled during save
+**Defer:** Phase D (performance) can be done post-launch since 4G performance is already good.
 
-### Build Status: ✓ Successful
+---
+
+## Questions for User
+
+Before executing:
+1. **Should Strategic/Supervisor show aggregated data from ALL bakeries, or just the user's selected bakery?**
+2. **Is the current demo data acceptable for now, or is real data connection required before demo?**
