@@ -1,38 +1,163 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BAKERIES, PRODUCTS } from '@/lib/data';
 import { formatUGX } from '@/lib/utils';
+import { format, subDays, startOfWeek } from 'date-fns';
+import type { DailyEntry } from '@/lib/types';
 
-// Simulated performance data for all bakeries
-const BAKERIES_DATA: { [key: string]: {
-  status: 'profitable' | 'loss' | 'breakeven';
+// Type for bakery performance data
+type BakeryPerformanceData = {
+  status: 'profitable' | 'loss' | 'breakeven' | 'nodata';
   margin: number;
   weeklySales: number;
   weeklyProfit: number;
   trend: 'up' | 'down' | 'flat';
-}} = {
-  'Morulem': { status: 'profitable', margin: 13, weeklySales: 485000, weeklyProfit: 63000, trend: 'up' },
-  'Matany': { status: 'loss', margin: -12, weeklySales: 320000, weeklyProfit: -38400, trend: 'flat' },
-  'Katakwi': { status: 'profitable', margin: 8, weeklySales: 290000, weeklyProfit: 23200, trend: 'up' },
-  'Amudat': { status: 'breakeven', margin: 2, weeklySales: 180000, weeklyProfit: 3600, trend: 'down' },
-  'Kaabong': { status: 'profitable', margin: 15, weeklySales: 410000, weeklyProfit: 61500, trend: 'up' }
+};
+
+// Load entries for a bakery from localStorage for a date range
+const loadEntriesForDateRange = (bakeryId: string, startDate: Date, endDate: Date): DailyEntry[] => {
+  const entries: DailyEntry[] = [];
+  const current = new Date(startDate);
+
+  while (current <= endDate) {
+    const dateStr = format(current, 'yyyy-MM-dd');
+    const key = `biss-entry-${bakeryId}-${dateStr}`;
+    try {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        entries.push(JSON.parse(stored));
+      }
+    } catch {
+      // Skip invalid entries
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return entries;
+};
+
+// Calculate week data from entries
+const calculateWeekData = (entries: DailyEntry[]) => {
+  let sales = 0;
+  let profit = 0;
+
+  entries.forEach(entry => {
+    if (entry.totals) {
+      sales += entry.totals.salesTotal || 0;
+      profit += entry.totals.profit || 0;
+    }
+  });
+
+  return { sales, profit };
+};
+
+// Determine status based on profit
+const getStatus = (profit: number, hasData: boolean): 'profitable' | 'loss' | 'breakeven' | 'nodata' => {
+  if (!hasData) return 'nodata';
+  if (profit > 1000) return 'profitable';
+  if (profit < -1000) return 'loss';
+  return 'breakeven';
+};
+
+// Calculate trend by comparing this week to last week
+const getTrend = (thisWeekProfit: number, lastWeekProfit: number): 'up' | 'down' | 'flat' => {
+  const diff = thisWeekProfit - lastWeekProfit;
+  if (Math.abs(diff) < 1000) return 'flat';
+  return diff > 0 ? 'up' : 'down';
 };
 
 export default function SupervisorDashboard() {
   const router = useRouter();
   const [selectedBakery, setSelectedBakery] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'profit' | 'sales' | 'margin'>('profit');
+  const [bakeriesData, setBakeriesData] = useState<{ [key: string]: BakeryPerformanceData }>({});
+  const [loading, setLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  // Load real data from localStorage for all bakeries
+  useEffect(() => {
+    const loadAllBakeriesData = () => {
+      setLoading(true);
+      const today = new Date();
+      const thisWeekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+      const lastWeekStart = subDays(thisWeekStart, 7);
+      const lastWeekEnd = subDays(thisWeekStart, 1);
+
+      const newData: { [key: string]: BakeryPerformanceData } = {};
+
+      BAKERIES.forEach(bakery => {
+        // Load this week's entries
+        const thisWeekEntries = loadEntriesForDateRange(bakery.id, thisWeekStart, today);
+        const thisWeekData = calculateWeekData(thisWeekEntries);
+
+        // Load last week's entries for trend calculation
+        const lastWeekEntries = loadEntriesForDateRange(bakery.id, lastWeekStart, lastWeekEnd);
+        const lastWeekData = calculateWeekData(lastWeekEntries);
+
+        const hasData = thisWeekEntries.length > 0;
+        const margin = thisWeekData.sales > 0
+          ? Math.round((thisWeekData.profit / thisWeekData.sales) * 100)
+          : 0;
+
+        newData[bakery.name] = {
+          status: getStatus(thisWeekData.profit, hasData),
+          margin,
+          weeklySales: thisWeekData.sales,
+          weeklyProfit: thisWeekData.profit,
+          trend: hasData ? getTrend(thisWeekData.profit, lastWeekData.profit) : 'flat'
+        };
+      });
+
+      setBakeriesData(newData);
+      setLoading(false);
+      setLastRefresh(new Date());
+    };
+
+    loadAllBakeriesData();
+  }, []);
+
+  // Refresh function
+  const handleRefresh = () => {
+    const today = new Date();
+    const thisWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+    const lastWeekStart = subDays(thisWeekStart, 7);
+    const lastWeekEnd = subDays(thisWeekStart, 1);
+
+    const newData: { [key: string]: BakeryPerformanceData } = {};
+
+    BAKERIES.forEach(bakery => {
+      const thisWeekEntries = loadEntriesForDateRange(bakery.id, thisWeekStart, today);
+      const thisWeekData = calculateWeekData(thisWeekEntries);
+      const lastWeekEntries = loadEntriesForDateRange(bakery.id, lastWeekStart, lastWeekEnd);
+      const lastWeekData = calculateWeekData(lastWeekEntries);
+
+      const hasData = thisWeekEntries.length > 0;
+      const margin = thisWeekData.sales > 0
+        ? Math.round((thisWeekData.profit / thisWeekData.sales) * 100)
+        : 0;
+
+      newData[bakery.name] = {
+        status: getStatus(thisWeekData.profit, hasData),
+        margin,
+        weeklySales: thisWeekData.sales,
+        weeklyProfit: thisWeekData.profit,
+        trend: hasData ? getTrend(thisWeekData.profit, lastWeekData.profit) : 'flat'
+      };
+    });
+
+    setBakeriesData(newData);
+    setLastRefresh(new Date());
+  };
 
   // Merge bakery data with performance data
   const bakeries = useMemo(() => {
     return BAKERIES.map(bakery => ({
       ...bakery,
-      ...(BAKERIES_DATA[bakery.name] || {
+      ...(bakeriesData[bakery.name] || {
         status: 'nodata' as const,
         margin: 0,
         weeklySales: 0,
@@ -40,7 +165,7 @@ export default function SupervisorDashboard() {
         trend: 'flat' as const
       })
     }));
-  }, []);
+  }, [bakeriesData]);
 
   // Sort bakeries
   const sortedBakeries = useMemo(() => {
@@ -84,6 +209,18 @@ export default function SupervisorDashboard() {
     return '➡️';
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin text-purple-400 mx-auto mb-4" />
+          <div className="text-xl text-purple-400">Loading bakery data...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4">
       <div className="max-w-5xl mx-auto">
@@ -101,13 +238,24 @@ export default function SupervisorDashboard() {
             </Button>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-3xl">👁️</span>
-              <h1 className="text-2xl font-bold">BISS Supervisor Dashboard</h1>
+              <h1 className="text-2xl font-bold">Bakery CCA Supervisor</h1>
             </div>
             <p className="text-slate-400">Multi-bakery overview • Read-only</p>
           </div>
-          <div className="text-right">
-            <div className="text-sm text-slate-400">Viewing as</div>
-            <div className="font-bold text-purple-400">Supervisor</div>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <div className="text-right">
+              <div className="text-sm text-slate-400">Viewing as</div>
+              <div className="font-bold text-purple-400">Supervisor</div>
+            </div>
           </div>
         </div>
 
@@ -277,7 +425,7 @@ export default function SupervisorDashboard() {
 
         {/* Footer */}
         <div className="mt-6 text-center text-sm text-slate-500">
-          Read-only supervisor view • Data refreshes automatically
+          Read-only view • Last updated: {format(lastRefresh, 'HH:mm')}
         </div>
       </div>
     </div>

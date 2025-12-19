@@ -1,42 +1,74 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PRODUCTS, BAKERIES, getProductMargin, getProductMarginPercent } from '@/lib/data';
 import { formatUGX } from '@/lib/utils';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import type { WeeklyData } from '@/lib/types';
+import { format, startOfWeek, subWeeks, addDays } from 'date-fns';
+import type { WeeklyData, DailyEntry } from '@/lib/types';
 
-// Generate demo data for 12 weeks
-const generateDemoData = (): WeeklyData[] => {
+// Load entries for a bakery from localStorage for a date range
+const loadEntriesForDateRange = (bakeryId: string, startDate: Date, endDate: Date): DailyEntry[] => {
+  const entries: DailyEntry[] = [];
+  const current = new Date(startDate);
+
+  while (current <= endDate) {
+    const dateStr = format(current, 'yyyy-MM-dd');
+    const key = `biss-entry-${bakeryId}-${dateStr}`;
+    try {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        entries.push(JSON.parse(stored));
+      }
+    } catch {
+      // Skip invalid entries
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return entries;
+};
+
+// Load real data from localStorage for 12 weeks
+const loadRealData = (bakeryId: string): WeeklyData[] => {
   const data: WeeklyData[] = [];
-  const now = new Date();
+  const today = new Date();
 
   for (let i = 11; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - (i * 7));
+    const weekStart = startOfWeek(subWeeks(today, i), { weekStartsOn: 1 }); // Monday
+    const weekEnd = addDays(weekStart, 6); // Sunday
     const weekNum = 12 - i;
 
-    // Simulate realistic bakery data with some variance
-    const baseProduction = 15 + Math.random() * 10;
-    const salesRate = 0.75 + Math.random() * 0.2;
+    // Load entries for this week
+    const entries = loadEntriesForDateRange(bakeryId, weekStart, weekEnd);
 
-    const production = Math.round(baseProduction * 9300);
-    const sales = Math.round(production * salesRate);
-    const costs = Math.round(baseProduction * 5200);
+    // Aggregate the week's data
+    let production = 0;
+    let sales = 0;
+    let costs = 0;
+
+    entries.forEach(entry => {
+      if (entry.totals) {
+        production += entry.totals.productionValue || 0;
+        sales += entry.totals.salesTotal || 0;
+        costs += entry.totals.ingredientCost || 0;
+      }
+    });
+
     const profit = sales - costs;
+    const margin = sales > 0 ? ((profit / sales) * 100).toFixed(1) : '0.0';
 
     data.push({
       week: `W${weekNum}`,
-      date: date.toISOString().split('T')[0],
+      date: format(weekStart, 'yyyy-MM-dd'),
       production,
       sales,
       costs,
       profit,
-      margin: ((profit / sales) * 100).toFixed(1)
+      margin
     });
   }
   return data;
@@ -49,30 +81,39 @@ export default function StrategicDashboard() {
   const [data, setData] = useState<WeeklyData[]>([]);
   const [view, setView] = useState<'overview' | 'trends' | 'products'>('overview');
   const [loading, setLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const currentBakery = BAKERIES.find(b => b.id === bakery);
 
+  // Load real data from localStorage
   useEffect(() => {
-    // Load or generate demo data
-    const loadData = async () => {
+    const loadData = () => {
       setLoading(true);
       try {
-        const storageKey = `biss-strategic-${bakery}`;
-        const stored = localStorage.getItem(storageKey);
-        if (stored) {
-          setData(JSON.parse(stored));
-        } else {
-          const demoData = generateDemoData();
-          setData(demoData);
-          localStorage.setItem(storageKey, JSON.stringify(demoData));
-        }
+        const realData = loadRealData(bakery);
+        setData(realData);
+        setLastRefresh(new Date());
       } catch {
-        setData(generateDemoData());
+        // On error, show empty weeks
+        setData([]);
       }
       setLoading(false);
     };
     loadData();
   }, [bakery]);
+
+  // Refresh function
+  const handleRefresh = () => {
+    setLoading(true);
+    try {
+      const realData = loadRealData(bakery);
+      setData(realData);
+      setLastRefresh(new Date());
+    } catch {
+      // Keep existing data on error
+    }
+    setLoading(false);
+  };
 
   const latestWeek = data[data.length - 1] || {} as WeeklyData;
   const previousWeek = data[data.length - 2] || {} as WeeklyData;
@@ -127,7 +168,7 @@ export default function StrategicDashboard() {
               <ArrowLeft className="h-4 w-4 mr-1" />
               Change Role
             </Button>
-            <h1 className="text-2xl font-bold text-blue-400">📊 BISS Strategic Dashboard</h1>
+            <h1 className="text-2xl font-bold text-blue-400">Bakery CCA Strategic</h1>
             <div className="flex items-center gap-2 mt-1">
               <select
                 value={bakery}
@@ -141,13 +182,23 @@ export default function StrategicDashboard() {
               <span className="text-slate-400 text-sm">• 12 Week View</span>
             </div>
           </div>
-          <Button
-            onClick={exportData}
-            className="bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={exportData}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -312,7 +363,7 @@ export default function StrategicDashboard() {
         </div>
 
         <div className="mt-4 text-center text-sm text-slate-500">
-          Data persists across sessions • {currentBakery?.name || bakery} Bakery
+          {currentBakery?.name || bakery} Bakery • Last updated: {format(lastRefresh, 'HH:mm')}
         </div>
       </div>
     </div>
