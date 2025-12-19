@@ -284,6 +284,27 @@ export default function ProductionEntryPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty, saveStatus]);
 
+  // Auto-save draft every 30 seconds (protects against power cuts)
+  useEffect(() => {
+    if (!onboardingData.bakery || !isDirty || saveStatus === 'saved') return;
+
+    const timer = setInterval(() => {
+      const dateString = format(date, 'yyyy-MM-dd');
+      const draftKey = `draft-${onboardingData.bakery}-${dateString}`;
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({
+          production,
+          sales,
+          timestamp: Date.now()
+        }));
+      } catch {
+        // Silent fail - localStorage might be full
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(timer);
+  }, [onboardingData.bakery, date, production, sales, isDirty, saveStatus]);
+
   // Handle back navigation with unsaved changes
   const handleBack = () => {
     if (isDirty && saveStatus !== 'saved') {
@@ -321,6 +342,23 @@ export default function ProductionEntryPage() {
           const data = JSON.parse(stored);
           if (data.production) setProduction(data.production);
           if (data.sales) setSales(data.sales);
+        } else {
+          // Check for auto-saved draft (from power cut recovery)
+          const draftKey = `draft-${onboardingData.bakery}-${dateString}`;
+          const draft = localStorage.getItem(draftKey);
+          if (draft) {
+            try {
+              const draftData = JSON.parse(draft);
+              if (draftData.production) setProduction(draftData.production);
+              if (draftData.sales) setSales(draftData.sales);
+              toast({
+                title: "Draft recovered",
+                description: "Unsaved changes from earlier were restored",
+              });
+            } catch {
+              // Invalid draft, ignore
+            }
+          }
         }
       }
       // Mark initial data as loaded so we can track changes
@@ -537,7 +575,7 @@ export default function ProductionEntryPage() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "flex-1 py-3 rounded-xl font-medium capitalize transition-all",
+                "flex-1 py-3 min-h-[48px] rounded-xl font-medium capitalize transition-all",
                 activeTab === tab
                   ? 'bg-amber-500 text-white'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -687,7 +725,7 @@ export default function ProductionEntryPage() {
             {/* Reference Table */}
             <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
               <h3 className="font-bold text-white mb-4">Product Reference</h3>
-              <div className="text-xs">
+              <div className="text-sm">
                 <div className="grid grid-cols-4 gap-2 text-slate-400 pb-2 border-b border-slate-700">
                   <div>Product</div>
                   <div>Rev/kg</div>

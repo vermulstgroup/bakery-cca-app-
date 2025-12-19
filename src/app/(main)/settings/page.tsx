@@ -1,6 +1,6 @@
-
 "use client"
 
+import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -12,8 +12,17 @@ import { useRouter } from 'next/navigation';
 import { BAKERIES, ROLES, LANGUAGES } from '@/lib/data';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useTranslation } from '@/hooks/use-translation';
-import { useMemo } from 'react';
 import { ProductSelection } from './product-selection';
 
 
@@ -22,6 +31,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { data: onboardingData, updateData, isLoaded } = useOnboarding();
   const { language, setLanguage, t } = useTranslation();
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -84,7 +94,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <Label className="text-base">{t('bakery')}</Label>
               <Select value={onboardingData.bakery || ''} onValueChange={handleBakeryChange} disabled={!isLoaded}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[180px] min-h-[48px]">
                       <SelectValue placeholder={t('select_your_bakery')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -97,7 +107,7 @@ export default function SettingsPage() {
              <div className="flex items-center justify-between">
               <Label className="text-base">{t('role')}</Label>
               <Select value={onboardingData.role || ''} onValueChange={(value) => handleRoleChange(value as 'manager' | 'supervisor')} disabled={!isLoaded}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[180px] min-h-[48px]">
                       <SelectValue placeholder={t('select_your_role')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -120,7 +130,7 @@ export default function SettingsPage() {
                 {t('language')}
               </Label>
               <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[180px] min-h-[48px]">
                   <SelectValue placeholder="Select language" />
                 </SelectTrigger>
                 <SelectContent>
@@ -168,10 +178,29 @@ export default function SettingsPage() {
             </CardContent>
         </Card>
 
-        <Button variant="destructive" className="w-full" onClick={handleLogout}>
+        <Button variant="destructive" className="w-full" onClick={() => setShowLogoutDialog(true)}>
             <LogOut className="mr-2 h-4 w-4" />
             {t('log_out_reset')}
         </Button>
+
+        {/* Logout Confirmation Dialog */}
+        <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will clear all your local data including saved entries, expenses, and settings.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Yes, log out and reset
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

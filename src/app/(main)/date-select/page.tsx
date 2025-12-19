@@ -134,7 +134,7 @@ export default function DateSelectPage() {
                   key={dateStr}
                   onClick={() => handleDateSelect(day)}
                   className={cn(
-                    "flex flex-col items-center p-2 rounded-lg transition-all",
+                    "flex flex-col items-center p-2 min-h-[56px] rounded-lg transition-all",
                     isSelected
                       ? 'bg-amber-500 text-white'
                       : isTodayDate
