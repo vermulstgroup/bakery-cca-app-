@@ -2,18 +2,101 @@
 
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { useState } from 'react';
-import { ROLES } from '@/lib/data';
+import { ROLES, BAKERIES, PRODUCTS } from '@/lib/data';
 import type { RoleId, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, Database } from 'lucide-react';
+import { format, subDays } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 export default function WelcomePage() {
   const router = useRouter();
+  const { toast } = useToast();
   const { data, updateData } = useOnboarding();
   const [selectedRole, setSelectedRole] = useState<RoleId | ''>(data.role || '');
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  // Seed test data for all bakeries (last 14 days)
+  const seedTestData = () => {
+    setIsSeeding(true);
+    const today = new Date();
+    let entriesCreated = 0;
+
+    BAKERIES.forEach(bakery => {
+      // Create entries for last 14 days
+      for (let i = 0; i < 14; i++) {
+        const date = subDays(today, i);
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const key = `biss-entry-${bakery.id}-${dateStr}`;
+
+        // Skip if entry already exists
+        if (localStorage.getItem(key)) continue;
+
+        // Generate realistic random data
+        const production: { [key: string]: { kgFlour: number; productionValueUGX: number; ingredientCostUGX: number } } = {};
+        const sales: { [key: string]: number } = {};
+        let totalProductionValue = 0;
+        let totalIngredientCost = 0;
+        let totalSales = 0;
+
+        PRODUCTS.forEach(product => {
+          // Random kg flour between 5-25 with some variance by bakery
+          const baseKg = 10 + Math.random() * 15;
+          const bakeryMultiplier = bakery.id === 'morulem' ? 1.3 : bakery.id === 'kaabong' ? 1.2 : 1;
+          const kgFlour = Math.round(baseKg * bakeryMultiplier * 10) / 10;
+
+          const productionValue = kgFlour * product.revenuePerKgFlour;
+          const ingredientCost = kgFlour * product.costPerKgFlour;
+
+          production[product.id] = {
+            kgFlour,
+            productionValueUGX: productionValue,
+            ingredientCostUGX: ingredientCost
+          };
+
+          // Sales: 70-95% of production value with some randomness
+          const salesRate = 0.7 + Math.random() * 0.25;
+          const saleAmount = Math.round(productionValue * salesRate);
+          sales[product.id] = saleAmount;
+
+          totalProductionValue += productionValue;
+          totalIngredientCost += ingredientCost;
+          totalSales += saleAmount;
+        });
+
+        const profit = totalSales - totalIngredientCost;
+        const margin = totalSales > 0 ? (profit / totalSales) * 100 : 0;
+
+        const entry = {
+          date: dateStr,
+          bakeryId: bakery.id,
+          production,
+          sales,
+          totals: {
+            productionValue: totalProductionValue,
+            ingredientCost: totalIngredientCost,
+            salesTotal: totalSales,
+            profit,
+            margin
+          },
+          timestamp: Date.now()
+        };
+
+        localStorage.setItem(key, JSON.stringify(entry));
+        entriesCreated++;
+      }
+    });
+
+    setIsSeeding(false);
+    toast({
+      title: "Test data created",
+      description: `Created ${entriesCreated} entries for ${BAKERIES.length} bakeries`,
+    });
+  };
 
   const handleRoleSelect = (roleId: RoleId) => {
     setSelectedRole(roleId);
@@ -109,9 +192,25 @@ export default function WelcomePage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-10 text-center">
+        <div className="mt-10 text-center space-y-4">
           <p className="text-slate-500 text-sm">Child Care Africa</p>
           <p className="text-slate-600 text-xs">Uganda</p>
+
+          {/* Dev: Seed Test Data Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={seedTestData}
+            disabled={isSeeding}
+            className="text-slate-400 border-slate-700 hover:bg-slate-800"
+          >
+            {isSeeding ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Database className="h-4 w-4 mr-2" />
+            )}
+            {isSeeding ? 'Creating...' : 'Seed Test Data'}
+          </Button>
         </div>
       </div>
     </div>
