@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ROLES, BAKERIES, PRODUCTS } from '@/lib/data';
 import type { RoleId, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,14 @@ export default function WelcomePage() {
   const [selectedRole, setSelectedRole] = useState<RoleId | ''>(data.role || '');
   const [isNavigating, setIsNavigating] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isDev, setIsDev] = useState(false);
+
+  // Check if running on localhost (dev mode)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsDev(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    }
+  }, []);
 
   // Seed test data for all bakeries (last 14 days)
   const seedTestData = () => {
@@ -196,21 +204,23 @@ export default function WelcomePage() {
           <p className="text-slate-500 text-sm">Child Care Africa</p>
           <p className="text-slate-600 text-xs">Uganda</p>
 
-          {/* Dev: Seed Test Data Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={seedTestData}
-            disabled={isSeeding}
-            className="text-slate-400 border-slate-700 hover:bg-slate-800"
-          >
-            {isSeeding ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Database className="h-4 w-4 mr-2" />
-            )}
-            {isSeeding ? 'Creating...' : 'Seed Test Data'}
-          </Button>
+          {/* Dev: Seed Test Data Button - only on localhost */}
+          {isDev && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={seedTestData}
+              disabled={isSeeding}
+              className="text-slate-400 border-slate-700 hover:bg-slate-800"
+            >
+              {isSeeding ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Database className="h-4 w-4 mr-2" />
+              )}
+              {isSeeding ? 'Creating...' : 'Seed Test Data'}
+            </Button>
+          )}
         </div>
       </div>
     </div>

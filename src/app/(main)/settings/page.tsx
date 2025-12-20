@@ -24,6 +24,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useTranslation } from '@/hooks/use-translation';
 import { ProductSelection } from './product-selection';
+import { useGoals } from '@/hooks/use-goals';
+import { useInventory } from '@/hooks/use-inventory';
+import { useBakeryPin } from '@/hooks/use-bakery-pin';
+import { Input } from '@/components/ui/input';
+import { Target, Package, Lock, Unlock } from 'lucide-react';
 
 
 export default function SettingsPage() {
@@ -31,7 +36,28 @@ export default function SettingsPage() {
   const router = useRouter();
   const { data: onboardingData, updateData, isLoaded } = useOnboarding();
   const { language, setLanguage, t } = useTranslation();
+  const { goals, updateGoals, isLoaded: goalsLoaded } = useGoals(onboardingData.bakery);
+  const { inventory, updateInventory, addStock, isLoaded: inventoryLoaded } = useInventory(onboardingData.bakery);
+  const { isPinEnabled, setPin, removePin, isLoaded: pinLoaded } = useBakeryPin(onboardingData.bakery);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showClearDataDialog, setShowClearDataDialog] = useState(false);
+  const [stockToAdd, setStockToAdd] = useState('');
+  const [newPin, setNewPin] = useState('');
+
+  // Clear only entry data (keeps settings)
+  const handleClearEntryData = () => {
+    if (typeof window !== 'undefined') {
+      let count = 0;
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('biss-entry-') || key.startsWith('expenses-') || key.startsWith('draft-')) {
+          localStorage.removeItem(key);
+          count++;
+        }
+      });
+      setShowClearDataDialog(false);
+      // Could show a toast here
+    }
+  };
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -156,6 +182,183 @@ export default function SettingsPage() {
 
         <ProductSelection />
 
+        {/* Weekly Goals */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Weekly Goals
+            </CardTitle>
+            <CardDescription>
+              Set targets and get alerts when you're on track or falling behind
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="goals-enabled" className="text-base">
+                Enable Goal Tracking
+              </Label>
+              <Switch
+                id="goals-enabled"
+                checked={goals.enabled}
+                onCheckedChange={(checked) => updateGoals({ enabled: checked })}
+                disabled={!goalsLoaded}
+              />
+            </div>
+            {goals.enabled && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="profit-target">Weekly Profit Target (UGX)</Label>
+                  <Input
+                    id="profit-target"
+                    type="number"
+                    value={goals.weeklyProfitTarget}
+                    onChange={(e) => updateGoals({ weeklyProfitTarget: parseInt(e.target.value) || 0 })}
+                    className="min-h-[48px]"
+                    disabled={!goalsLoaded}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="margin-target">Weekly Margin Target (%)</Label>
+                  <Input
+                    id="margin-target"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={goals.weeklyMarginTarget}
+                    onChange={(e) => updateGoals({ weeklyMarginTarget: parseInt(e.target.value) || 0 })}
+                    className="min-h-[48px]"
+                    disabled={!goalsLoaded}
+                  />
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Flour Inventory */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Flour Inventory
+            </CardTitle>
+            <CardDescription>
+              Track flour stock and get low-stock alerts
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="text-sm text-muted-foreground mb-1">Current Stock</div>
+              <div className="text-3xl font-bold">{inventory.currentStock.toFixed(1)} kg</div>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                placeholder="Add flour (kg)"
+                value={stockToAdd}
+                onChange={(e) => setStockToAdd(e.target.value)}
+                className="min-h-[48px]"
+                disabled={!inventoryLoaded}
+              />
+              <Button
+                onClick={() => {
+                  const amount = parseFloat(stockToAdd);
+                  if (amount > 0) {
+                    addStock(amount);
+                    setStockToAdd('');
+                  }
+                }}
+                disabled={!inventoryLoaded || !stockToAdd}
+                className="min-h-[48px]"
+              >
+                Add Stock
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="low-stock-threshold">Low Stock Alert (kg)</Label>
+              <Input
+                id="low-stock-threshold"
+                type="number"
+                value={inventory.lowStockThreshold}
+                onChange={(e) => updateInventory({ lowStockThreshold: parseFloat(e.target.value) || 0 })}
+                className="min-h-[48px]"
+                disabled={!inventoryLoaded}
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => updateInventory({ currentStock: 0 })}
+              disabled={!inventoryLoaded}
+              className="w-full"
+            >
+              Reset Stock to Zero
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* PIN Protection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {isPinEnabled ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
+              PIN Protection
+            </CardTitle>
+            <CardDescription>
+              Protect this bakery's data with a 4-digit PIN
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isPinEnabled ? (
+              <>
+                <div className="flex items-center gap-2 text-green-500">
+                  <Lock className="h-4 w-4" />
+                  <span className="text-sm">PIN protection is enabled</span>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={removePin}
+                  disabled={!pinLoaded}
+                  className="w-full"
+                >
+                  Remove PIN
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    placeholder="Enter 4-digit PIN"
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    className="min-h-[48px]"
+                    disabled={!pinLoaded}
+                  />
+                  <Button
+                    onClick={() => {
+                      if (newPin.length === 4) {
+                        setPin(newPin);
+                        setNewPin('');
+                      }
+                    }}
+                    disabled={!pinLoaded || newPin.length !== 4}
+                    className="min-h-[48px]"
+                  >
+                    Set PIN
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Once set, you'll need to enter this PIN to access this bakery's data.
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>{t('configuration')}</CardTitle>
@@ -178,10 +381,49 @@ export default function SettingsPage() {
             </CardContent>
         </Card>
 
+        {/* Data Management */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Management</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full justify-start text-orange-500 border-orange-500/30 hover:bg-orange-500/10"
+              onClick={() => setShowClearDataDialog(true)}
+            >
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Clear All Entry Data
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Removes all saved entries and expenses but keeps your settings.
+            </p>
+          </CardContent>
+        </Card>
+
         <Button variant="destructive" className="w-full" onClick={() => setShowLogoutDialog(true)}>
             <LogOut className="mr-2 h-4 w-4" />
             {t('log_out_reset')}
         </Button>
+
+        {/* Clear Entry Data Dialog */}
+        <AlertDialog open={showClearDataDialog} onOpenChange={setShowClearDataDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Clear All Entry Data?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will delete all saved production entries, sales data, and expenses.
+                Your settings and bakery selection will be kept. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleClearEntryData} className="bg-orange-500 text-white hover:bg-orange-600">
+                Yes, clear all entries
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Logout Confirmation Dialog */}
         <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>

@@ -44,3 +44,8 @@ next-env.d.ts
 firebase-debug.log
 firestore-debug.log
 .env*.local
+
+# PWA / Serwist
+public/sw.js
+public/serwist-*.js
+public/workbox-*.js

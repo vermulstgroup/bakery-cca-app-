@@ -3,18 +3,26 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatUGX, cn } from '@/lib/utils';
-import { ArrowUp, ArrowDown, FileText, Loader2, AlertTriangle, ArrowRight, TrendingUp, TrendingDown, Calendar, ScrollText } from 'lucide-react';
+import { ArrowUp, ArrowDown, FileText, Loader2, AlertTriangle, ArrowRight, TrendingUp, TrendingDown, Calendar, ScrollText, Target, CheckCircle2, Package } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useOnboarding } from '@/hooks/use-onboarding';
+import { useGoals } from '@/hooks/use-goals';
+import { useInventory } from '@/hooks/use-inventory';
+import { useBakeryPin } from '@/hooks/use-bakery-pin';
+import { PinDialog } from '@/components/pin-dialog';
 import { startOfWeek, endOfWeek, format as formatDate, eachDayOfInterval } from 'date-fns';
 import { PRODUCTS, BAKERIES, getProductMarginPercent } from '@/lib/data';
 import type { DailyEntry } from '@/lib/types';
+import { Progress } from '@/components/ui/progress';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { data: onboardingData, isLoaded: onboardingLoaded } = useOnboarding();
+  const { goals, getProgress } = useGoals(onboardingData.bakery);
+  const { inventory, weeklyUsage, isLowStock } = useInventory(onboardingData.bakery);
+  const { isPinEnabled, isAuthenticated, verifyPin, isLoaded: pinLoaded } = useBakeryPin(onboardingData.bakery);
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -109,6 +117,9 @@ export default function DashboardPage() {
   const hasData = entries.length > 0;
   const weekLabel = `${formatDate(weekStart, 'MMM d')} - ${formatDate(weekEnd, 'MMM d, yyyy')}`;
 
+  // Show PIN dialog if authentication required
+  const showPinDialog = pinLoaded && isPinEnabled && !isAuthenticated;
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -118,6 +129,15 @@ export default function DashboardPage() {
   }
 
   return (
+    <>
+      {/* PIN Authentication Dialog */}
+      <PinDialog
+        open={showPinDialog}
+        onVerify={verifyPin}
+        title="Enter PIN"
+        description={`Enter PIN to access ${currentBakery?.name || 'bakery'} data`}
+      />
+
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white pb-24">
       <div className="max-w-md mx-auto p-4">
         {/* Header */}
@@ -177,6 +197,108 @@ export default function DashboardPage() {
             </span>
           </div>
         </Card>
+
+        {/* Goals Progress */}
+        {goals.enabled && (() => {
+          const progress = getProgress(weeklyStats.profit, weeklyStats.margin);
+          if (!progress) return null;
+          return (
+            <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <Target className="h-4 w-4 text-amber-400" />
+                  Weekly Goals
+                </h3>
+                {progress.allMet && (
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    All Goals Met!
+                  </span>
+                )}
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-slate-400">Profit Target</span>
+                    <span className={cn(
+                      "font-medium",
+                      progress.profitMet ? 'text-green-400' : 'text-slate-300'
+                    )}>
+                      {formatUGX(weeklyStats.profit)} / {formatUGX(goals.weeklyProfitTarget)}
+                    </span>
+                  </div>
+                  <Progress
+                    value={Math.min(progress.profitProgress, 100)}
+                    className={cn(
+                      "h-2",
+                      progress.profitMet ? '[&>div]:bg-green-500' : '[&>div]:bg-amber-500'
+                    )}
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-slate-400">Margin Target</span>
+                    <span className={cn(
+                      "font-medium",
+                      progress.marginMet ? 'text-green-400' : 'text-slate-300'
+                    )}>
+                      {weeklyStats.margin.toFixed(1)}% / {goals.weeklyMarginTarget}%
+                    </span>
+                  </div>
+                  <Progress
+                    value={Math.min(progress.marginProgress, 100)}
+                    className={cn(
+                      "h-2",
+                      progress.marginMet ? '[&>div]:bg-green-500' : '[&>div]:bg-amber-500'
+                    )}
+                  />
+                </div>
+              </div>
+            </Card>
+          );
+        })()}
+
+        {/* Low Stock Alert */}
+        {isLowStock && inventory.currentStock > 0 && (
+          <Card className="bg-orange-500/10 border border-orange-500/30 p-4 rounded-xl mb-6">
+            <div className="flex items-center gap-3">
+              <Package className="h-8 w-8 text-orange-400" />
+              <div>
+                <h3 className="font-bold text-white">Low Flour Stock</h3>
+                <p className="text-sm text-slate-400">
+                  Only {inventory.currentStock.toFixed(1)} kg remaining
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto border-orange-500/50 text-orange-400 hover:bg-orange-500/20"
+                onClick={() => router.push('/settings')}
+              >
+                Add Stock
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Inventory Summary */}
+        {inventory.currentStock > 0 && (
+          <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Package className="h-5 w-5 text-slate-400" />
+                <div>
+                  <div className="text-sm text-slate-400">Flour Stock</div>
+                  <div className="text-xl font-bold text-white">{inventory.currentStock.toFixed(1)} kg</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-slate-400">This Week Used</div>
+                <div className="text-lg font-medium text-amber-400">{weeklyUsage.toFixed(1)} kg</div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 gap-3 mb-6">
@@ -296,5 +418,6 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

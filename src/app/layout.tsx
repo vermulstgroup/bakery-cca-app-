@@ -3,6 +3,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { TranslationProvider } from '@/providers/translation-provider';
+import { ServiceWorkerRegister } from '@/components/sw-register';
 
 const APP_NAME = "Bakery CCA";
 const APP_DESCRIPTION = "Bakery management for Child Care Africa Uganda";
@@ -46,6 +47,7 @@ export default function RootLayout({
           >
             {children}
             <Toaster />
+            <ServiceWorkerRegister />
           </ThemeProvider>
         </TranslationProvider>
       </body>

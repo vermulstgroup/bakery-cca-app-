@@ -2,24 +2,27 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, History, ChevronRight, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { ArrowLeft, History, ChevronRight, TrendingUp, TrendingDown, Calendar, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { BAKERIES } from '@/lib/data';
+import { BAKERIES, PRODUCTS } from '@/lib/data';
 import { formatUGX, cn } from '@/lib/utils';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { format, subDays, parseISO } from 'date-fns';
 import type { DailyEntry } from '@/lib/types';
+
+type DateRange = '7' | '30' | '90' | 'all';
 
 export default function HistoryPage() {
   const router = useRouter();
   const { data: onboardingData } = useOnboarding();
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>('30');
 
   const currentBakery = BAKERIES.find(b => b.id === onboardingData.bakery);
 
-  // Load last 30 days of entries
+  // Load entries based on date range
   useEffect(() => {
     if (!onboardingData.bakery) return;
 
@@ -27,9 +30,10 @@ export default function HistoryPage() {
     const loadEntries = () => {
       const entriesList: DailyEntry[] = [];
       const today = new Date();
+      const daysToCheck = dateRange === 'all' ? 365 : parseInt(dateRange);
 
-      // Check last 30 days
-      for (let i = 0; i < 30; i++) {
+      // Check entries for the selected range
+      for (let i = 0; i < daysToCheck; i++) {
         const date = subDays(today, i);
         const dateStr = format(date, 'yyyy-MM-dd');
         const stored = localStorage.getItem(`biss-entry-${onboardingData.bakery}-${dateStr}`);
@@ -45,7 +49,7 @@ export default function HistoryPage() {
     };
 
     loadEntries();
-  }, [onboardingData.bakery]);
+  }, [onboardingData.bakery, dateRange]);
 
   // Calculate totals for each entry
   const entriesWithTotals = useMemo(() => {
@@ -109,6 +113,65 @@ export default function HistoryPage() {
     };
   }, [entriesWithTotals]);
 
+  // Export entries to CSV
+  const exportToCSV = () => {
+    if (entries.length === 0) return;
+
+    // CSV header
+    const headers = ['Date', 'Product', 'Kg Flour', 'Production Value (UGX)', 'Ingredient Cost (UGX)', 'Sales (UGX)', 'Profit (UGX)'];
+
+    // Build rows
+    const rows: string[][] = [];
+
+    entriesWithTotals.forEach(entry => {
+      if (entry.production) {
+        Object.entries(entry.production).forEach(([productId, prod]) => {
+          const product = PRODUCTS.find(p => p.id === productId);
+          const sales = entry.sales?.[productId] || 0;
+          const profit = sales - (prod.ingredientCostUGX || 0);
+
+          rows.push([
+            entry.date,
+            product?.name || productId,
+            (prod.kgFlour || 0).toString(),
+            (prod.productionValueUGX || 0).toString(),
+            (prod.ingredientCostUGX || 0).toString(),
+            sales.toString(),
+            profit.toString()
+          ]);
+        });
+      }
+    });
+
+    // Add summary row
+    if (summaryStats) {
+      rows.push([]);
+      rows.push(['SUMMARY', '', '', '', '', '', '']);
+      rows.push(['Total Days', summaryStats.totalDays.toString(), '', '', '', '', '']);
+      rows.push(['Total Sales', '', '', '', '', summaryStats.totalSales.toString(), '']);
+      rows.push(['Total Profit', '', '', '', '', '', summaryStats.totalProfit.toString()]);
+      rows.push(['Avg Daily Sales', '', '', '', '', summaryStats.avgDailySales.toFixed(0), '']);
+      rows.push(['Avg Daily Profit', '', '', '', '', '', summaryStats.avgDailyProfit.toFixed(0)]);
+    }
+
+    // Convert to CSV string
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `bakery-entries-${currentBakery?.id || 'unknown'}-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const viewEntry = (date: string) => {
     localStorage.setItem('biss-selected-date', date);
     router.push('/entry');
@@ -119,22 +182,60 @@ export default function HistoryPage() {
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/dashboard')}
-            className="-ml-2 text-slate-400 hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/dashboard')}
+              className="-ml-2 text-slate-400 hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            {entries.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToCSV}
+                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Export CSV
+              </Button>
+            )}
+          </div>
           <h1 className="text-xl font-bold text-amber-400 flex items-center gap-2">
             <History className="h-5 w-5" />
             Entry History
           </h1>
           <p className="text-slate-400 text-sm">
-            {currentBakery?.name || 'No bakery'} • Last 30 days
+            {currentBakery?.name || 'No bakery'}
           </p>
+        </div>
+
+        {/* Date Range Filter */}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+          {([
+            { value: '7', label: '7 Days' },
+            { value: '30', label: '30 Days' },
+            { value: '90', label: '90 Days' },
+            { value: 'all', label: 'All Time' },
+          ] as { value: DateRange; label: string }[]).map((option) => (
+            <Button
+              key={option.value}
+              variant={dateRange === option.value ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDateRange(option.value)}
+              className={cn(
+                "min-h-[40px] whitespace-nowrap",
+                dateRange === option.value
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                  : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+              )}
+            >
+              {option.label}
+            </Button>
+          ))}
         </div>
 
         {/* Summary Stats */}
