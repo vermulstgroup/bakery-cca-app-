@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, TrendingUp, TrendingDown, Package, DollarSign, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PRODUCTS, BAKERIES, getProductMarginPercent } from '@/lib/data';
@@ -49,22 +49,31 @@ export default function SummaryPage() {
   // Calculate today's totals
   const todayTotals = useMemo(() => {
     if (!todayEntry) {
-      return { productionValue: 0, ingredientCost: 0, salesTotal: 0, profit: 0, margin: 0 };
+      return { productionValue: 0, ingredientCost: 0, salesTotal: 0, profit: 0, margin: 0, kgFlour: 0 };
     }
 
     if (todayEntry.totals) {
-      return todayEntry.totals;
+      // Calculate kgFlour from production
+      let kgFlour = 0;
+      if (todayEntry.production) {
+        Object.values(todayEntry.production).forEach(prod => {
+          kgFlour += prod.kgFlour || 0;
+        });
+      }
+      return { ...todayEntry.totals, kgFlour };
     }
 
     // Calculate from production/sales if totals not present
     let productionValue = 0;
     let ingredientCost = 0;
     let salesTotal = 0;
+    let kgFlour = 0;
 
     if (todayEntry.production) {
       Object.values(todayEntry.production).forEach(prod => {
         productionValue += prod.productionValueUGX || 0;
         ingredientCost += prod.ingredientCostUGX || 0;
+        kgFlour += prod.kgFlour || 0;
       });
     }
 
@@ -77,8 +86,27 @@ export default function SummaryPage() {
     const profit = salesTotal - ingredientCost;
     const margin = salesTotal > 0 ? (profit / salesTotal) * 100 : 0;
 
-    return { productionValue, ingredientCost, salesTotal, profit, margin };
+    return { productionValue, ingredientCost, salesTotal, profit, margin, kgFlour };
   }, [todayEntry]);
+
+  // Get others data
+  const todayOthers = useMemo(() => {
+    if (!todayEntry?.others) {
+      return { replacements: 0, bonuses: 0, debts: 0 };
+    }
+    return todayEntry.others;
+  }, [todayEntry]);
+
+  // Get status badge based on margin
+  const getStatusBadge = (margin: number, hasData: boolean) => {
+    if (!hasData) return { emoji: '📭', label: 'No Data', color: 'text-slate-400' };
+    if (margin < 0) return { emoji: '⚠️', label: 'Loss', color: 'text-red-400' };
+    if (margin >= 20) return { emoji: '💪', label: 'Strong', color: 'text-green-400' };
+    if (margin >= 10) return { emoji: '👍', label: 'OK', color: 'text-amber-400' };
+    return { emoji: '⚠️', label: 'Low', color: 'text-orange-400' };
+  };
+
+  const statusBadge = getStatusBadge(todayTotals.margin, !!todayEntry);
 
   // Calculate week-to-date totals
   const weekTotals = useMemo(() => {
@@ -146,86 +174,121 @@ export default function SummaryPage() {
           </p>
         </div>
 
-        {/* Today's Summary */}
+        {/* Status Badge */}
+        <div className={cn(
+          "mb-4 p-3 rounded-xl flex items-center justify-between",
+          todayEntry ? (todayTotals.profit >= 0 ? 'bg-emerald-500/20' : 'bg-red-500/20') : 'bg-slate-800/50'
+        )}>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">{statusBadge.emoji}</span>
+            <div>
+              <div className={cn("font-bold", statusBadge.color)}>{statusBadge.label}</div>
+              <div className="text-xs text-slate-400">
+                {todayEntry ? `${todayTotals.margin.toFixed(1)}% margin` : 'Enter data to see status'}
+              </div>
+            </div>
+          </div>
+          {profitChange !== null && (
+            <div className={cn(
+              "text-sm flex items-center gap-1",
+              profitChange >= 0 ? 'text-green-400' : 'text-red-400'
+            )}>
+              {profitChange >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              {Math.abs(profitChange).toFixed(0)}%
+            </div>
+          )}
+        </div>
+
+        {/* 6-Tile Grid */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {/* Kg Flour */}
+          <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-3 rounded-xl">
+            <div className="text-2xl mb-1">🌾</div>
+            <div className="text-xs text-slate-400 mb-1">Kg Flour</div>
+            <div className="text-lg font-bold text-amber-400">
+              {todayTotals.kgFlour.toFixed(1)}
+            </div>
+          </Card>
+
+          {/* Replaced */}
+          <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-3 rounded-xl">
+            <div className="text-2xl mb-1">🔄</div>
+            <div className="text-xs text-slate-400 mb-1">Replaced</div>
+            <div className="text-lg font-bold text-orange-400 font-currency">
+              {todayOthers.replacements > 0 ? formatUGX(todayOthers.replacements) : '-'}
+            </div>
+          </Card>
+
+          {/* Production */}
+          <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-3 rounded-xl">
+            <div className="text-2xl mb-1">📦</div>
+            <div className="text-xs text-slate-400 mb-1">Production</div>
+            <div className="text-lg font-bold text-green-400 font-currency">
+              {formatUGX(todayTotals.productionValue)}
+            </div>
+          </Card>
+
+          {/* Bonus */}
+          <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-3 rounded-xl">
+            <div className="text-2xl mb-1">🎁</div>
+            <div className="text-xs text-slate-400 mb-1">Bonus</div>
+            <div className="text-lg font-bold text-purple-400 font-currency">
+              {todayOthers.bonuses > 0 ? formatUGX(todayOthers.bonuses) : '-'}
+            </div>
+          </Card>
+
+          {/* Sales */}
+          <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-3 rounded-xl">
+            <div className="text-2xl mb-1">💰</div>
+            <div className="text-xs text-slate-400 mb-1">Sales</div>
+            <div className="text-lg font-bold text-white font-currency">
+              {formatUGX(todayTotals.salesTotal)}
+            </div>
+          </Card>
+
+          {/* Debts */}
+          <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-3 rounded-xl">
+            <div className="text-2xl mb-1">📝</div>
+            <div className="text-xs text-slate-400 mb-1">Debts</div>
+            <div className="text-lg font-bold text-red-400 font-currency">
+              {todayOthers.debts > 0 ? formatUGX(todayOthers.debts) : '-'}
+            </div>
+          </Card>
+        </div>
+
+        {/* Profit Summary Card */}
         <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl mb-4">
-          <h3 className="font-bold text-white mb-4">Today's Results</h3>
-
+          <h3 className="font-bold text-white mb-3">Today's Profit</h3>
           {todayEntry ? (
-            <div className="space-y-4">
-              {/* Main KPIs */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-900/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-slate-300 text-sm mb-1">
-                    <Package className="h-4 w-4" />
-                    Production
-                  </div>
-                  <div className="text-xl font-bold text-green-400 font-currency">
-                    {formatUGX(todayTotals.productionValue)}
-                  </div>
-                </div>
-                <div className="bg-slate-900/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-slate-300 text-sm mb-1">
-                    <DollarSign className="h-4 w-4" />
-                    Sales
-                  </div>
-                  <div className="text-xl font-bold text-white font-currency">
-                    {formatUGX(todayTotals.salesTotal)}
-                  </div>
-                </div>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Sales</span>
+                <span className="text-white font-currency">{formatUGX(todayTotals.salesTotal)}</span>
               </div>
-
-              {/* Profit Card */}
-              <div className={cn(
-                "rounded-lg p-4",
-                todayTotals.profit >= 0 ? 'bg-emerald-500/20' : 'bg-red-500/20'
-              )}>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="text-sm text-slate-300 mb-1">Today's Profit</div>
-                    <div className={cn(
-                      "text-2xl font-bold font-currency",
-                      todayTotals.profit >= 0 ? 'text-emerald-400' : 'text-red-400'
-                    )}>
-                      {formatUGX(todayTotals.profit)}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-slate-300 mb-1">Margin</div>
-                    <div className={cn(
-                      "text-xl font-bold",
-                      todayTotals.margin >= 20 ? 'text-green-400' :
-                      todayTotals.margin >= 10 ? 'text-amber-400' : 'text-red-400'
-                    )}>
-                      {todayTotals.margin.toFixed(1)}%
-                    </div>
-                  </div>
-                </div>
-                {profitChange !== null && (
-                  <div className={cn(
-                    "mt-2 text-sm flex items-center gap-1",
-                    profitChange >= 0 ? 'text-green-400' : 'text-red-400'
-                  )}>
-                    {profitChange >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                    {Math.abs(profitChange).toFixed(0)}% vs yesterday
-                  </div>
-                )}
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Ingredient Cost</span>
+                <span className="text-red-400 font-currency">-{formatUGX(todayTotals.ingredientCost)}</span>
               </div>
-
-              {/* Costs */}
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400">Ingredient Costs</span>
-                <span className="text-red-400 font-currency">{formatUGX(todayTotals.ingredientCost)}</span>
+              <div className="border-t border-slate-700 pt-2 flex justify-between">
+                <span className="font-bold text-white">Gross Profit</span>
+                <span className={cn(
+                  "font-bold font-currency",
+                  todayTotals.profit >= 0 ? 'text-emerald-400' : 'text-red-400'
+                )}>
+                  {formatUGX(todayTotals.profit)}
+                </span>
               </div>
             </div>
           ) : (
-            <div className="text-center py-6">
-              <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-3" />
-              <p className="text-slate-400 mb-4">No data entered for today</p>
+            <div className="text-center py-4">
+              <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto mb-2" />
+              <p className="text-slate-400 text-sm mb-3">No data for today</p>
               <Button
                 onClick={() => router.push('/entry')}
+                size="sm"
                 className="bg-amber-500 hover:bg-amber-600"
               >
-                Enter Today's Data
+                Enter Data
               </Button>
             </div>
           )}

@@ -74,6 +74,13 @@ export type ProductionItem = {
   ingredientCostUGX: number;
 };
 
+// Others data (replacements, bonuses, debts)
+export type OthersData = {
+  replacements: number;
+  bonuses: number;
+  debts: number;
+};
+
 // New daily entry structure
 export type DailyEntry = {
   date: string;
@@ -94,6 +101,8 @@ export type DailyEntry = {
     profit: number;
     margin: number;
   };
+  // Others (replacements, bonuses, debts)
+  others?: OthersData;
   // Legacy support
   quantities?: DailyEntryData;
   closingStock?: { [productId: string]: number };

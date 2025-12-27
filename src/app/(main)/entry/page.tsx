@@ -21,7 +21,7 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import { saveDailyEntry, getDailyEntry } from '@/lib/firebase/firestore';
 import { format, subDays } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
-import type { DailyEntry, ProductionItem } from '@/lib/types';
+import type { DailyEntry, ProductionItem, OthersData } from '@/lib/types';
 
 // Production input component for kg flour
 const ProductionInput = ({
@@ -247,7 +247,7 @@ export default function ProductionEntryPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { data: onboardingData, isLoaded } = useOnboarding();
-  const [activeTab, setActiveTab] = useState<'production' | 'sales' | 'summary'>('production');
+  const [activeTab, setActiveTab] = useState<'production' | 'sales' | 'others' | 'summary'>('production');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [date] = useState(new Date());
   const [showExitDialog, setShowExitDialog] = useState(false);
@@ -260,17 +260,20 @@ export default function ProductionEntryPage() {
   const [production, setProduction] = useState<{ [productId: string]: ProductionItem }>({});
   // Sales data state (UGX per product)
   const [sales, setSales] = useState<{ [productId: string]: number }>({});
+  // Others data state (replacements, bonuses, debts)
+  const [others, setOthers] = useState<OthersData>({ replacements: 0, bonuses: 0, debts: 0 });
 
   // Track dirty state when user makes changes (after initial load)
   useEffect(() => {
     if (initialDataLoaded.current) {
       const hasAnyData = Object.values(production).some(p => p.kgFlour > 0) ||
-                        Object.values(sales).some(s => s > 0);
+                        Object.values(sales).some(s => s > 0) ||
+                        others.replacements > 0 || others.bonuses > 0 || others.debts > 0;
       if (hasAnyData) {
         setIsDirty(true);
       }
     }
-  }, [production, sales]);
+  }, [production, sales, others]);
 
   // Warn before leaving page with unsaved changes
   useEffect(() => {
@@ -295,6 +298,7 @@ export default function ProductionEntryPage() {
         localStorage.setItem(draftKey, JSON.stringify({
           production,
           sales,
+          others,
           timestamp: Date.now()
         }));
       } catch {
@@ -303,7 +307,7 @@ export default function ProductionEntryPage() {
     }, 30000); // 30 seconds
 
     return () => clearInterval(timer);
-  }, [onboardingData.bakery, date, production, sales, isDirty, saveStatus]);
+  }, [onboardingData.bakery, date, production, sales, others, isDirty, saveStatus]);
 
   // Handle back navigation with unsaved changes
   const handleBack = () => {
@@ -335,6 +339,9 @@ export default function ProductionEntryPage() {
         if (existing?.sales) {
           setSales(existing.sales);
         }
+        if (existing?.others) {
+          setOthers(existing.others);
+        }
       } catch {
         // Fallback to localStorage
         const stored = localStorage.getItem(`biss-entry-${onboardingData.bakery}-${dateString}`);
@@ -342,6 +349,7 @@ export default function ProductionEntryPage() {
           const data = JSON.parse(stored);
           if (data.production) setProduction(data.production);
           if (data.sales) setSales(data.sales);
+          if (data.others) setOthers(data.others);
         } else {
           // Check for auto-saved draft (from power cut recovery)
           const draftKey = `draft-${onboardingData.bakery}-${dateString}`;
@@ -351,6 +359,7 @@ export default function ProductionEntryPage() {
               const draftData = JSON.parse(draft);
               if (draftData.production) setProduction(draftData.production);
               if (draftData.sales) setSales(draftData.sales);
+              if (draftData.others) setOthers(draftData.others);
               toast({
                 title: "Draft recovered",
                 description: "Unsaved changes from earlier were restored",
@@ -443,8 +452,9 @@ export default function ProductionEntryPage() {
   const hasData = useMemo(() => {
     const hasProduction = Object.values(production).some(p => p.kgFlour > 0);
     const hasSales = Object.values(sales).some(s => s > 0);
-    return hasProduction || hasSales;
-  }, [production, sales]);
+    const hasOthers = others.replacements > 0 || others.bonuses > 0 || others.debts > 0;
+    return hasProduction || hasSales || hasOthers;
+  }, [production, sales, others]);
 
   // Save handler
   const handleSave = async () => {
@@ -461,6 +471,7 @@ export default function ProductionEntryPage() {
       bakeryId: onboardingData.bakery,
       production,
       sales,
+      others,
       totals: {
         productionValue: totals.productionValue,
         ingredientCost: totals.ingredientCost,
@@ -570,12 +581,12 @@ export default function ProductionEntryPage() {
 
         {/* Tab Navigation */}
         <div className="flex gap-2 mb-6">
-          {(['production', 'sales', 'summary'] as const).map((tab) => (
+          {(['production', 'sales', 'others', 'summary'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "flex-1 py-3 min-h-[48px] rounded-xl font-medium capitalize transition-all",
+                "flex-1 py-3 min-h-[48px] rounded-xl font-medium capitalize transition-all text-sm",
                 activeTab === tab
                   ? 'bg-amber-500 text-white'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -583,6 +594,7 @@ export default function ProductionEntryPage() {
             >
               {tab === 'production' && '📦 '}
               {tab === 'sales' && '💰 '}
+              {tab === 'others' && '📋 '}
               {tab === 'summary' && '📊 '}
               {tab}
             </button>
@@ -629,6 +641,161 @@ export default function ProductionEntryPage() {
                 disabled={saveStatus === 'saving'}
               />
             ))}
+          </div>
+        )}
+
+        {/* Others Tab */}
+        {activeTab === 'others' && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <p className="text-slate-400 text-sm">
+                Enter replacements, bonuses, and debts
+              </p>
+            </div>
+
+            {/* Replacements */}
+            <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-3xl">🔄</span>
+                <div className="flex-1">
+                  <h3 className="font-bold text-white">Replacements</h3>
+                  <p className="text-xs text-slate-400">
+                    Value of replaced/exchanged products
+                  </p>
+                </div>
+              </div>
+              <div className="relative">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1000"
+                  value={others.replacements}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setOthers(prev => ({ ...prev, replacements: isNaN(val) ? 0 : val }));
+                  }}
+                  disabled={saveStatus === 'saving'}
+                  placeholder="0"
+                  className="w-full h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 outline-none font-currency [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+              <div className="flex gap-2 mt-2">
+                {[5000, 10000, 25000, 50000].map((val) => (
+                  <button
+                    key={val}
+                    onClick={() => setOthers(prev => ({ ...prev, replacements: prev.replacements + val }))}
+                    disabled={saveStatus === 'saving'}
+                    className="flex-1 h-12 text-sm font-medium bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition-colors"
+                  >
+                    +{(val / 1000)}k
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Bonuses */}
+            <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-3xl">🎁</span>
+                <div className="flex-1">
+                  <h3 className="font-bold text-white">Bonuses</h3>
+                  <p className="text-xs text-slate-400">
+                    Staff bonuses and incentives paid
+                  </p>
+                </div>
+              </div>
+              <div className="relative">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1000"
+                  value={others.bonuses}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setOthers(prev => ({ ...prev, bonuses: isNaN(val) ? 0 : val }));
+                  }}
+                  disabled={saveStatus === 'saving'}
+                  placeholder="0"
+                  className="w-full h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-green-500 focus:ring-2 focus:ring-green-500/30 outline-none font-currency [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+              <div className="flex gap-2 mt-2">
+                {[5000, 10000, 25000, 50000].map((val) => (
+                  <button
+                    key={val}
+                    onClick={() => setOthers(prev => ({ ...prev, bonuses: prev.bonuses + val }))}
+                    disabled={saveStatus === 'saving'}
+                    className="flex-1 h-12 text-sm font-medium bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition-colors"
+                  >
+                    +{(val / 1000)}k
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Debts */}
+            <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-3xl">📝</span>
+                <div className="flex-1">
+                  <h3 className="font-bold text-white">Debts</h3>
+                  <p className="text-xs text-slate-400">
+                    Outstanding customer debts
+                  </p>
+                </div>
+              </div>
+              <div className="relative">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1000"
+                  value={others.debts}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setOthers(prev => ({ ...prev, debts: isNaN(val) ? 0 : val }));
+                  }}
+                  disabled={saveStatus === 'saving'}
+                  placeholder="0"
+                  className="w-full h-14 text-2xl font-bold text-center bg-slate-900 border border-slate-600 rounded-xl text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/30 outline-none font-currency [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+              <div className="flex gap-2 mt-2">
+                {[5000, 10000, 25000, 50000].map((val) => (
+                  <button
+                    key={val}
+                    onClick={() => setOthers(prev => ({ ...prev, debts: prev.debts + val }))}
+                    disabled={saveStatus === 'saving'}
+                    className="flex-1 h-12 text-sm font-medium bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition-colors"
+                  >
+                    +{(val / 1000)}k
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Others Summary */}
+            {(others.replacements > 0 || others.bonuses > 0 || others.debts > 0) && (
+              <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
+                <h3 className="font-bold text-white mb-3">Others Summary</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-300">🔄 Replacements</span>
+                    <span className="text-amber-400 font-currency">{formatUGX(others.replacements)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-300">🎁 Bonuses</span>
+                    <span className="text-green-400 font-currency">{formatUGX(others.bonuses)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-300">📝 Debts</span>
+                    <span className="text-red-400 font-currency">{formatUGX(others.debts)}</span>
+                  </div>
+                </div>
+              </Card>
+            )}
           </div>
         )}
 
