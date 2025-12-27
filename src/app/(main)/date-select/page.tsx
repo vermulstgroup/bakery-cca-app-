@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { BAKERIES } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { format, startOfWeek, addDays, subWeeks, addWeeks, isToday, isSameDay } from 'date-fns';
+import { format, startOfWeek, addDays, subWeeks, addWeeks, isToday, isSameDay, isFuture, isAfter, startOfDay } from 'date-fns';
 
 export default function DateSelectPage() {
   const router = useRouter();
@@ -40,16 +40,23 @@ export default function DateSelectPage() {
   }, [onboardingData.bakery, weekStart]);
 
   const handleDateSelect = (date: Date) => {
+    // Block future dates
+    if (isFuture(startOfDay(date))) {
+      return;
+    }
     setSelectedDate(date);
     // Store selected date and navigate to entry
     localStorage.setItem('biss-selected-date', format(date, 'yyyy-MM-dd'));
     router.push('/entry');
   };
 
+  // Check if next week navigation should be disabled (when it would go entirely into the future)
+  const isNextWeekDisabled = isAfter(weekStart, startOfDay(new Date()));
+
   const navigateWeek = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
       setWeekStart(subWeeks(weekStart, 1));
-    } else {
+    } else if (!isNextWeekDisabled) {
       setWeekStart(addWeeks(weekStart, 1));
     }
   };
@@ -115,7 +122,12 @@ export default function DateSelectPage() {
               variant="ghost"
               size="icon"
               onClick={() => navigateWeek('next')}
-              className="text-slate-400 hover:text-white"
+              disabled={isNextWeekDisabled}
+              className={cn(
+                isNextWeekDisabled
+                  ? "text-slate-600 cursor-not-allowed"
+                  : "text-slate-400 hover:text-white"
+              )}
             >
               <ChevronRight className="h-5 w-5" />
             </Button>
@@ -128,14 +140,18 @@ export default function DateSelectPage() {
               const hasData = entryStatus[dateStr];
               const isSelected = isSameDay(day, selectedDate);
               const isTodayDate = isToday(day);
+              const isFutureDate = isFuture(startOfDay(day));
 
               return (
                 <button
                   key={dateStr}
                   onClick={() => handleDateSelect(day)}
+                  disabled={isFutureDate}
                   className={cn(
                     "flex flex-col items-center p-2 min-h-[56px] rounded-lg transition-all",
-                    isSelected
+                    isFutureDate
+                      ? 'bg-slate-800/50 text-slate-600 cursor-not-allowed'
+                      : isSelected
                       ? 'bg-amber-500 text-white'
                       : isTodayDate
                       ? 'bg-slate-700 text-white ring-2 ring-amber-500/50'
@@ -149,7 +165,9 @@ export default function DateSelectPage() {
                     {format(day, 'd')}
                   </span>
                   <div className="mt-1">
-                    {hasData ? (
+                    {isFutureDate ? (
+                      <div className="h-4 w-4 rounded-full bg-slate-700" />
+                    ) : hasData ? (
                       <CheckCircle className="h-4 w-4 text-green-400" />
                     ) : (
                       <div className="h-4 w-4 rounded-full bg-slate-600" />
@@ -181,22 +199,31 @@ export default function DateSelectPage() {
               const dateStr = format(day, 'yyyy-MM-dd');
               const hasData = entryStatus[dateStr];
               const isTodayDate = isToday(day);
+              const isFutureDate = isFuture(startOfDay(day));
 
               return (
                 <button
                   key={dateStr}
                   onClick={() => handleDateSelect(day)}
+                  disabled={isFutureDate}
                   className={cn(
                     "w-full flex items-center justify-between p-3 rounded-lg transition-all",
-                    isTodayDate ? 'bg-amber-500/20 border border-amber-500/30' : 'bg-slate-800 hover:bg-slate-700'
+                    isFutureDate
+                      ? 'bg-slate-800/50 cursor-not-allowed opacity-50'
+                      : isTodayDate
+                      ? 'bg-amber-500/20 border border-amber-500/30'
+                      : 'bg-slate-800 hover:bg-slate-700'
                   )}
                 >
                   <div className="flex items-center gap-3">
                     <div className={cn(
                       "w-2 h-2 rounded-full",
-                      hasData ? 'bg-green-500' : 'bg-slate-500'
+                      isFutureDate ? 'bg-slate-600' : hasData ? 'bg-green-500' : 'bg-slate-500'
                     )} />
-                    <span className="font-medium text-white">
+                    <span className={cn(
+                      "font-medium",
+                      isFutureDate ? 'text-slate-500' : 'text-white'
+                    )}>
                       {format(day, 'EEEE, MMM d')}
                     </span>
                     {isTodayDate && (
@@ -206,12 +233,17 @@ export default function DateSelectPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {hasData ? (
+                    {isFutureDate ? (
+                      <span className="text-sm text-slate-600">Future</span>
+                    ) : hasData ? (
                       <span className="text-sm text-green-400">Recorded</span>
                     ) : (
                       <span className="text-sm text-slate-500">Not entered</span>
                     )}
-                    <ChevronRight className="h-4 w-4 text-slate-500" />
+                    <ChevronRight className={cn(
+                      "h-4 w-4",
+                      isFutureDate ? 'text-slate-600' : 'text-slate-500'
+                    )} />
                   </div>
                 </button>
               );

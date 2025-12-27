@@ -23,7 +23,7 @@ type BakeryPerformanceSummary = {
   weeklyProfit: number;
   weeklySales: number;
   weeklyMargin: number;
-  status: 'profitable' | 'loss' | 'breakeven' | 'nodata';
+  status: 'thriving' | 'stable' | 'attention' | 'nodata';
   daysRecorded: number;
 };
 
@@ -231,9 +231,12 @@ const loadAllBakeriesPerformance = async (): Promise<BakeryPerformanceSummary[]>
 
     let status: BakeryPerformanceSummary['status'] = 'nodata';
     if (daysRecorded > 0) {
-      if (profit > 0) status = 'profitable';
-      else if (profit < 0) status = 'loss';
-      else status = 'breakeven';
+      // Thriving: positive profit AND margin >= 15%
+      // Stable: positive profit but margin < 15%, OR break-even
+      // Needs Attention: negative profit (loss)
+      if (profit > 0 && margin >= 15) status = 'thriving';
+      else if (profit >= 0) status = 'stable';
+      else status = 'attention';
     }
 
     performances.push({
@@ -572,16 +575,20 @@ export default function StrategicDashboard() {
               📊 All Bakeries Overview
               <span className="text-sm font-normal text-slate-400">This Week</span>
             </h2>
-            {bakeriesWithData > 0 && (
-              <span className={cn(
-                "text-sm font-medium px-3 py-1 rounded-full",
-                profitableBakeries === bakeriesWithData ? "bg-green-500/20 text-green-400" :
-                profitableBakeries === 0 ? "bg-red-500/20 text-red-400" :
-                "bg-amber-500/20 text-amber-400"
-              )}>
-                {profitableBakeries}/{bakeriesWithData} Profitable
-              </span>
-            )}
+            {bakeriesWithData > 0 && (() => {
+              const thrivingCount = allBakeriesPerformance.filter(b => b.status === 'thriving').length;
+              const attentionCount = allBakeriesPerformance.filter(b => b.status === 'attention').length;
+              return (
+                <span className={cn(
+                  "text-sm font-medium px-3 py-1 rounded-full",
+                  attentionCount === 0 && thrivingCount > 0 ? "bg-green-500/20 text-green-400" :
+                  attentionCount > 0 ? "bg-red-500/20 text-red-400" :
+                  "bg-amber-500/20 text-amber-400"
+                )}>
+                  {thrivingCount} Thriving • {attentionCount} Need Attention
+                </span>
+              );
+            })()}
           </div>
 
           {/* Total Profit Across All Bakeries */}
@@ -643,19 +650,19 @@ export default function StrategicDashboard() {
                       <div className="font-bold text-white flex items-center gap-2">
                         {perf.bakeryName}
                         {/* Status Badge */}
-                        {perf.status === 'profitable' && (
+                        {perf.status === 'thriving' && (
                           <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            🟢 Profitable
+                            💪 Thriving
                           </span>
                         )}
-                        {perf.status === 'loss' && (
-                          <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            🔴 Loss
-                          </span>
-                        )}
-                        {perf.status === 'breakeven' && (
+                        {perf.status === 'stable' && (
                           <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            🟡 Break-even
+                            ✓ Stable
+                          </span>
+                        )}
+                        {perf.status === 'attention' && (
+                          <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            ⚠️ Needs Attention
                           </span>
                         )}
                         {perf.status === 'nodata' && (

@@ -252,7 +252,7 @@ export default function HistoryPage() {
               size="sm"
               onClick={() => setDateRange(option.value)}
               className={cn(
-                "min-h-[40px] whitespace-nowrap",
+                "min-h-[44px] px-4 whitespace-nowrap",
                 dateRange === option.value
                   ? 'bg-amber-500 hover:bg-amber-600 text-white'
                   : 'border-slate-700 text-slate-300 hover:bg-slate-800'
@@ -378,9 +378,10 @@ export default function HistoryPage() {
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <div className={cn(
-                          "font-bold font-currency",
+                          "font-bold font-currency flex items-center gap-1",
                           totals.profit >= 0 ? 'text-green-400' : 'text-red-400'
                         )}>
+                          <span aria-hidden="true">{totals.profit >= 0 ? '▲' : '▼'}</span>
                           {totals.profit >= 0 ? '+' : ''}{formatUGX(totals.profit)}
                         </div>
                         {profitChange !== null && (

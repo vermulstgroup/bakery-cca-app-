@@ -294,10 +294,11 @@ export default function SummaryPage() {
               <div className="border-t border-slate-700 pt-2 flex justify-between">
                 <span className="font-bold text-white">Gross Profit</span>
                 <span className={cn(
-                  "font-bold font-currency",
+                  "font-bold font-currency flex items-center gap-1",
                   todayTotals.profit >= 0 ? 'text-emerald-400' : 'text-red-400'
                 )}>
-                  {formatUGX(todayTotals.profit)}
+                  <span aria-hidden="true">{todayTotals.profit >= 0 ? '▲' : '▼'}</span>
+                  {todayTotals.profit >= 0 ? '+' : ''}{formatUGX(todayTotals.profit)}
                 </span>
               </div>
             </div>
@@ -344,9 +345,10 @@ export default function SummaryPage() {
                         {formatUGX(sold)}
                       </div>
                       <div className={cn(
-                        "text-sm font-bold font-currency",
+                        "text-sm font-bold font-currency flex items-center gap-1",
                         profit >= 0 ? 'text-green-400' : 'text-red-400'
                       )}>
+                        <span aria-hidden="true">{profit >= 0 ? '▲' : '▼'}</span>
                         {profit >= 0 ? '+' : ''}{formatUGX(profit)}
                       </div>
                     </div>
@@ -388,10 +390,11 @@ export default function SummaryPage() {
             <div className="border-t border-slate-700 pt-3 flex justify-between text-lg">
               <span className="text-white font-bold">Week Profit</span>
               <span className={cn(
-                "font-bold font-currency",
+                "font-bold font-currency flex items-center gap-1",
                 weekTotals.profit >= 0 ? 'text-emerald-400' : 'text-red-400'
               )}>
-                {formatUGX(weekTotals.profit)}
+                <span aria-hidden="true">{weekTotals.profit >= 0 ? '▲' : '▼'}</span>
+                {weekTotals.profit >= 0 ? '+' : ''}{formatUGX(weekTotals.profit)}
               </span>
             </div>
             <div className="flex justify-between">

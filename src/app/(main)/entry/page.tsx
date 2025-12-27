@@ -22,6 +22,7 @@ import { saveDailyEntry, getDailyEntry } from '@/lib/supabase';
 import { format, subDays, addDays, isToday, isFuture } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import type { DailyEntry, ProductionItem, OthersData } from '@/lib/types';
+import { HelpTooltip, HELP_DEFINITIONS } from '@/components/ui/help-tooltip';
 
 // Production input component for kg flour
 const ProductionInput = ({
@@ -264,10 +265,12 @@ export default function ProductionEntryPage() {
 
   const currentBakery = BAKERIES.find(b => b.id === onboardingData.bakery);
 
-  // Get selected products from onboarding (default to all if none selected)
+  // Get selected products from onboarding (default to all if none selected or empty)
   const selectedProducts = useMemo(() => {
     if (onboardingData.products && onboardingData.products.length > 0) {
-      return PRODUCTS.filter(p => onboardingData.products!.includes(p.id));
+      const filtered = PRODUCTS.filter(p => onboardingData.products!.includes(p.id));
+      // If filtering results in empty (data corruption), show all products
+      return filtered.length > 0 ? filtered : PRODUCTS;
     }
     return PRODUCTS;
   }, [onboardingData.products]);
@@ -870,7 +873,7 @@ export default function ProductionEntryPage() {
                   value={others.replacements}
                   onChange={(e) => {
                     const val = parseInt(e.target.value, 10);
-                    setOthers(prev => ({ ...prev, replacements: isNaN(val) ? 0 : val }));
+                    setOthers(prev => ({ ...prev, replacements: isNaN(val) ? 0 : Math.max(0, val) }));
                   }}
                   disabled={saveStatus === 'saving'}
                   placeholder="0"
@@ -911,7 +914,7 @@ export default function ProductionEntryPage() {
                   value={others.bonuses}
                   onChange={(e) => {
                     const val = parseInt(e.target.value, 10);
-                    setOthers(prev => ({ ...prev, bonuses: isNaN(val) ? 0 : val }));
+                    setOthers(prev => ({ ...prev, bonuses: isNaN(val) ? 0 : Math.max(0, val) }));
                   }}
                   disabled={saveStatus === 'saving'}
                   placeholder="0"
@@ -952,7 +955,7 @@ export default function ProductionEntryPage() {
                   value={others.debts}
                   onChange={(e) => {
                     const val = parseInt(e.target.value, 10);
-                    setOthers(prev => ({ ...prev, debts: isNaN(val) ? 0 : val }));
+                    setOthers(prev => ({ ...prev, debts: isNaN(val) ? 0 : Math.max(0, val) }));
                   }}
                   disabled={saveStatus === 'saving'}
                   placeholder="0"
@@ -1008,13 +1011,13 @@ export default function ProductionEntryPage() {
 
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Production Value</span>
+                  <HelpTooltip term="Production Value" explanation={HELP_DEFINITIONS.productionValue} className="text-slate-400" />
                   <span className="text-green-400 font-bold font-currency">
                     {formatUGX(totals.productionValue)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Ingredient Cost</span>
+                  <HelpTooltip term="Ingredient Cost" explanation={HELP_DEFINITIONS.ingredientCost} className="text-slate-400" />
                   <span className="text-red-400 font-currency">
                     {formatUGX(totals.ingredientCost)}
                   </span>
@@ -1027,16 +1030,17 @@ export default function ProductionEntryPage() {
                   </span>
                 </div>
                 <div className="flex justify-between text-lg">
-                  <span className="text-white font-bold">Gross Profit</span>
+                  <HelpTooltip term="Gross Profit" explanation={HELP_DEFINITIONS.grossProfit} className="text-white font-bold" />
                   <span className={cn(
-                    "font-bold font-currency",
+                    "font-bold font-currency flex items-center gap-1",
                     totals.grossProfit >= 0 ? 'text-emerald-400' : 'text-red-400'
                   )}>
-                    {formatUGX(totals.grossProfit)}
+                    <span aria-hidden="true">{totals.grossProfit >= 0 ? '▲' : '▼'}</span>
+                    {totals.grossProfit >= 0 ? '+' : ''}{formatUGX(totals.grossProfit)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Profit Margin</span>
+                  <HelpTooltip term="Profit Margin" explanation={HELP_DEFINITIONS.margin} className="text-slate-400" />
                   <span className={cn(
                     "font-bold",
                     totals.margin >= 20 ? 'text-green-400' :
@@ -1074,9 +1078,10 @@ export default function ProductionEntryPage() {
                           Sold: {formatUGX(sold)}
                         </div>
                         <div className={cn(
-                          "text-sm font-bold font-currency",
+                          "text-sm font-bold font-currency flex items-center gap-1",
                           profit >= 0 ? 'text-green-400' : 'text-red-400'
                         )}>
+                          <span aria-hidden="true">{profit >= 0 ? '▲' : '▼'}</span>
                           {profit >= 0 ? '+' : ''}{formatUGX(profit)}
                         </div>
                       </div>
@@ -1118,10 +1123,11 @@ export default function ProductionEntryPage() {
           <div>
             <div className="text-sm text-slate-400">Today's Profit</div>
             <div className={cn(
-              "text-xl font-bold font-currency",
+              "text-xl font-bold font-currency flex items-center gap-1",
               totals.grossProfit >= 0 ? 'text-emerald-400' : 'text-red-400'
             )}>
-              {formatUGX(totals.grossProfit)}
+              <span aria-hidden="true">{totals.grossProfit >= 0 ? '▲' : '▼'}</span>
+              {totals.grossProfit >= 0 ? '+' : ''}{formatUGX(totals.grossProfit)}
             </div>
           </div>
           <Button

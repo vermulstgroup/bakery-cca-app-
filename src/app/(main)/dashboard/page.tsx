@@ -212,16 +212,32 @@ export default function DashboardPage() {
     );
   }
 
-  return (
-    <>
-      {/* PIN Authentication Dialog */}
-      <PinDialog
-        open={showPinDialog}
-        onVerify={verifyPin}
-        title="Enter PIN"
-        description={`Enter PIN to access ${currentBakery?.name || 'bakery'} data`}
-      />
+  // If PIN is required but not authenticated, show only PIN dialog with blurred background
+  if (showPinDialog) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <PinDialog
+          open={true}
+          onVerify={verifyPin}
+          title="Enter PIN"
+          description={`Enter PIN to access ${currentBakery?.name || 'bakery'} data`}
+        />
+        {/* Blurred placeholder to indicate protected content */}
+        <div className="p-4 filter blur-lg pointer-events-none select-none opacity-50">
+          <div className="max-w-md mx-auto">
+            <div className="h-8 w-48 bg-slate-700 rounded mb-4" />
+            <div className="h-40 bg-slate-800 rounded-2xl mb-4" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="h-24 bg-slate-800 rounded-xl" />
+              <div className="h-24 bg-slate-800 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  return (
     <div data-testid="dashboard-page" className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white pb-24">
       <div className="max-w-md mx-auto p-4">
         {/* Header */}
@@ -258,14 +274,21 @@ export default function DashboardPage() {
         )}>
           <div className="text-white/80 text-sm font-medium mb-1 flex items-center gap-2">
             {weeklyStats.profit >= 0 ? (
-              <TrendingUp className="h-4 w-4" />
+              <>
+                <TrendingUp className="h-4 w-4" />
+                <span className="text-lg" aria-hidden="true">▲</span>
+              </>
             ) : (
-              <TrendingDown className="h-4 w-4" />
+              <>
+                <TrendingDown className="h-4 w-4" />
+                <span className="text-lg" aria-hidden="true">▼</span>
+              </>
             )}
             This Week's {weeklyStats.profit >= 0 ? 'Profit' : 'Loss'}
           </div>
           <div className="text-4xl font-bold text-white font-currency mb-2 flex items-center gap-2">
-            {weeklyStats.profit >= 0 ? '+' : ''}{formatUGX(weeklyStats.profit)}
+            <span aria-hidden="true">{weeklyStats.profit >= 0 ? '+' : '−'}</span>
+            {formatUGX(Math.abs(weeklyStats.profit))}
           </div>
           <div className="flex items-center gap-2">
             <span className={cn(
@@ -503,6 +526,5 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
-    </>
   );
 }
