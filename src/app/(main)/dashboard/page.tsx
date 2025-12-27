@@ -2,6 +2,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatUGX, cn } from '@/lib/utils';
 import { ArrowUp, ArrowDown, FileText, Loader2, AlertTriangle, ArrowRight, TrendingUp, TrendingDown, Calendar, ScrollText, Target, CheckCircle2, Package } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
@@ -14,6 +15,7 @@ import { useBakeryPin } from '@/hooks/use-bakery-pin';
 import { PinDialog } from '@/components/pin-dialog';
 import { startOfWeek, endOfWeek, format as formatDate, eachDayOfInterval } from 'date-fns';
 import { PRODUCTS, BAKERIES, getProductMarginPercent } from '@/lib/data';
+import { getDailyEntriesForDateRange } from '@/lib/supabase';
 import type { DailyEntry } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
 
@@ -33,35 +35,56 @@ export default function DashboardPage() {
 
   const currentBakery = BAKERIES.find(b => b.id === onboardingData.bakery);
 
-  // Load current week's entries from localStorage
+  // Load current week's entries from Supabase (with localStorage fallback)
   useEffect(() => {
-    if (onboardingLoaded && onboardingData.bakery) {
+    const loadEntries = async () => {
+      if (!onboardingLoaded || !onboardingData.bakery) return;
+
       setLoading(true);
       const weekStartStr = formatDate(weekStart, 'yyyy-MM-dd');
       const weekEndStr = formatDate(weekEnd, 'yyyy-MM-dd');
 
-      const localEntries: DailyEntry[] = [];
+      // Try Supabase first
+      try {
+        const supabaseEntries = await getDailyEntriesForDateRange(
+          onboardingData.bakery,
+          weekStartStr,
+          weekEndStr
+        );
+        if (supabaseEntries.length > 0) {
+          setEntries(supabaseEntries);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Fall through to localStorage
+      }
 
-      // Check localStorage for entries in this week
+      // Fallback to localStorage
+      const localEntries: DailyEntry[] = [];
       weekDays.forEach(day => {
         const dateStr = formatDate(day, 'yyyy-MM-dd');
-        // Check new format first
-        const newFormat = localStorage.getItem(`biss-entry-${onboardingData.bakery}-${dateStr}`);
-        if (newFormat) {
-          localEntries.push(JSON.parse(newFormat));
-        } else {
-          // Fallback to legacy format
-          const legacyFormat = localStorage.getItem(`daily_entry-${onboardingData.bakery}-${dateStr}`);
-          if (legacyFormat) {
-            localEntries.push(JSON.parse(legacyFormat));
+        try {
+          const newFormat = localStorage.getItem(`biss-entry-${onboardingData.bakery}-${dateStr}`);
+          if (newFormat) {
+            localEntries.push(JSON.parse(newFormat));
+          } else {
+            const legacyFormat = localStorage.getItem(`daily_entry-${onboardingData.bakery}-${dateStr}`);
+            if (legacyFormat) {
+              localEntries.push(JSON.parse(legacyFormat));
+            }
           }
+        } catch {
+          // Skip corrupted entry
         }
       });
 
       setEntries(localEntries);
       setLoading(false);
-    }
-  }, [onboardingLoaded, onboardingData.bakery, weekStart, weekEnd]);
+    };
+
+    loadEntries();
+  }, [onboardingLoaded, onboardingData.bakery, weekStart, weekEnd, weekDays]);
 
   // Calculate weekly stats from entries
   const weeklyStats = useMemo(() => {
@@ -122,8 +145,47 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white pb-24">
+        <div className="max-w-md mx-auto p-4">
+          {/* Header Skeleton */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <Skeleton className="h-7 w-36 bg-slate-700 mb-2" />
+                <Skeleton className="h-4 w-24 bg-slate-700" />
+              </div>
+              <Skeleton className="h-8 w-24 bg-slate-700 rounded-lg" />
+            </div>
+          </div>
+
+          {/* Main Card Skeleton */}
+          <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-6 rounded-2xl mb-4">
+            <Skeleton className="h-4 w-32 bg-slate-700 mb-2" />
+            <Skeleton className="h-10 w-40 bg-slate-700 mb-4" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Skeleton className="h-3 w-16 bg-slate-700 mb-1" />
+                <Skeleton className="h-6 w-24 bg-slate-700" />
+              </div>
+              <div>
+                <Skeleton className="h-3 w-16 bg-slate-700 mb-1" />
+                <Skeleton className="h-6 w-24 bg-slate-700" />
+              </div>
+            </div>
+          </Card>
+
+          {/* Quick Actions Skeleton */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <Skeleton className="h-20 bg-slate-700 rounded-xl" />
+            <Skeleton className="h-20 bg-slate-700 rounded-xl" />
+          </div>
+
+          {/* Goals Skeleton */}
+          <Skeleton className="h-32 bg-slate-700 rounded-xl mb-4" />
+
+          {/* Inventory Skeleton */}
+          <Skeleton className="h-24 bg-slate-700 rounded-xl" />
+        </div>
       </div>
     );
   }
@@ -138,13 +200,13 @@ export default function DashboardPage() {
         description={`Enter PIN to access ${currentBakery?.name || 'bakery'} data`}
       />
 
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white pb-24">
+    <div data-testid="dashboard-page" className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white pb-24">
       <div className="max-w-md mx-auto p-4">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-amber-400">
+              <h1 data-testid="bakery-name" className="text-2xl font-bold text-amber-400">
                 {currentBakery?.name || 'BISS'} Bakery
               </h1>
               <p className="text-slate-400 text-sm">Manager: {currentBakery?.manager}</p>
@@ -341,6 +403,7 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <div className="space-y-3 mb-6">
           <Button
+            data-testid="enter-data-btn"
             onClick={() => router.push('/entry')}
             className="w-full bg-amber-500 hover:bg-amber-600 text-white py-4 text-lg"
           >

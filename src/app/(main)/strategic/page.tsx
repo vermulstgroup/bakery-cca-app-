@@ -1,18 +1,21 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { ArrowLeft, Download, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCw, FileSpreadsheet, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PRODUCTS, BAKERIES, getProductMargin, getProductMarginPercent } from '@/lib/data';
 import { formatUGX } from '@/lib/utils';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { format, startOfWeek, subWeeks, addDays } from 'date-fns';
-import type { WeeklyData, DailyEntry } from '@/lib/types';
+import { format, startOfWeek, subWeeks, subMonths, addDays } from 'date-fns';
+import { getDailyEntriesForDateRange, getAllDailyEntries, getAllWeeklyExpenses } from '@/lib/supabase';
+import type { WeeklyData, DailyEntry, WeeklyExpense } from '@/lib/types';
 
-// Load entries for a bakery from localStorage for a date range
-const loadEntriesForDateRange = (bakeryId: string, startDate: Date, endDate: Date): DailyEntry[] => {
+type ExportRange = 'week' | 'month' | 'all';
+
+// Load entries from localStorage as fallback
+const loadEntriesFromLocalStorage = (bakeryId: string, startDate: Date, endDate: Date): DailyEntry[] => {
   const entries: DailyEntry[] = [];
   const current = new Date(startDate);
 
@@ -32,25 +35,54 @@ const loadEntriesForDateRange = (bakeryId: string, startDate: Date, endDate: Dat
   return entries;
 };
 
-// Load real data from localStorage for 12 weeks
-const loadRealData = (bakeryId: string): WeeklyData[] => {
+// Load real data from Supabase (with localStorage fallback) for 12 weeks
+const loadRealData = async (bakeryId: string): Promise<WeeklyData[]> => {
   const data: WeeklyData[] = [];
   const today = new Date();
+  const twelveWeeksAgo = subWeeks(startOfWeek(today, { weekStartsOn: 1 }), 11);
 
+  // Try to load from Supabase first
+  let entries: DailyEntry[] = [];
+  try {
+    entries = await getDailyEntriesForDateRange(
+      bakeryId,
+      format(twelveWeeksAgo, 'yyyy-MM-dd'),
+      format(today, 'yyyy-MM-dd')
+    );
+  } catch {
+    // Fallback to localStorage
+    entries = loadEntriesFromLocalStorage(bakeryId, twelveWeeksAgo, today);
+  }
+
+  // If no Supabase data, try localStorage
+  if (entries.length === 0) {
+    entries = loadEntriesFromLocalStorage(bakeryId, twelveWeeksAgo, today);
+  }
+
+  // Group entries by week
+  const entriesByWeek: { [weekStart: string]: DailyEntry[] } = {};
+  entries.forEach(entry => {
+    const entryDate = new Date(entry.date);
+    const weekStart = format(startOfWeek(entryDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    if (!entriesByWeek[weekStart]) {
+      entriesByWeek[weekStart] = [];
+    }
+    entriesByWeek[weekStart].push(entry);
+  });
+
+  // Build weekly data for last 12 weeks
   for (let i = 11; i >= 0; i--) {
-    const weekStart = startOfWeek(subWeeks(today, i), { weekStartsOn: 1 }); // Monday
-    const weekEnd = addDays(weekStart, 6); // Sunday
+    const weekStart = startOfWeek(subWeeks(today, i), { weekStartsOn: 1 });
+    const weekStartStr = format(weekStart, 'yyyy-MM-dd');
     const weekNum = 12 - i;
-
-    // Load entries for this week
-    const entries = loadEntriesForDateRange(bakeryId, weekStart, weekEnd);
+    const weekEntries = entriesByWeek[weekStartStr] || [];
 
     // Aggregate the week's data
     let production = 0;
     let sales = 0;
     let costs = 0;
 
-    entries.forEach(entry => {
+    weekEntries.forEach(entry => {
       if (entry.totals) {
         production += entry.totals.productionValue || 0;
         sales += entry.totals.salesTotal || 0;
@@ -63,7 +95,7 @@ const loadRealData = (bakeryId: string): WeeklyData[] => {
 
     data.push({
       week: `W${weekNum}`,
-      date: format(weekStart, 'yyyy-MM-dd'),
+      date: weekStartStr,
       production,
       sales,
       costs,
@@ -74,6 +106,68 @@ const loadRealData = (bakeryId: string): WeeklyData[] => {
   return data;
 };
 
+// Load all weekly expenses for a bakery from localStorage
+const loadAllWeeklyExpensesFromLocalStorage = (bakeryId: string): { [weekStart: string]: number } => {
+  const expenses: { [weekStart: string]: number } = {};
+
+  // Scan localStorage for expense keys
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(`expenses-${bakeryId}-`)) {
+      try {
+        const data = JSON.parse(localStorage.getItem(key) || '{}');
+        if (data.expenses) {
+          const total = Object.values(data.expenses as { [k: string]: number }).reduce((sum, val) => sum + val, 0);
+          expenses[data.weekStartDate] = total;
+        }
+      } catch {
+        // Skip invalid entries
+      }
+    }
+  }
+  return expenses;
+};
+
+// Get the week start date for a given date
+const getWeekStartForDate = (date: Date): string => {
+  return format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+};
+
+// Load all daily entries from localStorage fallback
+const loadAllDailyEntriesFromLocalStorage = (bakeryId: string): DailyEntry[] => {
+  const entries: DailyEntry[] = [];
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(`biss-entry-${bakeryId}-`)) {
+      try {
+        const entry = JSON.parse(localStorage.getItem(key) || '{}');
+        if (entry.date) {
+          entries.push(entry);
+        }
+      } catch {
+        // Skip invalid entries
+      }
+    }
+  }
+
+  // Sort by date ascending
+  return entries.sort((a, b) => a.date.localeCompare(b.date));
+};
+
+// Load all daily entries from Supabase with localStorage fallback
+const loadAllDailyEntriesAsync = async (bakeryId: string): Promise<DailyEntry[]> => {
+  try {
+    const entries = await getAllDailyEntries(bakeryId);
+    if (entries.length > 0) {
+      return entries.sort((a, b) => a.date.localeCompare(b.date));
+    }
+  } catch {
+    // Fall through to localStorage
+  }
+  return loadAllDailyEntriesFromLocalStorage(bakeryId);
+};
+
 export default function StrategicDashboard() {
   const router = useRouter();
   const { data: onboardingData } = useOnboarding();
@@ -82,15 +176,29 @@ export default function StrategicDashboard() {
   const [view, setView] = useState<'overview' | 'trends' | 'products'>('overview');
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [exportRange, setExportRange] = useState<ExportRange>('month');
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const currentBakery = BAKERIES.find(b => b.id === bakery);
 
-  // Load real data from localStorage
+  // Close export menu when clicking outside
   useEffect(() => {
-    const loadData = () => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (showExportMenu && !target.closest('[data-export-menu]')) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showExportMenu]);
+
+  // Load real data from Supabase (with localStorage fallback)
+  useEffect(() => {
+    const loadData = async () => {
       setLoading(true);
       try {
-        const realData = loadRealData(bakery);
+        const realData = await loadRealData(bakery);
         setData(realData);
         setLastRefresh(new Date());
       } catch {
@@ -103,10 +211,10 @@ export default function StrategicDashboard() {
   }, [bakery]);
 
   // Refresh function
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setLoading(true);
     try {
-      const realData = loadRealData(bakery);
+      const realData = await loadRealData(bakery);
       setData(realData);
       setLastRefresh(new Date());
     } catch {
@@ -131,7 +239,8 @@ export default function StrategicDashboard() {
     ? (((latestWeek.profit - previousWeek.profit) / previousWeek.profit) * 100).toFixed(1)
     : '0';
 
-  const exportData = () => {
+  // Export weekly summary (existing functionality)
+  const exportWeeklySummary = () => {
     const csv = [
       ['Week', 'Date', 'Production (UGX)', 'Sales (UGX)', 'Costs (UGX)', 'Profit (UGX)', 'Margin (%)'],
       ...data.map(w => [w.week, w.date, w.production, w.sales, w.costs, w.profit, w.margin])
@@ -144,6 +253,106 @@ export default function StrategicDashboard() {
     a.download = `${currentBakery?.name || bakery}-12week-report.csv`;
     a.click();
   };
+
+  // Export detailed daily data with date range
+  const exportDetailedData = useCallback(async (range: ExportRange) => {
+    const today = new Date();
+    let startDate: Date;
+
+    switch (range) {
+      case 'week':
+        startDate = startOfWeek(today, { weekStartsOn: 1 });
+        break;
+      case 'month':
+        startDate = subMonths(today, 1);
+        break;
+      case 'all':
+        startDate = new Date(2020, 0, 1); // Far back enough to get all data
+        break;
+    }
+
+    // Load all daily entries from Supabase (with localStorage fallback)
+    const allEntries = await loadAllDailyEntriesAsync(bakery);
+    const weeklyExpenses = loadAllWeeklyExpensesFromLocalStorage(bakery);
+
+    // Filter by date range
+    const filteredEntries = allEntries.filter(entry => {
+      const entryDate = new Date(entry.date);
+      return entryDate >= startDate && entryDate <= today;
+    });
+
+    if (filteredEntries.length === 0) {
+      alert('No data found for the selected date range');
+      return;
+    }
+
+    // Calculate total flour kg for each entry
+    const getFlourKg = (entry: DailyEntry): number => {
+      if (!entry.production) return 0;
+      return Object.values(entry.production).reduce((sum, p) => sum + (p.kgFlour || 0), 0);
+    };
+
+    // Build CSV rows
+    const headers = [
+      'Date',
+      'Bakery',
+      'Flour KG',
+      'Production Value',
+      'Sales',
+      'Expenses (Weekly)',
+      'Replacements',
+      'Bonuses',
+      'Debts',
+      'Profit',
+      'Margin %'
+    ];
+
+    const rows = filteredEntries.map(entry => {
+      const entryDate = new Date(entry.date);
+      const weekStart = getWeekStartForDate(entryDate);
+      const weeklyExpenseTotal = weeklyExpenses[weekStart] || 0;
+      // Divide weekly expense by 7 to approximate daily expense
+      const dailyExpense = Math.round(weeklyExpenseTotal / 7);
+
+      const flourKg = getFlourKg(entry);
+      const productionValue = entry.totals?.productionValue || 0;
+      const sales = entry.totals?.salesTotal || 0;
+      const ingredientCost = entry.totals?.ingredientCost || 0;
+      const replacements = entry.others?.replacements || 0;
+      const bonuses = entry.others?.bonuses || 0;
+      const debts = entry.others?.debts || 0;
+
+      // Profit = Sales - Ingredient Cost - Replacements - Bonuses - Daily Expenses
+      const profit = sales - ingredientCost - replacements - bonuses - dailyExpense;
+      const margin = sales > 0 ? ((profit / sales) * 100).toFixed(1) : '0.0';
+
+      return [
+        entry.date,
+        currentBakery?.name || bakery,
+        flourKg.toFixed(1),
+        productionValue,
+        sales,
+        dailyExpense,
+        replacements,
+        bonuses,
+        debts,
+        profit,
+        margin
+      ];
+    });
+
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cca-bakery-data-${format(today, 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    setShowExportMenu(false);
+  }, [bakery, currentBakery?.name]);
 
   if (loading) {
     return (
@@ -182,7 +391,7 @@ export default function StrategicDashboard() {
               <span className="text-slate-400 text-sm">• 12 Week View</span>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <Button
               variant="outline"
               size="sm"
@@ -191,13 +400,54 @@ export default function StrategicDashboard() {
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button
-              onClick={exportData}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
+            <div className="relative" data-export-menu>
+              <Button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+              {showExportMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-600 rounded-lg shadow-xl z-50" data-export-menu>
+                  <div className="p-2 border-b border-slate-700">
+                    <div className="text-xs text-slate-400 px-2 py-1">Daily Data Export</div>
+                  </div>
+                  <div className="p-1">
+                    <button
+                      onClick={() => exportDetailedData('week')}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-slate-700 rounded"
+                    >
+                      <Calendar className="h-4 w-4 text-blue-400" />
+                      This Week
+                    </button>
+                    <button
+                      onClick={() => exportDetailedData('month')}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-slate-700 rounded"
+                    >
+                      <Calendar className="h-4 w-4 text-green-400" />
+                      This Month
+                    </button>
+                    <button
+                      onClick={() => exportDetailedData('all')}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-slate-700 rounded"
+                    >
+                      <Calendar className="h-4 w-4 text-amber-400" />
+                      All Time
+                    </button>
+                  </div>
+                  <div className="p-1 border-t border-slate-700">
+                    <button
+                      onClick={() => { exportWeeklySummary(); setShowExportMenu(false); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-slate-400 hover:bg-slate-700 rounded"
+                    >
+                      <Download className="h-4 w-4" />
+                      12-Week Summary
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

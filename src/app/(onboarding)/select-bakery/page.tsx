@@ -35,7 +35,7 @@ export default function SelectBakeryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6 flex flex-col">
+    <div data-testid="select-bakery-page" className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6 flex flex-col">
       <div className="flex-1 flex flex-col max-w-md mx-auto w-full">
         {/* Header */}
         <div className="mb-8">
@@ -52,7 +52,7 @@ export default function SelectBakeryPage() {
 
         <div className="text-center mb-8">
           <span className="text-5xl mb-4 block">🏪</span>
-          <h1 className="text-2xl font-bold text-white mb-2">Select Your Bakery</h1>
+          <h1 data-testid="select-bakery-title" className="text-2xl font-bold text-white mb-2">Select Your Bakery</h1>
           {role && (
             <p className="text-slate-400">
               Logging in as <span className="font-bold" style={{ color: role.color }}>{role.name}</span>

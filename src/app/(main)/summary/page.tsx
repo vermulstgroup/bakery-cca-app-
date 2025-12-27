@@ -31,7 +31,11 @@ export default function SummaryPage() {
     const todayStr = format(today, 'yyyy-MM-dd');
     const todayData = localStorage.getItem(`biss-entry-${onboardingData.bakery}-${todayStr}`);
     if (todayData) {
-      setTodayEntry(JSON.parse(todayData));
+      try {
+        setTodayEntry(JSON.parse(todayData));
+      } catch {
+        // Skip corrupted entry
+      }
     }
 
     // Load week entries
@@ -40,7 +44,11 @@ export default function SummaryPage() {
       const dateStr = format(day, 'yyyy-MM-dd');
       const stored = localStorage.getItem(`biss-entry-${onboardingData.bakery}-${dateStr}`);
       if (stored) {
-        entries.push(JSON.parse(stored));
+        try {
+          entries.push(JSON.parse(stored));
+        } catch {
+          // Skip corrupted entry
+        }
       }
     });
     setWeekEntries(entries);

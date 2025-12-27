@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Save, TrendingUp, TrendingDown, Calculator, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, TrendingUp, TrendingDown, Calculator, CheckCircle2, AlertTriangle, X, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -18,8 +18,8 @@ import {
 import { PRODUCTS, BAKERIES, getProductMargin, getProductMarginPercent, VALIDATION_LIMITS } from '@/lib/data';
 import { formatUGX, cn } from '@/lib/utils';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { saveDailyEntry, getDailyEntry } from '@/lib/firebase/firestore';
-import { format, subDays } from 'date-fns';
+import { saveDailyEntry, getDailyEntry } from '@/lib/supabase';
+import { format, subDays, addDays, isToday, isFuture } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import type { DailyEntry, ProductionItem, OthersData } from '@/lib/types';
 
@@ -243,18 +243,92 @@ const SalesInput = ({
   );
 };
 
+type PendingAction =
+  | { type: 'back' }
+  | { type: 'prevDay' }
+  | { type: 'nextDay' }
+  | { type: 'today' };
+
 export default function ProductionEntryPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { data: onboardingData, isLoaded } = useOnboarding();
   const [activeTab, setActiveTab] = useState<'production' | 'sales' | 'others' | 'summary'>('production');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [date] = useState(new Date());
+  const [date, setDate] = useState(new Date());
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const initialDataLoaded = useRef(false);
+  const initialFormValues = useRef<{ production: typeof production; sales: typeof sales; others: OthersData } | null>(null);
 
   const currentBakery = BAKERIES.find(b => b.id === onboardingData.bakery);
+
+  // Get selected products from onboarding (default to all if none selected)
+  const selectedProducts = useMemo(() => {
+    if (onboardingData.products && onboardingData.products.length > 0) {
+      return PRODUCTS.filter(p => onboardingData.products!.includes(p.id));
+    }
+    return PRODUCTS;
+  }, [onboardingData.products]);
+
+  // Helper to reset form for a new date
+  const resetFormForDate = useCallback((newDate: Date) => {
+    setDate(newDate);
+    setProduction({});
+    setSales({});
+    setOthers({ replacements: 0, bonuses: 0, debts: 0 });
+    setIsDirty(false);
+    setSaveStatus('idle');
+    initialDataLoaded.current = false;
+    initialFormValues.current = null;
+  }, []);
+
+  // Date navigation handlers
+  const goToPreviousDay = useCallback(() => {
+    if (isDirty && saveStatus !== 'saved') {
+      setPendingAction({ type: 'prevDay' });
+      setShowExitDialog(true);
+      return;
+    }
+    resetFormForDate(subDays(date, 1));
+  }, [date, isDirty, saveStatus, resetFormForDate]);
+
+  const goToNextDay = useCallback(() => {
+    if (isFuture(addDays(date, 1))) return; // Can't go to future
+    if (isDirty && saveStatus !== 'saved') {
+      setPendingAction({ type: 'nextDay' });
+      setShowExitDialog(true);
+      return;
+    }
+    resetFormForDate(addDays(date, 1));
+  }, [date, isDirty, saveStatus, resetFormForDate]);
+
+  const goToToday = useCallback(() => {
+    if (isToday(date)) return;
+    if (isDirty && saveStatus !== 'saved') {
+      setPendingAction({ type: 'today' });
+      setShowExitDialog(true);
+      return;
+    }
+    resetFormForDate(new Date());
+  }, [date, isDirty, saveStatus, resetFormForDate]);
+
+  // Check for pre-selected date (from history page navigation)
+  useEffect(() => {
+    const selectedDate = localStorage.getItem('biss-selected-date');
+    if (selectedDate) {
+      localStorage.removeItem('biss-selected-date'); // Clear it
+      try {
+        const parsedDate = new Date(selectedDate);
+        if (!isNaN(parsedDate.getTime()) && !isFuture(parsedDate)) {
+          setDate(parsedDate);
+        }
+      } catch {
+        // Invalid date, use today
+      }
+    }
+  }, []);
 
   // Production data state (kg flour per product)
   const [production, setProduction] = useState<{ [productId: string]: ProductionItem }>({});
@@ -263,16 +337,27 @@ export default function ProductionEntryPage() {
   // Others data state (replacements, bonuses, debts)
   const [others, setOthers] = useState<OthersData>({ replacements: 0, bonuses: 0, debts: 0 });
 
-  // Track dirty state when user makes changes (after initial load)
+  // Track dirty state by comparing current values against initial values
   useEffect(() => {
-    if (initialDataLoaded.current) {
-      const hasAnyData = Object.values(production).some(p => p.kgFlour > 0) ||
-                        Object.values(sales).some(s => s > 0) ||
-                        others.replacements > 0 || others.bonuses > 0 || others.debts > 0;
-      if (hasAnyData) {
-        setIsDirty(true);
-      }
+    if (!initialDataLoaded.current || !initialFormValues.current) {
+      return;
     }
+
+    const initial = initialFormValues.current;
+
+    // Deep compare production
+    const productionChanged = JSON.stringify(production) !== JSON.stringify(initial.production);
+
+    // Deep compare sales
+    const salesChanged = JSON.stringify(sales) !== JSON.stringify(initial.sales);
+
+    // Compare others
+    const othersChanged =
+      others.replacements !== initial.others.replacements ||
+      others.bonuses !== initial.others.bonuses ||
+      others.debts !== initial.others.debts;
+
+    setIsDirty(productionChanged || salesChanged || othersChanged);
   }, [production, sales, others]);
 
   // Warn before leaving page with unsaved changes
@@ -312,11 +397,37 @@ export default function ProductionEntryPage() {
   // Handle back navigation with unsaved changes
   const handleBack = () => {
     if (isDirty && saveStatus !== 'saved') {
+      setPendingAction({ type: 'back' });
       setShowExitDialog(true);
     } else {
       router.push('/dashboard');
     }
   };
+
+  // Execute pending action after user confirms "Leave Anyway"
+  const executePendingAction = useCallback(() => {
+    if (!pendingAction) return;
+
+    setShowExitDialog(false);
+    setIsDirty(false);
+
+    switch (pendingAction.type) {
+      case 'back':
+        router.push('/dashboard');
+        break;
+      case 'prevDay':
+        resetFormForDate(subDays(date, 1));
+        break;
+      case 'nextDay':
+        resetFormForDate(addDays(date, 1));
+        break;
+      case 'today':
+        resetFormForDate(new Date());
+        break;
+    }
+
+    setPendingAction(null);
+  }, [pendingAction, date, router, resetFormForDate]);
 
   // Redirect to bakery selection if no bakery selected
   useEffect(() => {
@@ -331,35 +442,55 @@ export default function ProductionEntryPage() {
 
     const loadData = async () => {
       const dateString = format(date, 'yyyy-MM-dd');
+      let loadedProduction: { [productId: string]: ProductionItem } = {};
+      let loadedSales: { [productId: string]: number } = {};
+      let loadedOthers: OthersData = { replacements: 0, bonuses: 0, debts: 0 };
+      let dataLoaded = false;
+
+      // Try Firestore first
       try {
         const existing = await getDailyEntry(onboardingData.bakery!, dateString);
         if (existing?.production) {
-          setProduction(existing.production);
+          loadedProduction = existing.production;
+          dataLoaded = true;
         }
         if (existing?.sales) {
-          setSales(existing.sales);
+          loadedSales = existing.sales;
+          dataLoaded = true;
         }
         if (existing?.others) {
-          setOthers(existing.others);
+          loadedOthers = existing.others;
+          dataLoaded = true;
         }
       } catch {
-        // Fallback to localStorage
+        // Firestore failed, will try localStorage below
+      }
+
+      // Fallback to localStorage if Firestore returned no data
+      if (!dataLoaded) {
         const stored = localStorage.getItem(`biss-entry-${onboardingData.bakery}-${dateString}`);
         if (stored) {
-          const data = JSON.parse(stored);
-          if (data.production) setProduction(data.production);
-          if (data.sales) setSales(data.sales);
-          if (data.others) setOthers(data.others);
-        } else {
-          // Check for auto-saved draft (from power cut recovery)
+          try {
+            const data = JSON.parse(stored);
+            if (data.production) loadedProduction = data.production;
+            if (data.sales) loadedSales = data.sales;
+            if (data.others) loadedOthers = data.others;
+            dataLoaded = true;
+          } catch {
+            // Corrupted data, continue to check draft
+          }
+        }
+
+        // Check for auto-saved draft (from power cut recovery)
+        if (!dataLoaded) {
           const draftKey = `draft-${onboardingData.bakery}-${dateString}`;
           const draft = localStorage.getItem(draftKey);
           if (draft) {
             try {
               const draftData = JSON.parse(draft);
-              if (draftData.production) setProduction(draftData.production);
-              if (draftData.sales) setSales(draftData.sales);
-              if (draftData.others) setOthers(draftData.others);
+              if (draftData.production) loadedProduction = draftData.production;
+              if (draftData.sales) loadedSales = draftData.sales;
+              if (draftData.others) loadedOthers = draftData.others;
               toast({
                 title: "Draft recovered",
                 description: "Unsaved changes from earlier were restored",
@@ -370,11 +501,24 @@ export default function ProductionEntryPage() {
           }
         }
       }
+
+      // Apply loaded data to state
+      setProduction(loadedProduction);
+      setSales(loadedSales);
+      setOthers(loadedOthers);
+
+      // Store initial form values for dirty state comparison (deep clone)
+      initialFormValues.current = {
+        production: JSON.parse(JSON.stringify(loadedProduction)),
+        sales: JSON.parse(JSON.stringify(loadedSales)),
+        others: { ...loadedOthers }
+      };
+
       // Mark initial data as loaded so we can track changes
       initialDataLoaded.current = true;
     };
     loadData();
-  }, [isLoaded, onboardingData.bakery, date]);
+  }, [isLoaded, onboardingData.bakery, date, toast]);
 
   // Handle kg flour change for a product (with validation)
   const handleKgFlourChange = useCallback((productId: string, kgFlour: number) => {
@@ -427,7 +571,8 @@ export default function ProductionEntryPage() {
     let ingredientCost = 0;
     let salesTotal = 0;
 
-    PRODUCTS.forEach(p => {
+    // Use selectedProducts instead of all PRODUCTS
+    selectedProducts.forEach(p => {
       const prod = production[p.id];
       if (prod) {
         productionValue += prod.productionValueUGX || 0;
@@ -436,7 +581,12 @@ export default function ProductionEntryPage() {
       salesTotal += sales[p.id] || 0;
     });
 
-    const grossProfit = salesTotal - ingredientCost;
+    // Gross profit includes "Others" deductions:
+    // - Replacements: products given away (reduces profit)
+    // - Bonuses: extra staff payments (reduces profit)
+    // - Debts: money owed TO bakery (does NOT reduce profit)
+    const othersDeductions = (others.replacements || 0) + (others.bonuses || 0);
+    const grossProfit = salesTotal - ingredientCost - othersDeductions;
     const margin = salesTotal > 0 ? (grossProfit / salesTotal) * 100 : 0;
 
     return {
@@ -445,8 +595,9 @@ export default function ProductionEntryPage() {
       salesTotal,
       grossProfit,
       margin,
+      othersDeductions,
     };
-  }, [production, sales]);
+  }, [production, sales, others, selectedProducts]);
 
   // Check if there's any data to save
   const hasData = useMemo(() => {
@@ -529,11 +680,11 @@ export default function ProductionEntryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white pb-24">
+    <div data-testid="entry-page" className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white pb-40">
       <div className="max-w-md mx-auto p-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
+        <div className="mb-4">
+          <div className="flex items-center justify-between">
             <Button
               variant="ghost"
               size="sm"
@@ -543,47 +694,90 @@ export default function ProductionEntryPage() {
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>
-            <h1 className="text-xl font-bold text-amber-400 flex items-center gap-2">
-              <Calculator className="h-5 w-5" />
-              Daily Entry
-            </h1>
-            <p className="text-slate-400 text-sm">
-              {currentBakery?.name || 'No bakery'} • {format(date, 'EEE, MMM d')}
-            </p>
+            <Button
+              onClick={handleSave}
+              disabled={saveStatus === 'saving' || !hasData}
+              className={cn(
+                "transition-all duration-300",
+                saveStatus === 'saved'
+                  ? "bg-emerald-500 hover:bg-emerald-500"
+                  : !hasData
+                  ? "bg-slate-600 hover:bg-slate-600 opacity-50"
+                  : "bg-green-600 hover:bg-green-700"
+              )}
+            >
+              {saveStatus === 'saving' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : saveStatus === 'saved' ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-1" />
+                  Save
+                </>
+              )}
+            </Button>
           </div>
-          <Button
-            onClick={handleSave}
-            disabled={saveStatus === 'saving' || !hasData}
-            className={cn(
-              "transition-all duration-300",
-              saveStatus === 'saved'
-                ? "bg-emerald-500 hover:bg-emerald-500"
-                : !hasData
-                ? "bg-slate-600 hover:bg-slate-600 opacity-50"
-                : "bg-green-600 hover:bg-green-700"
-            )}
-          >
-            {saveStatus === 'saving' ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : saveStatus === 'saved' ? (
-              <>
-                <CheckCircle2 className="h-4 w-4 mr-1" />
-                Saved
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-1" />
-                Save
-              </>
-            )}
-          </Button>
+          <h1 className="text-xl font-bold text-amber-400 flex items-center gap-2 mt-2">
+            <Calculator className="h-5 w-5" />
+            Daily Entry
+          </h1>
+          <p className="text-slate-400 text-sm mb-3">
+            {currentBakery?.name || 'No bakery'}
+          </p>
+          {/* Date Navigation */}
+          <div data-testid="date-navigation" className="flex items-center justify-center gap-2 bg-slate-800/50 rounded-xl p-2">
+            <Button
+              data-testid="prev-day-btn"
+              variant="ghost"
+              size="icon"
+              onClick={goToPreviousDay}
+              className="h-10 w-10 text-slate-400 hover:text-white hover:bg-slate-700"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <Button
+              data-testid="today-btn"
+              variant="ghost"
+              size="sm"
+              onClick={goToToday}
+              className={cn(
+                "min-w-[140px] text-sm font-medium",
+                isToday(date)
+                  ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
+                  : "text-slate-300 hover:bg-slate-700"
+              )}
+            >
+              <CalendarDays className="h-4 w-4 mr-2" />
+              {isToday(date) ? 'Today' : format(date, 'EEE, MMM d')}
+            </Button>
+            <Button
+              data-testid="next-day-btn"
+              variant="ghost"
+              size="icon"
+              onClick={goToNextDay}
+              disabled={isToday(date)}
+              className={cn(
+                "h-10 w-10",
+                isToday(date)
+                  ? "text-slate-600 cursor-not-allowed"
+                  : "text-slate-400 hover:text-white hover:bg-slate-700"
+              )}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6">
+        <div data-testid="tab-navigation" className="flex gap-2 mb-6">
           {(['production', 'sales', 'others', 'summary'] as const).map((tab) => (
             <button
               key={tab}
+              data-testid={`tab-${tab}`}
               onClick={() => setActiveTab(tab)}
               className={cn(
                 "flex-1 py-3 min-h-[48px] rounded-xl font-medium capitalize transition-all text-sm",
@@ -609,7 +803,7 @@ export default function ProductionEntryPage() {
                 Enter kg of flour used for each product
               </p>
             </div>
-            {PRODUCTS.map((product) => (
+            {selectedProducts.map((product) => (
               <ProductionInput
                 key={product.id}
                 product={product}
@@ -630,7 +824,7 @@ export default function ProductionEntryPage() {
                 Enter actual sales in UGX per product
               </p>
             </div>
-            {PRODUCTS.map((product) => (
+            {selectedProducts.map((product) => (
               <SalesInput
                 key={product.id}
                 product={product}
@@ -855,7 +1049,7 @@ export default function ProductionEntryPage() {
             <Card className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl">
               <h3 className="font-bold text-white mb-4">Product Breakdown</h3>
               <div className="space-y-3">
-                {PRODUCTS.map((product) => {
+                {selectedProducts.map((product) => {
                   const prod = production[product.id];
                   const sold = sales[product.id] || 0;
                   const cost = prod?.ingredientCostUGX || 0;
@@ -899,7 +1093,7 @@ export default function ProductionEntryPage() {
                   <div>Cost/kg</div>
                   <div>Margin</div>
                 </div>
-                {PRODUCTS.map((product) => (
+                {selectedProducts.map((product) => (
                   <div key={product.id} className="grid grid-cols-4 gap-2 py-2 border-b border-slate-700 last:border-0">
                     <div className="flex items-center gap-1">
                       <span>{product.emoji}</span>
@@ -915,8 +1109,8 @@ export default function ProductionEntryPage() {
         )}
       </div>
 
-      {/* Bottom Save Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/90 backdrop-blur border-t border-slate-700">
+      {/* Bottom Save Bar - positioned above bottom nav (88px) */}
+      <div data-testid="bottom-save-bar" className="fixed bottom-[88px] left-0 right-0 p-4 bg-slate-900/90 backdrop-blur border-t border-slate-700 z-40">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div>
             <div className="text-sm text-slate-400">Today's Profit</div>
@@ -928,6 +1122,7 @@ export default function ProductionEntryPage() {
             </div>
           </div>
           <Button
+            data-testid="save-entry-btn"
             onClick={handleSave}
             disabled={saveStatus === 'saving' || !hasData}
             size="lg"
@@ -966,7 +1161,10 @@ export default function ProductionEntryPage() {
       </div>
 
       {/* Unsaved Changes Dialog */}
-      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+      <AlertDialog open={showExitDialog} onOpenChange={(open) => {
+        setShowExitDialog(open);
+        if (!open) setPendingAction(null);
+      }}>
         <AlertDialogContent className="bg-slate-800 border-slate-700">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white flex items-center gap-2">
@@ -982,7 +1180,7 @@ export default function ProductionEntryPage() {
               Stay
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => router.push('/dashboard')}
+              onClick={executePendingAction}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               Leave Anyway

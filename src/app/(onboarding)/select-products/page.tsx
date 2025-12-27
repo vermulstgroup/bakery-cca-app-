@@ -59,9 +59,9 @@ export default function SelectProductsPage() {
   };
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 4rem)'}}>
+    <div data-testid="select-products-page" className="flex flex-col" style={{ height: 'calc(100vh - 4rem)'}}>
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">{t('which_products_do_you_make')}</h1>
+        <h1 data-testid="select-products-title" className="text-2xl font-bold tracking-tight">{t('which_products_do_you_make')}</h1>
         <p className="text-muted-foreground">{t('select_for_bakery', { bakery: bakeryName })}</p>
       </div>
 
@@ -82,6 +82,7 @@ export default function SelectProductsPage() {
             return (
               <Card
                 key={product.id}
+                data-testid={`product-card-${product.id}`}
                 onClick={() => toggleProduct(product.id)}
                 className={cn(
                   'cursor-pointer p-3 transition-all aspect-[4/5] flex flex-col justify-between items-center relative shadow-sm text-center',
@@ -104,6 +105,7 @@ export default function SelectProductsPage() {
 
       <div className="mt-auto pt-4">
         <Button
+          data-testid="continue-btn"
           onClick={handleContinue}
           disabled={selectedProducts.size === 0}
           className="w-full"

@@ -33,7 +33,8 @@
       "Bash(vercel:*)",
       "Bash(open https://biss-bakery-app.vercel.app/welcome)",
       "Bash(open https://bakery-cca-app.vercel.app/welcome)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "mcp__memory__create_entities"
     ]
   }
 }

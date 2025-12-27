@@ -150,12 +150,12 @@ export default function WelcomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6 flex flex-col">
+    <div data-testid="welcome-page" className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6 flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center max-w-md mx-auto w-full">
         {/* Header */}
         <div className="text-center mb-10">
           <span className="text-6xl mb-4 block">🍞</span>
-          <h1 className="text-3xl font-bold text-white mb-2">Bakery CCA</h1>
+          <h1 data-testid="welcome-title" className="text-3xl font-bold text-white mb-2">Bakery CCA</h1>
           <p className="text-slate-400">Production & Sales Management</p>
         </div>
 
@@ -166,6 +166,7 @@ export default function WelcomePage() {
             return (
               <Card
                 key={role.id}
+                data-testid={`role-card-${role.id}`}
                 onClick={() => !isNavigating && handleRoleSelect(role.id)}
                 className={cn(
                   'cursor-pointer p-5 transition-all bg-slate-800/50 backdrop-blur-sm border-2',

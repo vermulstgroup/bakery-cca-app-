@@ -8,7 +8,7 @@ import {
   getDailyEntry,
   getAllDailyEntries,
   getAllWeeklyExpenses,
-} from '@/lib/firebase/firestore';
+} from '@/lib/supabase';
 import type { DailyEntry, WeeklyExpense } from '@/lib/types';
 
 export function useWeeklyExpenses(bakeryId: string, weekStartDate: string) {

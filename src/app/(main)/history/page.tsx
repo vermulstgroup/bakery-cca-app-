@@ -9,6 +9,7 @@ import { BAKERIES, PRODUCTS } from '@/lib/data';
 import { formatUGX, cn } from '@/lib/utils';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { format, subDays, parseISO } from 'date-fns';
+import { getDailyEntriesForDateRange } from '@/lib/supabase';
 import type { DailyEntry } from '@/lib/types';
 
 type DateRange = '7' | '30' | '90' | 'all';
@@ -22,27 +23,49 @@ export default function HistoryPage() {
 
   const currentBakery = BAKERIES.find(b => b.id === onboardingData.bakery);
 
-  // Load entries based on date range
+  // Load entries based on date range from Supabase (with localStorage fallback)
   useEffect(() => {
     if (!onboardingData.bakery) return;
 
-    setLoading(true);
-    const loadEntries = () => {
-      const entriesList: DailyEntry[] = [];
+    const loadEntries = async () => {
+      setLoading(true);
       const today = new Date();
       const daysToCheck = dateRange === 'all' ? 365 : parseInt(dateRange);
+      const startDate = subDays(today, daysToCheck);
 
-      // Check entries for the selected range
+      // Try Supabase first
+      try {
+        const supabaseEntries = await getDailyEntriesForDateRange(
+          onboardingData.bakery,
+          format(startDate, 'yyyy-MM-dd'),
+          format(today, 'yyyy-MM-dd')
+        );
+        if (supabaseEntries.length > 0) {
+          // Sort by date descending
+          supabaseEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          setEntries(supabaseEntries);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Fall through to localStorage
+      }
+
+      // Fallback to localStorage
+      const entriesList: DailyEntry[] = [];
       for (let i = 0; i < daysToCheck; i++) {
         const date = subDays(today, i);
         const dateStr = format(date, 'yyyy-MM-dd');
         const stored = localStorage.getItem(`biss-entry-${onboardingData.bakery}-${dateStr}`);
         if (stored) {
-          entriesList.push(JSON.parse(stored));
+          try {
+            entriesList.push(JSON.parse(stored));
+          } catch {
+            // Skip corrupted entry
+          }
         }
       }
 
-      // Sort by date descending
       entriesList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setEntries(entriesList);
       setLoading(false);

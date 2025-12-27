@@ -1,7 +1,7 @@
 
 "use client";
 
-import { saveWeeklyExpenses, getWeeklyExpenses } from '@/lib/firebase/firestore';
+import { saveWeeklyExpenses, getWeeklyExpenses } from '@/lib/supabase';
 
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/shared/page-header';

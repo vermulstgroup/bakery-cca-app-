@@ -64,9 +64,9 @@ export default function ConfirmPricesPage() {
   };
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 4rem)'}}>
+    <div data-testid="confirm-prices-page" className="flex flex-col" style={{ height: 'calc(100vh - 4rem)'}}>
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">{t('set_selling_prices')}</h1>
+        <h1 data-testid="confirm-prices-title" className="text-2xl font-bold tracking-tight">{t('set_selling_prices')}</h1>
         <p className="text-muted-foreground">{t('adjust_prices_if_needed')}</p>
       </div>
 
@@ -102,6 +102,7 @@ export default function ConfirmPricesPage() {
 
       <div className="mt-auto pt-4">
         <Button
+          data-testid="start-app-btn"
           onClick={handleFinish}
           className="w-full"
           size="lg"

@@ -13,7 +13,7 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import { PRODUCTS } from '@/lib/data';
 import type { DailyEntry, WeeklyExpense } from '@/lib/types';
 import { startOfWeek, parseISO, format as formatDate } from 'date-fns';
-import { getAllDailyEntries, getAllWeeklyExpenses } from '@/lib/firebase/firestore';
+import { getAllDailyEntries, getAllWeeklyExpenses } from '@/lib/supabase';
 import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { formatUGX } from '@/lib/utils';
 import { ChartTooltip, ChartTooltipContent, ChartContainer } from '@/components/ui/chart';
@@ -74,14 +74,22 @@ export default function TrendsPage() {
             const localEntries: DailyEntry[] = [];
             Object.keys(localStorage).forEach(key => {
               if (key.startsWith(`daily_entry-${onboardingData.bakery}-`)) {
-                localEntries.push(JSON.parse(localStorage.getItem(key)!));
+                try {
+                  localEntries.push(JSON.parse(localStorage.getItem(key)!));
+                } catch {
+                  // Skip corrupted entry
+                }
               }
             });
             setEntries(localEntries);
             const localExpenses: WeeklyExpense[] = [];
             Object.keys(localStorage).forEach(key => {
                 if (key.startsWith(`expenses-${onboardingData.bakery}-`)) {
+                  try {
                     localExpenses.push(JSON.parse(localStorage.getItem(key)!));
+                  } catch {
+                    // Skip corrupted entry
+                  }
                 }
             });
             setExpenses(localExpenses);
@@ -117,9 +125,9 @@ export default function TrendsPage() {
         if (!weeklyData[weekStartDate]) {
           weeklyData[weekStartDate] = { income: 0, cost: 0, profit: 0 };
         }
-        const dailyRevenue = Object.entries(entry.quantities.sales || {}).reduce((acc, [productId, quantity]) => {
-          return acc + (quantity * (productPrices[productId] || 0));
-        }, 0);
+        // Use totals if available (new format), otherwise calculate from sales
+        const dailyRevenue = entry.totals?.salesTotal ??
+          Object.values(entry.sales || {}).reduce((acc, amount) => acc + (amount || 0), 0);
         weeklyData[weekStartDate].income += dailyRevenue;
       } catch (e) {}
     });
@@ -162,11 +170,12 @@ export default function TrendsPage() {
         if (!weeklySales[weekStartDate]) {
           weeklySales[weekStartDate] = {};
         }
-        const sales = entry.quantities.sales || {};
-        for (const productId in sales) {
-          if (sales[productId] > 0) {
+        // Use new sales format (UGX values per product)
+        const salesData = entry.sales || {};
+        for (const productId in salesData) {
+          if (salesData[productId] > 0) {
             const productName = productMap.get(productId) || productId;
-            weeklySales[weekStartDate][productName] = (weeklySales[weekStartDate][productName] || 0) + sales[productId];
+            weeklySales[weekStartDate][productName] = (weeklySales[weekStartDate][productName] || 0) + salesData[productId];
           }
         }
       } catch(e) {}
