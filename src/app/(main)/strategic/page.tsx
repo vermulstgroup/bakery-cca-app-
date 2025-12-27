@@ -94,16 +94,17 @@ const loadRealData = async (bakeryId: string): Promise<WeeklyData[]> => {
     let production = 0;
     let sales = 0;
     let costs = 0;
+    let profit = 0;
 
     weekEntries.forEach(entry => {
       if (entry.totals) {
         production += entry.totals.productionValue || 0;
         sales += entry.totals.salesTotal || 0;
         costs += entry.totals.ingredientCost || 0;
+        profit += entry.totals.profit || 0; // Use saved profit (includes others deductions)
       }
     });
 
-    const profit = sales - costs;
     const margin = sales > 0 ? ((profit / sales) * 100).toFixed(1) : '0.0';
 
     data.push({
@@ -206,18 +207,19 @@ const loadBakeryWeeklyPerformance = async (bakeryId: string): Promise<{ profit: 
 
   let totalSales = 0;
   let totalCosts = 0;
+  let totalProfit = 0;
 
   entries.forEach(entry => {
     if (entry.totals) {
       totalSales += entry.totals.salesTotal || 0;
       totalCosts += entry.totals.ingredientCost || 0;
+      totalProfit += entry.totals.profit || 0; // Use saved profit (includes others deductions)
     }
   });
 
-  const profit = totalSales - totalCosts;
-  const margin = totalSales > 0 ? (profit / totalSales) * 100 : 0;
+  const margin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
 
-  return { profit, sales: totalSales, margin, daysRecorded: entries.length };
+  return { profit: totalProfit, sales: totalSales, margin, daysRecorded: entries.length };
 };
 
 // Load performance data for ALL bakeries

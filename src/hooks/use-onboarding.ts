@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { OnboardingData } from '@/lib/types';
 
 // This hook now primarily relies on localStorage.
@@ -17,32 +17,48 @@ export function useOnboarding() {
   const [data, setData] = useState<OnboardingData>({});
   const [isLoaded, setIsLoaded] = useState(false);
   const [userId, setUserId] = useState<string | undefined>(undefined);
+  const initialLoadDone = useRef(false);
 
   useEffect(() => {
+    // Prevent double-loading in React Strict Mode
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+
     try {
       const storedData = localStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (storedData) {
         const parsedData = JSON.parse(storedData);
-        setData(parsedData);
-        if (parsedData.userId) {
-          setUserId(parsedData.userId);
+
+        // If no user ID, generate one and save everything together
+        if (!parsedData.userId) {
+          const newUserId = generateUserId();
+          const completeData = { ...parsedData, userId: newUserId };
+          localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(completeData));
+          setData(completeData);
+          setUserId(newUserId);
         } else {
-            // If no user ID, generate and save one
-            const newUserId = generateUserId();
-            setUserId(newUserId);
-            updateData({ ...parsedData, userId: newUserId });
+          setData(parsedData);
+          setUserId(parsedData.userId);
         }
       } else {
-        // No data, this is a new user
+        // No data, this is a new user - create with userId
         const newUserId = generateUserId();
+        const newData = { userId: newUserId };
+        localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(newData));
+        setData(newData);
         setUserId(newUserId);
-        updateData({ userId: newUserId });
       }
     } catch (error) {
       console.error("Failed to parse onboarding data from localStorage", error);
-       const newUserId = generateUserId();
-       setUserId(newUserId);
-       updateData({ userId: newUserId });
+      const newUserId = generateUserId();
+      const newData = { userId: newUserId };
+      try {
+        localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(newData));
+      } catch {
+        // Ignore storage errors
+      }
+      setData(newData);
+      setUserId(newUserId);
     }
     setIsLoaded(true);
   }, []);
@@ -58,7 +74,7 @@ export function useOnboarding() {
       return updatedData;
     });
   }, []);
-  
+
   const completeOnboarding = useCallback(() => {
     try {
         localStorage.setItem('onboardingComplete', 'true');

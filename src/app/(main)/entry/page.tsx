@@ -255,7 +255,7 @@ export default function ProductionEntryPage() {
   const { data: onboardingData, isLoaded } = useOnboarding();
   const [activeTab, setActiveTab] = useState<'production' | 'sales' | 'others' | 'summary'>('production');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState<Date | null>(null);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -314,7 +314,7 @@ export default function ProductionEntryPage() {
     resetFormForDate(new Date());
   }, [date, isDirty, saveStatus, resetFormForDate]);
 
-  // Check for pre-selected date (from history page navigation)
+  // Initialize date on client side and check for pre-selected date (from history page navigation)
   useEffect(() => {
     const selectedDate = localStorage.getItem('biss-selected-date');
     if (selectedDate) {
@@ -323,11 +323,14 @@ export default function ProductionEntryPage() {
         const parsedDate = new Date(selectedDate);
         if (!isNaN(parsedDate.getTime()) && !isFuture(parsedDate)) {
           setDate(parsedDate);
+          return;
         }
       } catch {
-        // Invalid date, use today
+        // Invalid date, fall through to use today
       }
     }
+    // Default to today if no pre-selected date
+    setDate(new Date());
   }, []);
 
   // Production data state (kg flour per product)
@@ -374,7 +377,7 @@ export default function ProductionEntryPage() {
 
   // Auto-save draft every 30 seconds (protects against power cuts)
   useEffect(() => {
-    if (!onboardingData.bakery || !isDirty || saveStatus === 'saved') return;
+    if (!onboardingData.bakery || !isDirty || saveStatus === 'saved' || !date) return;
 
     const timer = setInterval(() => {
       const dateString = format(date, 'yyyy-MM-dd');
@@ -438,7 +441,7 @@ export default function ProductionEntryPage() {
 
   // Load existing data for today
   useEffect(() => {
-    if (!isLoaded || !onboardingData.bakery) return;
+    if (!isLoaded || !onboardingData.bakery || !date) return;
 
     const loadData = async () => {
       const dateString = format(date, 'yyyy-MM-dd');
@@ -671,7 +674,7 @@ export default function ProductionEntryPage() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || !date) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-amber-500" />

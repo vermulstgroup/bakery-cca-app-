@@ -29,6 +29,7 @@ import { useInventory } from '@/hooks/use-inventory';
 import { useBakeryPin } from '@/hooks/use-bakery-pin';
 import { Input } from '@/components/ui/input';
 import { Target, Package, Lock, Unlock } from 'lucide-react';
+import type { RoleId } from '@/lib/types';
 
 
 export default function SettingsPage() {
@@ -78,7 +79,7 @@ export default function SettingsPage() {
     updateData({ bakery: bakeryId });
   };
 
-  const handleRoleChange = (roleId: 'manager' | 'supervisor') => {
+  const handleRoleChange = (roleId: RoleId) => {
     updateData({ role: roleId });
   };
 
@@ -91,11 +92,12 @@ export default function SettingsPage() {
 
   const roleName = useMemo(() => {
     if (isLoaded && onboardingData.role) {
-      const role = ROLES[onboardingData.role.toUpperCase()];
-      return role ? t(role.id) : 'N/A';
+      // Find role by matching id (e.g., 'bakery-manager' -> ROLES.BAKERY_MANAGER)
+      const role = Object.values(ROLES).find(r => r.id === onboardingData.role);
+      return role?.name || 'N/A';
     }
     return 'N/A';
-  }, [isLoaded, onboardingData.role, t]);
+  }, [isLoaded, onboardingData.role]);
 
 
   return (
@@ -132,13 +134,13 @@ export default function SettingsPage() {
             </div>
              <div className="flex items-center justify-between">
               <Label className="text-base">{t('role')}</Label>
-              <Select value={onboardingData.role || ''} onValueChange={(value) => handleRoleChange(value as 'manager' | 'supervisor')} disabled={!isLoaded}>
+              <Select value={onboardingData.role || ''} onValueChange={(value) => handleRoleChange(value as RoleId)} disabled={!isLoaded}>
                   <SelectTrigger className="w-[180px] min-h-[48px]">
                       <SelectValue placeholder={t('select_your_role')} />
                   </SelectTrigger>
                   <SelectContent>
                       {Object.values(ROLES).map(r => (
-                          <SelectItem key={r.id} value={r.id}>{t(r.id)}</SelectItem>
+                          <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                       ))}
                   </SelectContent>
               </Select>
@@ -301,7 +303,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              {isPinEnabled ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
+              {pinLoaded && isPinEnabled ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
               PIN Protection
             </CardTitle>
             <CardDescription>
@@ -309,7 +311,9 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {isPinEnabled ? (
+            {!pinLoaded ? (
+              <div className="text-sm text-muted-foreground">Loading PIN settings...</div>
+            ) : isPinEnabled ? (
               <>
                 <div className="flex items-center gap-2 text-green-500">
                   <Lock className="h-4 w-4" />
@@ -318,7 +322,6 @@ export default function SettingsPage() {
                 <Button
                   variant="outline"
                   onClick={removePin}
-                  disabled={!pinLoaded}
                   className="w-full"
                 >
                   Remove PIN
@@ -336,7 +339,6 @@ export default function SettingsPage() {
                     value={newPin}
                     onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     className="min-h-[48px]"
-                    disabled={!pinLoaded}
                   />
                   <Button
                     onClick={() => {
@@ -345,7 +347,7 @@ export default function SettingsPage() {
                         setNewPin('');
                       }
                     }}
-                    disabled={!pinLoaded || newPin.length !== 4}
+                    disabled={newPin.length !== 4}
                     className="min-h-[48px]"
                   >
                     Set PIN

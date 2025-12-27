@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Simple hash function for PIN (not cryptographically secure, but adequate for local use)
 const hashPin = (pin: string): string => {
@@ -27,9 +27,17 @@ export function useBakeryPin(bakeryId: string | undefined) {
   const [config, setConfig] = useState<BakeryPinConfig>(DEFAULT_CONFIG);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const lastBakeryId = useRef<string | undefined>(undefined);
 
   // Load config from localStorage
   useEffect(() => {
+    // Reset loaded state when bakeryId changes
+    if (bakeryId !== lastBakeryId.current) {
+      setIsLoaded(false);
+      setConfig(DEFAULT_CONFIG);
+      lastBakeryId.current = bakeryId;
+    }
+
     if (!bakeryId) return;
 
     const key = `bakery-pin-${bakeryId}`;
@@ -44,11 +52,15 @@ export function useBakeryPin(bakeryId: string | undefined) {
         const sessionAuth = sessionStorage.getItem(sessionKey);
         if (sessionAuth === 'true' || !parsedConfig.enabled) {
           setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
         }
       } else {
+        setConfig(DEFAULT_CONFIG);
         setIsAuthenticated(true); // No PIN set = authenticated
       }
     } catch {
+      setConfig(DEFAULT_CONFIG);
       setIsAuthenticated(true);
     }
     setIsLoaded(true);

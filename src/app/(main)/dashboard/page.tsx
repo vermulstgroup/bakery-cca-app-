@@ -28,17 +28,27 @@ export default function DashboardPage() {
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Memoize date calculations to prevent infinite re-renders
-  const weekStart = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 1 }), []);
-  const weekEnd = useMemo(() => endOfWeek(new Date(), { weekStartsOn: 1 }), []);
-  const weekDays = useMemo(() => eachDayOfInterval({ start: weekStart, end: weekEnd }), [weekStart, weekEnd]);
+  // Use state for dates to avoid hydration mismatch (server vs client time)
+  const [weekStart, setWeekStart] = useState<Date | null>(null);
+  const [weekEnd, setWeekEnd] = useState<Date | null>(null);
+  const [weekDays, setWeekDays] = useState<Date[]>([]);
+
+  // Initialize dates on client side only
+  useEffect(() => {
+    const now = new Date();
+    const start = startOfWeek(now, { weekStartsOn: 1 });
+    const end = endOfWeek(now, { weekStartsOn: 1 });
+    setWeekStart(start);
+    setWeekEnd(end);
+    setWeekDays(eachDayOfInterval({ start, end }));
+  }, []);
 
   const currentBakery = BAKERIES.find(b => b.id === onboardingData.bakery);
 
   // Load current week's entries from Supabase (with localStorage fallback)
   useEffect(() => {
     const loadEntries = async () => {
-      if (!onboardingLoaded || !onboardingData.bakery) return;
+      if (!onboardingLoaded || !onboardingData.bakery || !weekStart || !weekEnd) return;
 
       setLoading(true);
       const weekStartStr = formatDate(weekStart, 'yyyy-MM-dd');
@@ -91,25 +101,34 @@ export default function DashboardPage() {
     let totalProduction = 0;
     let totalCosts = 0;
     let totalSales = 0;
+    let totalProfit = 0;
 
     entries.forEach(entry => {
-      // New format with totals
+      // New format with totals - use saved profit (includes others deductions)
       if (entry.totals) {
-        totalProduction += entry.totals.productionValue;
-        totalCosts += entry.totals.ingredientCost;
-        totalSales += entry.totals.salesTotal;
+        totalProduction += entry.totals.productionValue || 0;
+        totalCosts += entry.totals.ingredientCost || 0;
+        totalSales += entry.totals.salesTotal || 0;
+        totalProfit += entry.totals.profit || 0;
       }
-      // New format with production/sales
+      // New format with production/sales - calculate including others
       else if (entry.production) {
+        let entryCost = 0;
+        let entrySales = 0;
         Object.values(entry.production).forEach(prod => {
           totalProduction += prod.productionValueUGX || 0;
-          totalCosts += prod.ingredientCostUGX || 0;
+          entryCost += prod.ingredientCostUGX || 0;
         });
         if (entry.sales) {
           Object.values(entry.sales).forEach(amount => {
-            totalSales += amount;
+            entrySales += amount;
           });
         }
+        totalCosts += entryCost;
+        totalSales += entrySales;
+        // Include others deductions in profit calculation
+        const othersDeductions = (entry.others?.replacements || 0) + (entry.others?.bonuses || 0);
+        totalProfit += entrySales - entryCost - othersDeductions;
       }
       // Legacy format with quantities
       else if (entry.quantities) {
@@ -117,28 +136,31 @@ export default function DashboardPage() {
         Object.entries(entry.quantities.sales || {}).forEach(([productId, quantity]) => {
           const product = PRODUCTS.find(p => p.id === productId);
           if (product) {
-            totalSales += quantity * (onboardingData.prices?.[productId] || product.defaultPrice);
+            const amount = quantity * (onboardingData.prices?.[productId] || product.defaultPrice);
+            totalSales += amount;
+            totalProfit += amount; // Legacy format doesn't have costs
           }
         });
       }
     });
 
-    const profit = totalSales - totalCosts;
-    const margin = totalSales > 0 ? (profit / totalSales) * 100 : 0;
+    const margin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
 
     return {
       production: totalProduction,
       costs: totalCosts,
       sales: totalSales,
-      profit,
+      profit: totalProfit,
       margin,
       daysRecorded: entries.length,
     };
   }, [entries, onboardingData.prices]);
 
-  const isLoading = !onboardingLoaded || loading;
+  const isLoading = !onboardingLoaded || loading || !weekStart || !weekEnd;
   const hasData = entries.length > 0;
-  const weekLabel = `${formatDate(weekStart, 'MMM d')} - ${formatDate(weekEnd, 'MMM d, yyyy')}`;
+  const weekLabel = weekStart && weekEnd
+    ? `${formatDate(weekStart, 'MMM d')} - ${formatDate(weekEnd, 'MMM d, yyyy')}`
+    : 'Loading...';
 
   // Show PIN dialog if authentication required
   const showPinDialog = pinLoaded && isPinEnabled && !isAuthenticated;

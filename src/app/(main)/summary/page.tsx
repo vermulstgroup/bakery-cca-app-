@@ -91,7 +91,14 @@ export default function SummaryPage() {
       });
     }
 
-    const profit = salesTotal - ingredientCost;
+    // Use saved profit if available (includes others deductions), otherwise calculate
+    let profit: number;
+    if (todayEntry.totals?.profit !== undefined) {
+      profit = todayEntry.totals.profit;
+    } else {
+      const othersDeductions = (todayEntry.others?.replacements || 0) + (todayEntry.others?.bonuses || 0);
+      profit = salesTotal - ingredientCost - othersDeductions;
+    }
     const margin = salesTotal > 0 ? (profit / salesTotal) * 100 : 0;
 
     return { productionValue, ingredientCost, salesTotal, profit, margin, kgFlour };
@@ -121,29 +128,36 @@ export default function SummaryPage() {
     let productionValue = 0;
     let ingredientCost = 0;
     let salesTotal = 0;
+    let totalProfit = 0;
 
     weekEntries.forEach(entry => {
       if (entry.totals) {
-        productionValue += entry.totals.productionValue;
-        ingredientCost += entry.totals.ingredientCost;
-        salesTotal += entry.totals.salesTotal;
+        productionValue += entry.totals.productionValue || 0;
+        ingredientCost += entry.totals.ingredientCost || 0;
+        salesTotal += entry.totals.salesTotal || 0;
+        totalProfit += entry.totals.profit || 0; // Use saved profit (includes others deductions)
       } else if (entry.production) {
+        let entryCost = 0;
+        let entrySales = 0;
         Object.values(entry.production).forEach(prod => {
           productionValue += prod.productionValueUGX || 0;
-          ingredientCost += prod.ingredientCostUGX || 0;
+          entryCost += prod.ingredientCostUGX || 0;
         });
         if (entry.sales) {
           Object.values(entry.sales).forEach(amount => {
-            salesTotal += amount;
+            entrySales += amount;
           });
         }
+        ingredientCost += entryCost;
+        salesTotal += entrySales;
+        const othersDeductions = (entry.others?.replacements || 0) + (entry.others?.bonuses || 0);
+        totalProfit += entrySales - entryCost - othersDeductions;
       }
     });
 
-    const profit = salesTotal - ingredientCost;
-    const margin = salesTotal > 0 ? (profit / salesTotal) * 100 : 0;
+    const margin = salesTotal > 0 ? (totalProfit / salesTotal) * 100 : 0;
 
-    return { productionValue, ingredientCost, salesTotal, profit, margin, daysRecorded: weekEntries.length };
+    return { productionValue, ingredientCost, salesTotal, profit: totalProfit, margin, daysRecorded: weekEntries.length };
   }, [weekEntries]);
 
   // Get yesterday's data for comparison

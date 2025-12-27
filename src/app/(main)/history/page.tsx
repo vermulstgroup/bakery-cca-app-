@@ -99,7 +99,9 @@ export default function HistoryPage() {
         });
       }
 
-      const profit = salesTotal - ingredientCost;
+      // Include others deductions in profit calculation
+      const othersDeductions = (entry.others?.replacements || 0) + (entry.others?.bonuses || 0);
+      const profit = salesTotal - ingredientCost - othersDeductions;
       const margin = salesTotal > 0 ? (profit / salesTotal) * 100 : 0;
 
       return {
