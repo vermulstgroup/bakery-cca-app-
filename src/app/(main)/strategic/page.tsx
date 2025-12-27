@@ -3,16 +3,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { ArrowLeft, Download, RefreshCw, FileSpreadsheet, Calendar, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCw, FileSpreadsheet, Calendar, Loader2, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { PRODUCTS, BAKERIES, getProductMargin, getProductMarginPercent } from '@/lib/data';
-import { formatUGX } from '@/lib/utils';
+import { formatUGX, cn } from '@/lib/utils';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { format, startOfWeek, subWeeks, subMonths, addDays } from 'date-fns';
+import { format, startOfWeek, endOfWeek, subWeeks, subMonths, addDays } from 'date-fns';
 import { getDailyEntriesForDateRange, getAllDailyEntries, getAllWeeklyExpenses } from '@/lib/supabase';
 import type { WeeklyData, DailyEntry, WeeklyExpense } from '@/lib/types';
 
 type ExportRange = 'week' | 'month' | 'all';
+
+// Bakery performance summary for overview
+type BakeryPerformanceSummary = {
+  bakeryId: string;
+  bakeryName: string;
+  manager: string;
+  weeklyProfit: number;
+  weeklySales: number;
+  weeklyMargin: number;
+  status: 'profitable' | 'loss' | 'breakeven' | 'nodata';
+  daysRecorded: number;
+};
 
 // Load entries from localStorage as fallback
 const loadEntriesFromLocalStorage = (bakeryId: string, startDate: Date, endDate: Date): DailyEntry[] => {
@@ -168,6 +181,75 @@ const loadAllDailyEntriesAsync = async (bakeryId: string): Promise<DailyEntry[]>
   return loadAllDailyEntriesFromLocalStorage(bakeryId);
 };
 
+// Load current week's performance for a single bakery
+const loadBakeryWeeklyPerformance = async (bakeryId: string): Promise<{ profit: number; sales: number; margin: number; daysRecorded: number }> => {
+  const today = new Date();
+  const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+
+  let entries: DailyEntry[] = [];
+
+  try {
+    entries = await getDailyEntriesForDateRange(
+      bakeryId,
+      format(weekStart, 'yyyy-MM-dd'),
+      format(weekEnd, 'yyyy-MM-dd')
+    );
+  } catch {
+    // Fallback to localStorage
+  }
+
+  // If no Supabase data, try localStorage
+  if (entries.length === 0) {
+    entries = loadEntriesFromLocalStorage(bakeryId, weekStart, weekEnd);
+  }
+
+  let totalSales = 0;
+  let totalCosts = 0;
+
+  entries.forEach(entry => {
+    if (entry.totals) {
+      totalSales += entry.totals.salesTotal || 0;
+      totalCosts += entry.totals.ingredientCost || 0;
+    }
+  });
+
+  const profit = totalSales - totalCosts;
+  const margin = totalSales > 0 ? (profit / totalSales) * 100 : 0;
+
+  return { profit, sales: totalSales, margin, daysRecorded: entries.length };
+};
+
+// Load performance data for ALL bakeries
+const loadAllBakeriesPerformance = async (): Promise<BakeryPerformanceSummary[]> => {
+  const performances: BakeryPerformanceSummary[] = [];
+
+  for (const bakery of BAKERIES) {
+    const { profit, sales, margin, daysRecorded } = await loadBakeryWeeklyPerformance(bakery.id);
+
+    let status: BakeryPerformanceSummary['status'] = 'nodata';
+    if (daysRecorded > 0) {
+      if (profit > 0) status = 'profitable';
+      else if (profit < 0) status = 'loss';
+      else status = 'breakeven';
+    }
+
+    performances.push({
+      bakeryId: bakery.id,
+      bakeryName: bakery.name,
+      manager: bakery.manager,
+      weeklyProfit: profit,
+      weeklySales: sales,
+      weeklyMargin: margin,
+      status,
+      daysRecorded,
+    });
+  }
+
+  // Sort by profit (highest to lowest)
+  return performances.sort((a, b) => b.weeklyProfit - a.weeklyProfit);
+};
+
 export default function StrategicDashboard() {
   const router = useRouter();
   const { data: onboardingData } = useOnboarding();
@@ -178,8 +260,16 @@ export default function StrategicDashboard() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [exportRange, setExportRange] = useState<ExportRange>('month');
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [allBakeriesPerformance, setAllBakeriesPerformance] = useState<BakeryPerformanceSummary[]>([]);
+  const [loadingOverview, setLoadingOverview] = useState(true);
 
   const currentBakery = BAKERIES.find(b => b.id === bakery);
+
+  // Calculate totals across all bakeries
+  const totalProfit = allBakeriesPerformance.reduce((sum, b) => sum + b.weeklyProfit, 0);
+  const totalSales = allBakeriesPerformance.reduce((sum, b) => sum + b.weeklySales, 0);
+  const bakeriesWithData = allBakeriesPerformance.filter(b => b.status !== 'nodata').length;
+  const profitableBakeries = allBakeriesPerformance.filter(b => b.status === 'profitable').length;
 
   // Close export menu when clicking outside
   useEffect(() => {
@@ -192,6 +282,21 @@ export default function StrategicDashboard() {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showExportMenu]);
+
+  // Load all bakeries' performance data on mount
+  useEffect(() => {
+    const loadOverview = async () => {
+      setLoadingOverview(true);
+      try {
+        const performances = await loadAllBakeriesPerformance();
+        setAllBakeriesPerformance(performances);
+      } catch {
+        setAllBakeriesPerformance([]);
+      }
+      setLoadingOverview(false);
+    };
+    loadOverview();
+  }, []);
 
   // Load real data from Supabase (with localStorage fallback)
   useEffect(() => {
@@ -213,22 +318,29 @@ export default function StrategicDashboard() {
   // Refresh function
   const handleRefresh = async () => {
     setLoading(true);
+    setLoadingOverview(true);
     try {
-      const realData = await loadRealData(bakery);
+      const [realData, performances] = await Promise.all([
+        loadRealData(bakery),
+        loadAllBakeriesPerformance()
+      ]);
       setData(realData);
+      setAllBakeriesPerformance(performances);
       setLastRefresh(new Date());
     } catch {
       // Keep existing data on error
     }
     setLoading(false);
+    setLoadingOverview(false);
   };
 
   const latestWeek = data[data.length - 1] || {} as WeeklyData;
   const previousWeek = data[data.length - 2] || {} as WeeklyData;
 
-  const totalSales = data.reduce((sum, w) => sum + w.sales, 0);
-  const totalProfit = data.reduce((sum, w) => sum + w.profit, 0);
-  const avgMargin = data.length > 0
+  // Single-bakery 12-week totals
+  const bakery12WeekSales = data.reduce((sum, w) => sum + w.sales, 0);
+  const bakery12WeekProfit = data.reduce((sum, w) => sum + w.profit, 0);
+  const bakeryAvgMargin = data.length > 0
     ? (data.reduce((sum, w) => sum + parseFloat(w.margin), 0) / data.length).toFixed(1)
     : '0';
 
@@ -451,6 +563,138 @@ export default function StrategicDashboard() {
           </div>
         </div>
 
+        {/* ========== ALL BAKERIES OVERVIEW - PRIMARY VIEW ========== */}
+        <Card className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur border border-blue-500/30 p-5 rounded-2xl mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              📊 All Bakeries Overview
+              <span className="text-sm font-normal text-slate-400">This Week</span>
+            </h2>
+            {bakeriesWithData > 0 && (
+              <span className={cn(
+                "text-sm font-medium px-3 py-1 rounded-full",
+                profitableBakeries === bakeriesWithData ? "bg-green-500/20 text-green-400" :
+                profitableBakeries === 0 ? "bg-red-500/20 text-red-400" :
+                "bg-amber-500/20 text-amber-400"
+              )}>
+                {profitableBakeries}/{bakeriesWithData} Profitable
+              </span>
+            )}
+          </div>
+
+          {/* Total Profit Across All Bakeries */}
+          <div className={cn(
+            "p-4 rounded-xl mb-4 text-center",
+            totalProfit >= 0 ? "bg-emerald-500/10 border border-emerald-500/30" : "bg-red-500/10 border border-red-500/30"
+          )}>
+            <div className="text-sm text-slate-300 mb-1">Total Profit (All Bakeries)</div>
+            <div className={cn(
+              "text-3xl font-bold font-currency",
+              totalProfit >= 0 ? "text-emerald-400" : "text-red-400"
+            )}>
+              {totalProfit >= 0 ? '+' : ''}{formatUGX(totalProfit)}
+            </div>
+            <div className="text-sm text-slate-400 mt-1">
+              from {formatUGX(totalSales)} in sales
+            </div>
+          </div>
+
+          {/* Bakery Cards Grid */}
+          {loadingOverview ? (
+            <div className="text-center py-8 text-slate-400">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+              Loading bakeries...
+            </div>
+          ) : bakeriesWithData === 0 ? (
+            <div className="text-center py-8">
+              <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-3" />
+              <h3 className="font-bold text-white mb-2">No data this week</h3>
+              <p className="text-slate-400 text-sm">
+                No bakeries have recorded entries this week yet.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {allBakeriesPerformance.map((perf, index) => (
+                <button
+                  key={perf.bakeryId}
+                  onClick={() => setBakery(perf.bakeryId)}
+                  className={cn(
+                    "w-full flex items-center justify-between p-4 rounded-xl transition-all",
+                    bakery === perf.bakeryId
+                      ? "bg-blue-500/20 border-2 border-blue-500"
+                      : "bg-slate-800/50 border border-slate-700 hover:bg-slate-700/50"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Rank Badge */}
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                      index === 0 && perf.status === 'profitable' ? "bg-amber-500 text-black" :
+                      "bg-slate-700 text-slate-300"
+                    )}>
+                      {index + 1}
+                    </div>
+
+                    {/* Bakery Info */}
+                    <div className="text-left">
+                      <div className="font-bold text-white flex items-center gap-2">
+                        {perf.bakeryName}
+                        {/* Status Badge */}
+                        {perf.status === 'profitable' && (
+                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            🟢 Profitable
+                          </span>
+                        )}
+                        {perf.status === 'loss' && (
+                          <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            🔴 Loss
+                          </span>
+                        )}
+                        {perf.status === 'breakeven' && (
+                          <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            🟡 Break-even
+                          </span>
+                        )}
+                        {perf.status === 'nodata' && (
+                          <span className="text-xs bg-slate-500/20 text-slate-400 px-2 py-0.5 rounded-full">
+                            No data
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        Manager: {perf.manager} • {perf.daysRecorded}/7 days
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Profit/Sales */}
+                  <div className="text-right">
+                    <div className={cn(
+                      "text-lg font-bold font-currency",
+                      perf.weeklyProfit > 0 ? "text-green-400" :
+                      perf.weeklyProfit < 0 ? "text-red-400" :
+                      "text-slate-400"
+                    )}>
+                      {perf.weeklyProfit >= 0 ? '+' : ''}{formatUGX(perf.weeklyProfit)}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {perf.weeklyMargin.toFixed(1)}% margin
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* ========== SINGLE BAKERY DETAIL VIEW ========== */}
+        <div className="border-t border-slate-700 pt-6 mb-4">
+          <h2 className="text-lg font-bold text-slate-300 mb-4">
+            📈 {currentBakery?.name || 'Bakery'} Detail View
+          </h2>
+        </div>
+
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700">
@@ -475,13 +719,13 @@ export default function StrategicDashboard() {
 
           <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700">
             <div className="text-slate-400 text-sm">12-Week Total</div>
-            <div className="text-2xl font-bold text-blue-400 font-currency">{formatUGX(totalSales)}</div>
+            <div className="text-2xl font-bold text-blue-400 font-currency">{formatUGX(bakery12WeekSales)}</div>
             <div className="text-sm text-slate-500">Total Sales</div>
           </div>
 
           <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700">
             <div className="text-slate-400 text-sm">Avg Margin</div>
-            <div className="text-2xl font-bold text-amber-400">{avgMargin}%</div>
+            <div className="text-2xl font-bold text-amber-400">{bakeryAvgMargin}%</div>
             <div className="text-sm text-slate-500">Profit Margin</div>
           </div>
         </div>
